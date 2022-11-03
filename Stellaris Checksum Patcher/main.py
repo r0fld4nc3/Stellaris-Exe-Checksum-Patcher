@@ -3,7 +3,7 @@ import os
 import sys
 
 # 3rd-party
-from hex_patchers import HexData
+from hex_patchers import HexPatcher
 from stellaris_patcher_menu import entry_menu
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "Lib\\site-packages"))
