@@ -128,26 +128,24 @@ class StellarisChecksumPatcher:
             
         return True
             
-    def __convert_to_two_space(self, one_chunk=False) -> list:
+    def __convert_to_two_space(self, condense_chunks=False) -> list:
         # https://stackoverflow.com/a/10070449
         
-        # Convert current loaded hex to two space, so from XXXXXXXX to XX XX XX XX
+        # Convert current loaded hex to two space, so from 'XXXXXXXX' to ['XX', 'XX', 'XX', 'XX',..]
         
         self.logger.log_debug('Formatting hexadecimal data to working set...')
         
-        hex_data_list_working = []
+        formatted_hex_data_list = []
         
         for chunk in self.hex_data_list:
             converted = ' '.join(chunk[i:i+2] for i in range(0,len(chunk),2))
-            hex_data_list_working.append(converted)
+            formatted_hex_data_list.append(converted)
             
-        if one_chunk:
-            self.logger.log_debug('Applying as One Chunk.')
-            self.__hex_data_list_working.append(' '.join(hex_data_list_working))
+        if condense_chunks:
+            self.logger.log_debug('Condensing chunks...') # Here we take the list of chunks [['XX', 'XX', 'XX',..], ['XX', 'XX', 'XX', 'XX',..]] and turn all into a single chunk -> ["XX, XX, XX, XX, XX,.."]
+            self.__hex_data_list_working.append(' '.join(formatted_hex_data_list))
         else:
-            self.__hex_data_list_working = hex_data_list_working
-        
-        self.logger.log_debug('Done.')
+            self.__hex_data_list_working = formatted_hex_data_list
         
         return self.__hex_data_list_working
     
@@ -172,7 +170,7 @@ class StellarisChecksumPatcher:
     def acquire_checksum_block(self) -> bool:
         self.logger.log('Acquiring Checksum Block...')
         
-        working_set_hex = self.__convert_to_two_space(one_chunk=True)
+        working_set_hex = self.__convert_to_two_space(condense_chunks=True)
         
         potential_candidate = False
         
