@@ -1,8 +1,6 @@
 from . import *
 
 def get_current_dir():
-    # https://stackoverflow.com/a/404750
-
     if getattr(sys, 'frozen', False):
         application_path = os.path.dirname(sys.executable)
     else:
@@ -56,7 +54,6 @@ class StellarisChecksumPatcher:
         
         if stellaris_install_path:
             game_executable = os.path.join(stellaris_install_path, self.__exe_default_filename)
-            
             return game_executable
         
         return None
