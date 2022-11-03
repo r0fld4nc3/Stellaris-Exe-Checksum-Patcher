@@ -1,8 +1,3 @@
-# built-ins
-import os
-import sys
-import binascii
-
 from . import *
 
 def get_current_dir():
@@ -42,40 +37,48 @@ class StellarisChecksumPatcher:
         self.__base_dir = os.path.dirname(sys.executable)
         
         if self.__dev:
-            self.__base_dir = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
-            # self.__exe_out_directory = os.path.abspath(os.path.join(os.path.join(get_current_dir(), os.pardir), 'bin'))
-            self.__exe_out_directory = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
+            # self.__base_dir = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
+            # # self.__exe_out_directory = os.path.abspath(os.path.join(os.path.join(get_current_dir(), os.pardir), 'bin'))
+            # self.__exe_out_directory = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
+            pass
         
-        self.logger = Logger()
+        self.logger = Logger(dev=self.__dev)
         
-    def log(self, text) -> None:
-        self.logger.log(text, debug=False)
-    
-    def log_debug(self, text) -> None:
-        if self.__dev:
-            self.logger.log(f'{Colours.BLUE}{text}{Colours.DEFAULT}', debug=True)
+    def clear_caches(self):
+        self.__hex_data_list_working.clear()
+        self.__checksum_block.clear()
+        self.__checksum_offset_start = 0
+        self.__checksum_offset_end = 0
         
-    def log_error(self, text, debug=False) -> None:
-        self.logger.log_error(f'{Colours.RED}{text}{Colours.DEFAULT}', debug=debug)
+    def locate_game_install(self) -> os.path:
+        self.logger.log_debug('Locating game install...')
+        stellaris_install_path = registry_helper.reg_get_stellaris_install_path()
+        
+        if stellaris_install_path:
+            game_executable = os.path.join(stellaris_install_path, self.__exe_default_filename)
+            
+            return game_executable
+        
+        return None
     
     def load_file_hex(self, file_path=None) -> None:
-        self.log('Loading file Hex.')
+        self.logger.log('Loading file Hex.')
         
         if not file_path:
             file_path = os.path.join(self.__base_dir, self.__exe_default_filename)
                 
             if not os.path.isfile(file_path):
-                self.log_error(f'Unable to find required file: {file_path}')
+                self.logger.log_error(f'Unable to find required file: {file_path}')
                 return False
         
         self.hex_data_list.clear()
         
         if not os.path.exists(file_path):
-            self.log_error(f'{file_path} does not exist.')
+            self.logger.log_error(f'{file_path} does not exist.')
             return False
         
         with open(file_path, 'rb') as f:
-            self.log('Streaming File Hex Info...')
+            self.logger.log('Streaming File Hex Info...')
             while True:
                 hex_data = f.read(16).hex()
                 if len(hex_data) == 0:
@@ -84,7 +87,7 @@ class StellarisChecksumPatcher:
         
         self.hex_data = ''.join(self.hex_data_list)
         self.data_loaded = True
-        self.log('Read Finished.')
+        self.logger.log('Read Finished.')
         
         return True
     
@@ -124,7 +127,7 @@ class StellarisChecksumPatcher:
             for line in self.__hex_data_list_working:
                 chunk = binascii.unhexlify(str(line).rstrip())
                 out.write(chunk)
-            self.log(f'Writing {Colours.YELLOW}{filename}.exe{Colours.DEFAULT} to: {directory}')
+            self.logger.log(f'Writing {Colours.YELLOW}{filename}.exe{Colours.DEFAULT} to: {directory}')
             
         return True
             
@@ -133,7 +136,7 @@ class StellarisChecksumPatcher:
         
         # Convert current loaded hex to two space, so from XXXXXXXX to XX XX XX XX
         
-        self.log_debug('Applying space every 2 Hexadecimal characters...')
+        self.logger.log_debug('Formatting hexadecimal data to working set...')
         
         hex_data_list_working = []
         
@@ -142,12 +145,12 @@ class StellarisChecksumPatcher:
             hex_data_list_working.append(converted)
             
         if one_chunk:
-            self.log_debug('Applying as One Chunk.')
+            self.logger.log_debug('Applying as One Chunk.')
             self.__hex_data_list_working.append(' '.join(hex_data_list_working))
         else:
             self.__hex_data_list_working = hex_data_list_working
         
-        self.log_debug('Done.')
+        self.logger.log_debug('Done.')
         
         return self.__hex_data_list_working
     
@@ -170,7 +173,7 @@ class StellarisChecksumPatcher:
         return out_list
             
     def acquire_checksum_block(self) -> bool:
-        self.log('Acquiring Checksum Block...')
+        self.logger.log('Acquiring Checksum Block...')
         
         working_set_hex = self.__convert_to_two_space(one_chunk=True)
         
@@ -181,37 +184,37 @@ class StellarisChecksumPatcher:
             for index, hex_char in enumerate(chunk_split):
                 # CHECK FOR START SEQUENCE
                 if hex_char in self.__hex_begin_static and hex_char == self.__hex_begin_static[0]:
-                    # self.log_debug(f'Found matching starting hex <{hex_char}> at index {index}')
+                    # self.logger.log_debug(f'Found matching starting hex <{hex_char}> at index {index}')
                     start_candidate = []
                     start_sequence_len = len(self.__hex_begin_static)
                     
                     for i in range(start_sequence_len):
                         start_candidate.append(chunk_split[index+i])
                     if start_candidate == self.__hex_begin_static:
-                        # self.log_debug(f'Found potential start candidate: {start_candidate} starting from {index}')
+                        # self.logger.log_debug(f'Found potential start candidate: {start_candidate} starting from {index}')
                         
                         # CHECK FOR END SEQUENCE AFTER X WILDCARDS IN BETWEEN
-                        # self.log_debug('Checking for end sequence')
+                        # self.logger.log_debug('Checking for end sequence')
                         end_sequence_candidate = []
                         end_sequence_len = len(self.__hex_end_static)
                         
                         # [start_index_chars, start_index_chars+1, start_index_chars+2, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, 16??, end_hex_char, end_hex_char+1]
                         # [48, 8B, 12, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, 85, C0]
                         search_offset_start = index + start_sequence_len + self.__hex_wildcards_in_between
-                        # self.log_debug(f'Search Offset Start {search_offset_start}')
+                        # self.logger.log_debug(f'Search Offset Start {search_offset_start}')
                         for end_candidate in chunk_split[search_offset_start:search_offset_start + end_sequence_len]:
                             end_sequence_candidate.append(end_candidate)
                         
-                        # self.log_debug(f'End Candidate: {end_sequence_candidate}')
+                        # self.logger.log_debug(f'End Candidate: {end_sequence_candidate}')
                         
                         if end_sequence_candidate == self.__hex_end_static:
-                            # self.log_debug(f'Found potential start candidate: {start_candidate} starting from {index}')
-                            # self.log_debug(f'Found potential end candidate: {end_sequence_candidate} ending at index {search_offset_start + end_sequence_len}')
-                            # self.log_debug(f'Search Offset Start: {search_offset_start-index}')
+                            # self.logger.log_debug(f'Found potential start candidate: {start_candidate} starting from {index}')
+                            # self.logger.log_debug(f'Found potential end candidate: {end_sequence_candidate} ending at index {search_offset_start + end_sequence_len}')
+                            # self.logger.log_debug(f'Search Offset Start: {search_offset_start-index}')
                             self.__checksum_block = [hex_chunk for hex_chunk in chunk_split[index:search_offset_start + end_sequence_len]]
                             self.__checksum_offset_start = index
                             self.__checksum_offset_end = search_offset_start + end_sequence_len
-                            self.log(f'Found potential matching sequence:\n({index}) {self.__checksum_block} ({search_offset_start + self.__checksum_offset_end})\n')
+                            self.logger.log(f'Found potential matching sequence:\n({index}) {"".join(self.__checksum_block)} ({search_offset_start + self.__checksum_offset_end})')
                             potential_candidate = True
                             break
         
@@ -221,7 +224,7 @@ class StellarisChecksumPatcher:
         return False
 
     def modify_checksum(self):
-        self.log('Patching Block...')
+        self.logger.log('Patching Block...')
         if not self.__checksum_block:
             return False
         
@@ -233,8 +236,8 @@ class StellarisChecksumPatcher:
             else:
                 checksum_block_modified.append(hex_char)
                 
-        self.log_debug(f'Original Block: {self.__checksum_block}')            
-        self.log_debug(f'Modified Block: {checksum_block_modified}')
+        self.logger.log_debug(f'Original Block: {"".join(self.__checksum_block)}')            
+        self.logger.log_debug(f'Modified Block: {"".join(checksum_block_modified)}')
 
         if not self.__hex_data_list_working:
             return False
@@ -248,22 +251,30 @@ class StellarisChecksumPatcher:
         
         return True
         
-    def patch(self) -> bool:
-        if not self.hex_data_list:
-            return False
+    def patch(self) -> None:
+        self.clear_caches()
         
-        op_success = self.acquire_checksum_block()
-        if not op_success:
-            return False
+        if not self.data_loaded:
+            op_success = False
+        else:
+            op_success = True
         
-        op_success = self.modify_checksum()
-        if not op_success:
-            return False
+        if op_success:
+            op_success = self.acquire_checksum_block()
+            
+            if op_success:
+                op_success = self.modify_checksum()
+            
+            if op_success:
+                op_success = self.compile_hex_file()
         
-        op_success = self.compile_hex_file()
-        if not op_success:
-            return False
-        
-        return True
+        if op_success:
+            print('\n')
+            self.logger.log(f'Patch {Colours.GREEN}successful{Colours.DEFAULT}.\n\nPress any key to resume.')
+        else:
+            print('\n')
+            self.logger.log(f'Patch {Colours.RED}failed{Colours.DEFAULT}.\n\nPress any key to resume.')
+            
+        input()
         
     
