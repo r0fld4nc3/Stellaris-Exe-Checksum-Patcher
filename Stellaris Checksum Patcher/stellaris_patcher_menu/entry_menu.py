@@ -9,7 +9,7 @@ class EntryMenu(CLI):
         
         self.options =  {
             '0': 'Patch From Current Directory  (Must have \'stellaris.exe\' in same folder as patcher executable)',
-            '1': 'Patch From Install Location   (Automatically detect install and create patch)'
+            '1': 'Patch From Install Location   (Automatically detect installation and create patch)'
         }
         
         self.logger = Logger()
@@ -35,6 +35,3 @@ class EntryMenu(CLI):
             game_executable = self.patcher.locate_game_install()
             self.patcher.load_file_hex(file_path=game_executable)
             self.patcher.patch()
-        
-        # Third Option
-        # Ask for user input at the end
