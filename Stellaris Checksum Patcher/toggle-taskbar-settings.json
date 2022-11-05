@@ -1,0 +1,15 @@
+{
+  "toggle-keybinds": {
+    "toggle-key": "Q",
+    "toggle-mod-ctrl": true,
+    "toggle-mod-shift": false,
+    "toggle-mod-alt": false
+  },
+  "stop-keybinds": {
+    "stop-key": "Q",
+    "stop-mod-ctrl": false,
+    "stop-mod-shift": false,
+    "stop-mod-alt": true
+  },
+  "taskbar-state": false
+}

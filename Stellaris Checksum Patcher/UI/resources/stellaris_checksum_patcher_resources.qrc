@@ -1,8 +1,0 @@
-<RCC>
-  <qresource prefix="images">
-    <file>patch_icon.png</file>
-  </qresource>
-  <qresource prefix="fonts">
-    <file>Orbitron-VariableFont_wght.ttf</file>
-  </qresource>
-</RCC>
