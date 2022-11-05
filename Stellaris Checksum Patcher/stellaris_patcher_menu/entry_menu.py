@@ -29,9 +29,11 @@ class EntryMenu(CLI):
         if user_input == list(self.options.keys())[0]:
             self.patcher.load_file_hex() # not arguments loads from current directory
             self.patcher.patch()
+            input("Press any key to resume.")
             
         # Second Option
         if user_input == list(self.options.keys())[1]:
             game_executable = self.patcher.locate_game_install()
             self.patcher.load_file_hex(file_path=game_executable)
             self.patcher.patch()
+            input("Press any key to resume.")

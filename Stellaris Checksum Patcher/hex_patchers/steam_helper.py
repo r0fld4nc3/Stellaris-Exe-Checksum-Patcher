@@ -1,9 +1,8 @@
 from . import *
 
-logger = Logger(dev=True)
+logger = Logger(dev=False, exe=True)
 
 # KEY_LOCAL_MACHINE
-# STELLARIS_STEAM_APP_REGISTRY_PATH = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 281990'
 GAME_INSTALL_LOCATION_KEY = 'InstallLocation'
 
 # KEY_LOCAL_MACHINE
@@ -13,16 +12,6 @@ STEAM_INSTALL_LOCATION_KEY ='InstallPath'
 STEAM_STEAMAPPS_FOLDER = 'steamapps'
 STEAM_APP_MANIFEST_FILE_PREFIX = 'appmanifest'
 STEAM_LIBRARY_FOLDERS_FILE_TRAIL = 'config\libraryfolders.vdf' # Trail to join to steam install main path
-
-# IN ORDER TO GET A MORE ACCURATE INSTALL PATH FOR GAMES, A FEW STEPS MUST BE COMPLETED FIRST
-# https://stackoverflow.com/questions/34090258/find-steam-games-folder
-
-# 1. VIA REGISTRY LOCATE STEAM INSTALL FOLDER
-# 2. GET THE STEAM LIBRARIES TO KNOW WHERE steamapps IS AND TO BE ABLE TO PARSE EVERY MANIFEST
-# 2. IF YOU DON'T KNOW HOW THE APP ID, SEARCH IN steamapps FOLDER, EVERY MANIFEST, AND THERE IS A name PARAMETER.
-# 3. KNOWING THE APP ID, PARSE libraryfolders.vdf FOR EACH USER LIBRARY AND CHECK IF THE APP ID IS IN THE LIST OF GAMES OF THAT LIBRARY
-# 4. KNOWING THE LIBRARY PATH WE CAN WITH MORE CONFIDENCE NAVIGATE TO ...path\to\library\steamapps\common\Game Folder Name (installdir parameter in the game's appmanifest)
-# 5. THEN SIMPLY GRAB THE EXE FROM THERE.
 
 class SteamHelper:
     def __init__(self):
@@ -153,8 +142,6 @@ class SteamHelper:
         
         title_name = install_details.get('title')
         install_folder = os.path.join(install_details.get('steam-library'), f'common/{title_name}')
-        
-        logger.log
         
         return install_folder
         

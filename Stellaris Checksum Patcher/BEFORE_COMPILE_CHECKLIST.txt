@@ -1,0 +1,25 @@
+# IN ORDER TO GET A MORE ACCURATE INSTALL PATH FOR GAMES, A FEW STEPS MUST BE COMPLETED FIRST
+# https://stackoverflow.com/questions/34090258/find-steam-games-folder
+
+# 1. VIA REGISTRY LOCATE STEAM INSTALL FOLDER
+# 2. GET THE STEAM LIBRARIES TO KNOW WHERE steamapps IS AND TO BE ABLE TO PARSE EVERY MANIFEST
+# 2. IF YOU DON'T KNOW HOW THE APP ID, SEARCH IN steamapps FOLDER, EVERY MANIFEST, AND THERE IS A name PARAMETER.
+# 3. KNOWING THE APP ID, PARSE libraryfolders.vdf FOR EACH USER LIBRARY AND CHECK IF THE APP ID IS IN THE LIST OF GAMES OF THAT LIBRARY
+# 4. KNOWING THE LIBRARY PATH WE CAN WITH MORE CONFIDENCE NAVIGATE TO ...path\to\library\steamapps\common\Game Folder Name (installdir parameter in the game's appmanifest)
+# 5. THEN SIMPLY GRAB THE EXE FROM THERE.
+
+pyuic5 -x "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\StellarisChecksumPatcherUI.ui" -o "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\StellarisChecksumPatcherUI.py"
+pyrcc5 -o "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\stellaris_checksum_patcher_resources_rc.py" "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\resources\stellaris_checksum_patcher_resources.qrc"
+
+pyside6-uic "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\StellarisChecksumPatcherUI.ui" > "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\StellarisChecksumPatcherUI.py"
+pyside6-rcc -o "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\stellaris_checksum_patcher_resources_rc.py" "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\resources\stellaris_checksum_patcher_resources.qrc"
+
+--------------------------------------------------------------------------------------
+
+# COMMENT THE LINES INSIDE THE if self.__dev: BLOCK IN THE HexPatcher's CLASS __init__ WHEN ABOUT TO COMPILE TO BINARY
+
+# CHECK dev AND exe PROPERTIES OF THE LOGGERS ACROSS THE FILES
+
+
+# IF PARENT UI FILE IS RECOMPILE, FOR EACH ICON OR PATH REMEMBER TO DO os.path.join(os.path.dirname(__file__), "resource.png")
+AND AT THE TOP import os

@@ -4,5 +4,6 @@
 # Folders
 __pycache__
 _bin
+Lib
 # stored elsewhere due to sensitive information
 _build_config

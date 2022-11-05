@@ -32,16 +32,16 @@ color: rgb(35, 75, 70);</string>
      <widget class="QFrame" name="main_frame">
       <property name="minimumSize">
        <size>
-        <width>600</width>
+        <width>650</width>
         <height>500</height>
        </size>
       </property>
       <property name="styleSheet">
-       <string notr="true">background-color: rgb(35, 55, 50);
-color: rgb(35, 75, 70);</string>
+       <string notr="true">color: rgb(35, 75, 70);
+color: rgb(67, 144, 134);</string>
       </property>
       <property name="frameShape">
-       <enum>QFrame::Box</enum>
+       <enum>QFrame::WinPanel</enum>
       </property>
       <property name="frameShadow">
        <enum>QFrame::Plain</enum>
@@ -69,15 +69,16 @@ color: rgb(35, 75, 70);</string>
          </property>
          <property name="font">
           <font>
-           <family>Orbitron Black</family>
-           <pointsize>24</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
+           <family>Century Gothic</family>
+           <pointsize>26</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
           <string notr="true">color: rgb(255, 255, 255);
-border: 4px solid rgb(35, 75, 70);</string>
+background-color: rgb(35, 75, 70);
+border-radius: 5px;</string>
          </property>
          <property name="frameShadow">
           <enum>QFrame::Plain</enum>
@@ -92,13 +93,32 @@ border: 4px solid rgb(35, 75, 70);</string>
           <bool>false</bool>
          </property>
          <property name="alignment">
-          <set>Qt::AlignHCenter|Qt::AlignTop</set>
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
          </property>
          <property name="margin">
           <number>5</number>
          </property>
          <property name="indent">
           <number>-1</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="lbl_app_version">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="font">
+          <font>
+           <family>Orbitron</family>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>App Version</string>
          </property>
         </widget>
        </item>
@@ -128,8 +148,10 @@ border: 4px solid rgb(35, 75, 70);</string>
          </property>
          <property name="font">
           <font>
-           <family>Orbitron</family>
+           <family>Century Gothic</family>
            <pointsize>10</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
@@ -150,11 +172,11 @@ border: 4px solid rgb(35, 75, 70);</string>
           <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Orbitron'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;[INFO] Loading file Hex.&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;[INFO] Streaming File Hex Info...&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;[INFO] Read finished.&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;[INFO] Acquiring Checksum Block...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Century Gothic'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Orbitron';&quot;&gt;[INFO] Loading file Hex.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Orbitron';&quot;&gt;[INFO] Streaming File Hex Info...&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Orbitron';&quot;&gt;[INFO] Read finished.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Orbitron';&quot;&gt;[INFO] Acquiring Checksum Block...&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
          <property name="openExternalLinks">
           <bool>true</bool>
@@ -222,10 +244,10 @@ p, li { white-space: pre-wrap; }
            </property>
            <property name="font">
             <font>
-             <family>Orbitron Medium</family>
-             <pointsize>12</pointsize>
-             <weight>50</weight>
-             <bold>false</bold>
+             <family>Century Gothic</family>
+             <pointsize>14</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
             </font>
            </property>
            <property name="layoutDirection">
@@ -235,16 +257,22 @@ p, li { white-space: pre-wrap; }
             <bool>false</bool>
            </property>
            <property name="styleSheet">
-            <string notr="true">color: rgb(255, 255, 255);
+            <string notr="true">QPushButton {
+color: rgb(255, 255, 255);
 background-color: rgba(22, 59, 56, 100);
-border: 4px solid rgb(35, 75, 70);</string>
+border: 4px solid rgb(35, 75, 70);
+}
+QPushButton:pressed {
+background-color: rgba(30, 80, 70, 100);
+border-color: rgb(67, 144, 134);
+}</string>
            </property>
            <property name="text">
             <string>Patch From Directory</string>
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>resources/patch_icon.png</normaloff>resources/patch_icon.png</iconset>
+             <normaloff>ui_icons/patch_icon.png</normaloff>ui_icons/patch_icon.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -282,10 +310,10 @@ border: 4px solid rgb(35, 75, 70);</string>
            </property>
            <property name="font">
             <font>
-             <family>Orbitron Medium</family>
-             <pointsize>12</pointsize>
-             <weight>50</weight>
-             <bold>false</bold>
+             <family>Century Gothic</family>
+             <pointsize>14</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
             </font>
            </property>
            <property name="layoutDirection">
@@ -295,16 +323,22 @@ border: 4px solid rgb(35, 75, 70);</string>
             <bool>false</bool>
            </property>
            <property name="styleSheet">
-            <string notr="true">color: rgb(255, 255, 255);
+            <string notr="true">QPushButton {
+color: rgb(255, 255, 255);
 background-color: rgba(22, 59, 56, 100);
-border: 4px solid rgb(35, 75, 70);</string>
+border: 4px solid rgb(35, 75, 70);
+}
+QPushButton:pressed {
+background-color: rgba(30, 80, 70, 100);
+border-color: rgb(67, 144, 134);
+}</string>
            </property>
            <property name="text">
             <string>Patch From Installation</string>
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>resources/patch_icon.png</normaloff>resources/patch_icon.png</iconset>
+             <normaloff>ui_icons/patch_icon.png</normaloff>ui_icons/patch_icon.png</iconset>
            </property>
            <property name="iconSize">
             <size>
