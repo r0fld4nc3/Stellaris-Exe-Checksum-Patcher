@@ -4,7 +4,7 @@ class EntryMenu(CLI):
     def __init__(self) -> None:
         super().__init__(
             app_name='Stellaris Checksum Patcher',
-            app_version=[0, 0, 4]
+            app_version=[0, 0, 6]
             )
         
         self.options =  {

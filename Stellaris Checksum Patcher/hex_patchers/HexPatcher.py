@@ -28,16 +28,20 @@ class StellarisChecksumPatcher:
         self.__checksum_offset_start = 0
         self.__checksum_offset_end = 0
         
+        self.title_name = 'Stellaris'
         self.__exe_default_filename = 'stellaris.exe'
         self.__exe_out_directory = os.path.dirname(sys.executable)
         self.__exe_modified_default_filename = 'stellaris-patched'
         
         self.__base_dir = os.path.dirname(sys.executable)
         
+        self.__steam = steam_helper.SteamHelper()
+        
+        # COMMENT THE LINES INSIDE THE IF BLOCK WHEN ABOUT TO COMPILE TO BINARY
         if self.__dev:
-            # self.__base_dir = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
-            # # self.__exe_out_directory = os.path.abspath(os.path.join(os.path.join(get_current_dir(), os.pardir), 'bin'))
-            # self.__exe_out_directory = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
+            self.__base_dir = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
+            self.__exe_out_directory = os.path.abspath(os.path.join(os.path.join(get_current_dir(), os.pardir), 'bin'))
+            self.__exe_out_directory = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
             pass
         
         self.logger = Logger(dev=self.__dev)
@@ -50,7 +54,7 @@ class StellarisChecksumPatcher:
         
     def locate_game_install(self) -> os.path:
         self.logger.log_debug('Locating game install...')
-        stellaris_install_path = registry_helper.reg_get_stellaris_install_path()
+        stellaris_install_path = self.__steam.get_game_install_path(self.title_name)
         
         if stellaris_install_path:
             game_executable = os.path.join(stellaris_install_path, self.__exe_default_filename)
