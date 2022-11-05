@@ -9,3 +9,6 @@ from logger.Logger import Logger
 from cli_menu.colours import Colours
 from . import registry_helper
 from . import steam_helper
+
+DEV = False
+EXE = True
