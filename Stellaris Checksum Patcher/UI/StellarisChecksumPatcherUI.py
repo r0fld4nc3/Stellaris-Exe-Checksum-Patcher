@@ -20,8 +20,6 @@ from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QHBoxLayout,
     QSizePolicy, QSpacerItem, QTextBrowser, QVBoxLayout,
     QWidget)
 
-import os
-
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
@@ -142,13 +140,14 @@ class Ui_MainWindow(object):
 "background-color: rgba(22, 59, 56, 100);\n"
 "border: 4px solid rgb(35, 75, 70);\n"
 "}\n"
+"QPushButton:hover {\n"
+"background-color: rgba(255, 179, 25, 100);\n"
+"border-color: rgba(255, 151, 33, 175);\n"
+"}\n"
 "QPushButton:pressed {\n"
 "background-color: rgba(30, 80, 70, 100);\n"
 "border-color: rgb(67, 144, 134);\n"
 "}")
-        icon = QIcon()
-        icon.addFile(os.path.join(os.path.dirname(__file__), u"ui_icons/patch_icon.png"), QSize(), QIcon.Normal, QIcon.Off)
-        self.btn_patch_from_dir.setIcon(icon)
         self.btn_patch_from_dir.setIconSize(QSize(64, 64))
 
         self.hlayout_patch_buttons.addWidget(self.btn_patch_from_dir)
@@ -168,11 +167,14 @@ class Ui_MainWindow(object):
 "background-color: rgba(22, 59, 56, 100);\n"
 "border: 4px solid rgb(35, 75, 70);\n"
 "}\n"
+"QPushButton:hover {\n"
+"background-color: rgba(255, 179, 25, 100);\n"
+"border-color: rgba(255, 151, 33, 175);\n"
+"}\n"
 "QPushButton:pressed {\n"
 "background-color: rgba(30, 80, 70, 100);\n"
 "border-color: rgb(67, 144, 134);\n"
 "}")
-        self.btn_patch_from_install.setIcon(icon)
         self.btn_patch_from_install.setIconSize(QSize(64, 64))
         self.btn_patch_from_install.setFlat(False)
 

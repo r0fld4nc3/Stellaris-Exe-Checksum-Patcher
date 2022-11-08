@@ -19,7 +19,3 @@ pyside6-rcc -o "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checks
 # COMMENT THE LINES INSIDE THE if self.__dev: BLOCK IN THE HexPatcher's CLASS __init__ WHEN ABOUT TO COMPILE TO BINARY
 
 # CHECK dev AND exe PROPERTIES OF THE LOGGERS ACROSS THE FILES
-
-
-# IF PARENT UI FILE IS RECOMPILE, FOR EACH ICON OR PATH REMEMBER TO DO os.path.join(os.path.dirname(__file__), "resource.png")
-AND AT THE TOP import os

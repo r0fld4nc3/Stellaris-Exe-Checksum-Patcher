@@ -1,6 +1,9 @@
 from . import *
 
-logger = Logger(dev=False, exe=True)
+DEV = False
+EXE = True
+
+logger = Logger(dev=DEV, exe=EXE)
 
 WINREG_KEY_READ = winreg.KEY_READ
 

@@ -1,6 +1,9 @@
 from . import *
 
-logger = Logger(dev=False, exe=True)
+DEV = False
+EXE = True
+
+logger = Logger(dev=DEV, exe=EXE)
 
 def get_current_dir():
     if getattr(sys, 'frozen', False):
@@ -32,7 +35,7 @@ class StellarisChecksumPatcher:
         self.__checksum_offset_end = 0
         
         self.title_name = 'Stellaris'
-        self.__exe_default_filename = 'stellaris.exe'
+        self.exe_default_filename = 'stellaris.exe'
         self.__exe_out_directory = os.path.dirname(sys.executable)
         self.__exe_modified_default_filename = 'stellaris-patched'
         
@@ -53,20 +56,24 @@ class StellarisChecksumPatcher:
         self.__checksum_offset_end = 0
         
     def locate_game_install(self) -> os.path:
-        logger.log_debug('Locating game install...')
+        logger.log('Locating game install...')
         stellaris_install_path = self.__steam.get_game_install_path(self.title_name)
         
         if stellaris_install_path:
-            game_executable = os.path.join(stellaris_install_path, self.__exe_default_filename)
+            game_executable = os.path.join(stellaris_install_path, self.exe_default_filename)
+            if not os.path.exists(game_executable):
+                return None
             return game_executable
         
         return None
     
-    def load_file_hex(self, file_path=None) -> None:
+    def load_file_hex(self, file_path=None) -> bool:
         logger.log('Loading file Hex.')
         
+        file_path = str(file_path).replace('/', '\\')
+        
         if not file_path:
-            file_path = os.path.join(self.__base_dir, self.__exe_default_filename)
+            file_path = os.path.join(self.__base_dir, self.exe_default_filename)
                 
             if not os.path.isfile(file_path):
                 logger.log_error(f'Unable to find required file: {file_path}')
@@ -216,7 +223,8 @@ class StellarisChecksumPatcher:
                             self.__checksum_block = [hex_chunk for hex_chunk in chunk_split[index:search_offset_start + end_sequence_len]]
                             self.__checksum_offset_start = index
                             self.__checksum_offset_end = search_offset_start + end_sequence_len
-                            logger.log(f'Found potential matching sequence:\n({index}) {"".join(self.__checksum_block)} ({search_offset_start + self.__checksum_offset_end})')
+                            logger.log(f'Found potential matching sequence.')
+                            logger.log_debug(f'({index}) {"".join(self.__checksum_block)} ({search_offset_start + self.__checksum_offset_end})')
                             potential_candidate = True
                             break
         
@@ -238,7 +246,7 @@ class StellarisChecksumPatcher:
             else:
                 checksum_block_modified.append(hex_char)
                 
-        logger.log_debug(f'Original Block: {"".join(self.__checksum_block)}')            
+        logger.log_debug(f'Original Block:  {"".join(self.__checksum_block)}')            
         logger.log_debug(f'Modified Block: {"".join(checksum_block_modified)}')
 
         if not self.__hex_data_list_working:
