@@ -42,35 +42,39 @@ class Logger:
                 f.write(log_text + '\n')
     
     def log(self, log_text):
-        print(f'[INFO] {log_text}')
-        self.signals.progress_signal.emit(f'[INFO] {log_text}')
-        self.write_to_log_file(f'[INFO] {log_text}')
+        log = f'[INFO] {log_text}'
+        print(log)
+        self.signals.progress_signal.emit(log)
+        self.write_to_log_file(log)
             
     def log_debug(self, log_text):
+        log = f'[DEBUG] {log_text}'
         if self.__dev:
             if self.__exe:
-                print(f'[DEBUG] {log_text}')
-                self.signals.progress_signal.emit(f'[DEBUG] {log_text}')
+                print(log)
+                self.signals.progress_signal.emit(log)
             else:
                 print(f'{Colours.BLUE}[DEBUG] {log_text}{Colours.DEFAULT}')
 
-        self.write_to_log_file(f'[DEBUG] {log_text}')
+        self.write_to_log_file(log)
     
     def log_error(self, log_text):
+        log = f'[ERROR] {log_text}'
         if self.__exe:
-            print(f'[ERROR] {log_text}')
-            self.signals.progress_signal.emit(f'[ERROR] {log_text}')
+            print(log)
+            self.signals.progress_signal.emit(log)
         else:
             print(f'{Colours.RED}[ERROR]{Colours.DEFAULT} {log_text}')
             
-        self.write_to_log_file(f'[ERROR] {log_text}')
+        self.write_to_log_file(log)
             
     def log_debug_error(self, log_text):
+        log = f'[DEBUG][ERROR] {log_text}'
         if self.__dev:
             if self.__exe:
-                print(f'[DEBUG][ERROR] {log_text}')
-                self.signals.progress_signal.emit(f'[DEBUG][ERROR] {log_text}')
+                print(log)
+                self.signals.progress_signal.emit(log)
             else:
                 print(f'{Colours.BLUE}[DEBUG]{Colours.RED}[ERROR]{Colours.DEFAULT} {log_text}')
         
-        self.write_to_log_file(f'[DEBUG][ERROR] {log_text}')
+        self.write_to_log_file(log)
