@@ -24,13 +24,15 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(930, 723)
-        MainWindow.setStyleSheet(u"")
-        self.central_widget = QWidget(MainWindow)
-        self.central_widget.setObjectName(u"central_widget")
+        MainWindow.resize(779, 575)
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
+        MainWindow.setSizePolicy(sizePolicy)
+        MainWindow.setStyleSheet(u"")
+        self.central_widget = QWidget(MainWindow)
+        self.central_widget.setObjectName(u"central_widget")
         sizePolicy.setHeightForWidth(self.central_widget.sizePolicy().hasHeightForWidth())
         self.central_widget.setSizePolicy(sizePolicy)
         self.central_widget.setStyleSheet(u"background-color: rgb(35, 55, 50);\n"
@@ -48,19 +50,55 @@ class Ui_MainWindow(object):
         self.main_frame.setMidLineWidth(0)
         self.verticalLayout = QVBoxLayout(self.main_frame)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.lbl_title = QLabel(self.main_frame)
-        self.lbl_title.setObjectName(u"lbl_title")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.hlayout_window_functions = QHBoxLayout()
+        self.hlayout_window_functions.setObjectName(u"hlayout_window_functions")
+        self.pushButton = QPushButton(self.main_frame)
+        self.pushButton.setObjectName(u"pushButton")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.lbl_title.sizePolicy().hasHeightForWidth())
-        self.lbl_title.setSizePolicy(sizePolicy1)
-        self.lbl_title.setBaseSize(QSize(0, 0))
+        sizePolicy1.setHeightForWidth(self.pushButton.sizePolicy().hasHeightForWidth())
+        self.pushButton.setSizePolicy(sizePolicy1)
+        self.pushButton.setMinimumSize(QSize(32, 24))
+        self.pushButton.setMaximumSize(QSize(32, 32))
+        self.pushButton.setBaseSize(QSize(32, 32))
         font = QFont()
-        font.setFamilies([u"Century Gothic"])
-        font.setPointSize(26)
+        font.setFamilies([u"Orbitron"])
+        font.setPointSize(10)
         font.setBold(False)
-        self.lbl_title.setFont(font)
+        self.pushButton.setFont(font)
+        self.pushButton.setStyleSheet(u"QPushButton {\n"
+"color: rgb(255, 255, 255);\n"
+"background-color: rgba(22, 59, 56, 100);\n"
+"border: 4px solid rgb(35, 75, 70);\n"
+"}\n"
+"QPushButton:hover {\n"
+"background-color: rgba(255, 179, 25, 100);\n"
+"border-color: rgba(255, 151, 33, 175);\n"
+"}\n"
+"QPushButton:pressed {\n"
+"background-color: rgba(30, 80, 70, 100);\n"
+"border-color: rgb(67, 144, 134);\n"
+"}")
+
+        self.hlayout_window_functions.addWidget(self.pushButton, 0, Qt.AlignRight)
+
+
+        self.verticalLayout.addLayout(self.hlayout_window_functions)
+
+        self.lbl_title = QLabel(self.main_frame)
+        self.lbl_title.setObjectName(u"lbl_title")
+        sizePolicy2 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.lbl_title.sizePolicy().hasHeightForWidth())
+        self.lbl_title.setSizePolicy(sizePolicy2)
+        self.lbl_title.setBaseSize(QSize(0, 0))
+        font1 = QFont()
+        font1.setFamilies([u"Century Gothic"])
+        font1.setPointSize(26)
+        font1.setBold(False)
+        self.lbl_title.setFont(font1)
         self.lbl_title.setStyleSheet(u"color: rgb(255, 255, 255);\n"
 "background-color: rgb(35, 75, 70);\n"
 "border-radius: 5px;")
@@ -75,12 +113,12 @@ class Ui_MainWindow(object):
 
         self.lbl_app_version = QLabel(self.main_frame)
         self.lbl_app_version.setObjectName(u"lbl_app_version")
-        sizePolicy1.setHeightForWidth(self.lbl_app_version.sizePolicy().hasHeightForWidth())
-        self.lbl_app_version.setSizePolicy(sizePolicy1)
-        font1 = QFont()
-        font1.setFamilies([u"Orbitron"])
-        font1.setPointSize(10)
-        self.lbl_app_version.setFont(font1)
+        sizePolicy2.setHeightForWidth(self.lbl_app_version.sizePolicy().hasHeightForWidth())
+        self.lbl_app_version.setSizePolicy(sizePolicy2)
+        font2 = QFont()
+        font2.setFamilies([u"Orbitron"])
+        font2.setPointSize(10)
+        self.lbl_app_version.setFont(font2)
 
         self.verticalLayout.addWidget(self.lbl_app_version)
 
@@ -90,16 +128,16 @@ class Ui_MainWindow(object):
 
         self.terminal_display = QTextBrowser(self.main_frame)
         self.terminal_display.setObjectName(u"terminal_display")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
-        sizePolicy2.setHorizontalStretch(0)
-        sizePolicy2.setVerticalStretch(0)
-        sizePolicy2.setHeightForWidth(self.terminal_display.sizePolicy().hasHeightForWidth())
-        self.terminal_display.setSizePolicy(sizePolicy2)
-        font2 = QFont()
-        font2.setFamilies([u"Century Gothic"])
-        font2.setPointSize(10)
-        font2.setBold(False)
-        self.terminal_display.setFont(font2)
+        sizePolicy3 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.terminal_display.sizePolicy().hasHeightForWidth())
+        self.terminal_display.setSizePolicy(sizePolicy3)
+        font3 = QFont()
+        font3.setFamilies([u"Century Gothic"])
+        font3.setPointSize(10)
+        font3.setBold(False)
+        self.terminal_display.setFont(font3)
         self.terminal_display.setStyleSheet(u"color: rgb(255, 255, 255);\n"
 "background-color: rgba(22, 59, 56, 100);\n"
 "border: 4px solid rgb(35, 75, 70);")
@@ -120,19 +158,16 @@ class Ui_MainWindow(object):
         self.hlayout_patch_buttons.setContentsMargins(0, 0, 0, 0)
         self.btn_patch_from_dir = QPushButton(self.main_frame)
         self.btn_patch_from_dir.setObjectName(u"btn_patch_from_dir")
-        sizePolicy3 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
-        sizePolicy3.setHorizontalStretch(0)
-        sizePolicy3.setVerticalStretch(0)
-        sizePolicy3.setHeightForWidth(self.btn_patch_from_dir.sizePolicy().hasHeightForWidth())
-        self.btn_patch_from_dir.setSizePolicy(sizePolicy3)
+        sizePolicy1.setHeightForWidth(self.btn_patch_from_dir.sizePolicy().hasHeightForWidth())
+        self.btn_patch_from_dir.setSizePolicy(sizePolicy1)
         self.btn_patch_from_dir.setMinimumSize(QSize(12, 24))
         self.btn_patch_from_dir.setMaximumSize(QSize(16777215, 75))
         self.btn_patch_from_dir.setBaseSize(QSize(12, 24))
-        font3 = QFont()
-        font3.setFamilies([u"Century Gothic"])
-        font3.setPointSize(14)
-        font3.setBold(True)
-        self.btn_patch_from_dir.setFont(font3)
+        font4 = QFont()
+        font4.setFamilies([u"Century Gothic"])
+        font4.setPointSize(14)
+        font4.setBold(True)
+        self.btn_patch_from_dir.setFont(font4)
         self.btn_patch_from_dir.setLayoutDirection(Qt.RightToLeft)
         self.btn_patch_from_dir.setAutoFillBackground(False)
         self.btn_patch_from_dir.setStyleSheet(u"QPushButton {\n"
@@ -154,12 +189,12 @@ class Ui_MainWindow(object):
 
         self.btn_patch_from_install = QPushButton(self.main_frame)
         self.btn_patch_from_install.setObjectName(u"btn_patch_from_install")
-        sizePolicy3.setHeightForWidth(self.btn_patch_from_install.sizePolicy().hasHeightForWidth())
-        self.btn_patch_from_install.setSizePolicy(sizePolicy3)
+        sizePolicy1.setHeightForWidth(self.btn_patch_from_install.sizePolicy().hasHeightForWidth())
+        self.btn_patch_from_install.setSizePolicy(sizePolicy1)
         self.btn_patch_from_install.setMinimumSize(QSize(12, 24))
         self.btn_patch_from_install.setMaximumSize(QSize(16777215, 75))
         self.btn_patch_from_install.setBaseSize(QSize(12, 24))
-        self.btn_patch_from_install.setFont(font3)
+        self.btn_patch_from_install.setFont(font4)
         self.btn_patch_from_install.setLayoutDirection(Qt.RightToLeft)
         self.btn_patch_from_install.setAutoFillBackground(False)
         self.btn_patch_from_install.setStyleSheet(u"QPushButton {\n"
@@ -198,6 +233,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
+        self.pushButton.setText(QCoreApplication.translate("MainWindow", u"X", None))
         self.lbl_title.setText(QCoreApplication.translate("MainWindow", u"Stellaris Checksum Patcher", None))
         self.lbl_app_version.setText(QCoreApplication.translate("MainWindow", u"App Version", None))
         self.terminal_display.setHtml(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"

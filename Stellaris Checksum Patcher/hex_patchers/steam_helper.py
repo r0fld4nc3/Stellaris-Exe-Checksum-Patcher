@@ -1,9 +1,6 @@
 from . import *
 
-DEV = False
-EXE = True
-
-logger = Logger(dev=DEV, exe=EXE)
+from main import logger
 
 # KEY_LOCAL_MACHINE
 GAME_INSTALL_LOCATION_KEY = 'InstallLocation'

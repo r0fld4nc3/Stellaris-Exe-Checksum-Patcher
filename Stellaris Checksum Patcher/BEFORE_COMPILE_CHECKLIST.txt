@@ -8,14 +8,14 @@
 # 4. KNOWING THE LIBRARY PATH WE CAN WITH MORE CONFIDENCE NAVIGATE TO ...path\to\library\steamapps\common\Game Folder Name (installdir parameter in the game's appmanifest)
 # 5. THEN SIMPLY GRAB THE EXE FROM THERE.
 
+# To compile UI with PyQt
 pyuic5 -x "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\StellarisChecksumPatcherUI.ui" -o "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\StellarisChecksumPatcherUI.py"
 pyrcc5 -o "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\stellaris_checksum_patcher_resources_rc.py" "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\resources\stellaris_checksum_patcher_resources.qrc"
 
+# To compile UI with PySide
 pyside6-uic "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\StellarisChecksumPatcherUI.ui" > "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\StellarisChecksumPatcherUI.py"
 pyside6-rcc -o "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\stellaris_checksum_patcher_resources_rc.py" "D:\GitHub\Python\stellaris-exe-checksum-patcher\Stellaris Checksum Patcher\UI\resources\stellaris_checksum_patcher_resources.qrc"
 
 --------------------------------------------------------------------------------------
-
-# COMMENT THE LINES INSIDE THE if self.__dev: BLOCK IN THE HexPatcher's CLASS __init__ WHEN ABOUT TO COMPILE TO BINARY
 
 # CHECK dev AND exe PROPERTIES OF THE LOGGERS ACROSS THE FILES
