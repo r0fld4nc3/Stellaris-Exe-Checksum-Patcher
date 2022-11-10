@@ -20,3 +20,9 @@ Download the executable in [Releases](https://github.com/r0fld4nc3/stellaris-exe
   - This will first attempt to look in the current directory where the Patcher is located for the game's executable and will patch and move it to the installation folder.
   - If the game's executable isn't in the current directory, it will prompt for the game's install path and acquire the file from there.
   - It will create a backup of the original adding a _.orig_ to the end of the file name.
+
+# Notes
+## Windows protected your PC
+This is a common issue with unsigned or newly signed certificates.
+There isn't much I can do about it apart from generating a signature and letting it be evaluated over time. I can assure you this is nothing to be concerned of, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
+The software provided is completely safe.
