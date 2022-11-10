@@ -2,6 +2,11 @@
 
 An easy and painless way to patch the game's executable so that mods are compatible with Ironman mode and anything that is prevented from a checkusm check.
 
+Download the executable in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
+
+[![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/stellaris-exe-checksum-patcher/total?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher.exe)
+[![Release Version Badge](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
+
 <p align="center">
 <img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-01.png" width="762">
 </p>
