@@ -22,7 +22,9 @@ Download the executable in [Releases](https://github.com/r0fld4nc3/stellaris-exe
   - It will create a backup of the original adding a _.orig_ to the end of the file name.
 
 # Notes
-## Windows protected your PC
+## Windows protected your PC Warning
 This is a common issue with unsigned or newly signed certificates.
+  
 There isn't much I can do about it apart from generating a signature and letting it be evaluated over time. I can assure you this is nothing to be concerned of, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
-The software provided is completely safe.
+  
+The provided software is completely safe.
