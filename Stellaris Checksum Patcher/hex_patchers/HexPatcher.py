@@ -13,7 +13,7 @@ def get_current_dir():
 
 class StellarisChecksumPatcher:
     def __init__(self) -> None:
-        self.app_version = [1, 0, 1]
+        self.app_version = [1, 0, 11]
         self.hex_data_list = []
         self._hex_data_list_working = []
         

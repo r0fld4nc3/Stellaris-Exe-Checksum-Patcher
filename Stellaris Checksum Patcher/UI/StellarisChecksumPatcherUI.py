@@ -15,16 +15,16 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QHBoxLayout,
-    QLabel, QLayout, QMainWindow, QPushButton,
-    QSizePolicy, QSpacerItem, QTextBrowser, QVBoxLayout,
-    QWidget)
+from PySide6.QtWidgets import (QAbstractScrollArea, QApplication, QFrame, QGridLayout,
+    QHBoxLayout, QLabel, QLayout, QMainWindow,
+    QPushButton, QSizePolicy, QSpacerItem, QTextBrowser,
+    QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(779, 575)
+        MainWindow.resize(1024, 848)
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -148,6 +148,31 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.terminal_display)
 
+        self.hlayout_after_terminal_display = QHBoxLayout()
+        self.hlayout_after_terminal_display.setSpacing(0)
+        self.hlayout_after_terminal_display.setObjectName(u"hlayout_after_terminal_display")
+        self.txt_browser_project_link = QTextBrowser(self.main_frame)
+        self.txt_browser_project_link.setObjectName(u"txt_browser_project_link")
+        self.txt_browser_project_link.setEnabled(True)
+        sizePolicy3.setHeightForWidth(self.txt_browser_project_link.sizePolicy().hasHeightForWidth())
+        self.txt_browser_project_link.setSizePolicy(sizePolicy3)
+        self.txt_browser_project_link.setMaximumSize(QSize(16777215, 36))
+        font4 = QFont()
+        font4.setFamilies([u"Century Gothic"])
+        font4.setPointSize(10)
+        font4.setBold(True)
+        self.txt_browser_project_link.setFont(font4)
+        self.txt_browser_project_link.setStyleSheet(u"border: 4px solid rgb(35, 75, 70);")
+        self.txt_browser_project_link.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.txt_browser_project_link.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.txt_browser_project_link.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        self.txt_browser_project_link.setOpenExternalLinks(True)
+
+        self.hlayout_after_terminal_display.addWidget(self.txt_browser_project_link)
+
+
+        self.verticalLayout.addLayout(self.hlayout_after_terminal_display)
+
         self.verticalSpacer_2 = QSpacerItem(20, 50, QSizePolicy.Minimum, QSizePolicy.Maximum)
 
         self.verticalLayout.addItem(self.verticalSpacer_2)
@@ -163,11 +188,11 @@ class Ui_MainWindow(object):
         self.btn_patch_from_dir.setMinimumSize(QSize(12, 24))
         self.btn_patch_from_dir.setMaximumSize(QSize(16777215, 75))
         self.btn_patch_from_dir.setBaseSize(QSize(12, 24))
-        font4 = QFont()
-        font4.setFamilies([u"Century Gothic"])
-        font4.setPointSize(14)
-        font4.setBold(True)
-        self.btn_patch_from_dir.setFont(font4)
+        font5 = QFont()
+        font5.setFamilies([u"Century Gothic"])
+        font5.setPointSize(14)
+        font5.setBold(True)
+        self.btn_patch_from_dir.setFont(font5)
         self.btn_patch_from_dir.setLayoutDirection(Qt.RightToLeft)
         self.btn_patch_from_dir.setAutoFillBackground(False)
         self.btn_patch_from_dir.setStyleSheet(u"QPushButton {\n"
@@ -194,7 +219,7 @@ class Ui_MainWindow(object):
         self.btn_patch_from_install.setMinimumSize(QSize(12, 24))
         self.btn_patch_from_install.setMaximumSize(QSize(16777215, 75))
         self.btn_patch_from_install.setBaseSize(QSize(12, 24))
-        self.btn_patch_from_install.setFont(font4)
+        self.btn_patch_from_install.setFont(font5)
         self.btn_patch_from_install.setLayoutDirection(Qt.RightToLeft)
         self.btn_patch_from_install.setAutoFillBackground(False)
         self.btn_patch_from_install.setStyleSheet(u"QPushButton {\n"
@@ -245,6 +270,11 @@ class Ui_MainWindow(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Orbitron';\">[INFO] Read finished.</span></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-"
                         "right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Orbitron';\">[INFO] Acquiring Checksum Block...</span></p></body></html>", None))
+        self.txt_browser_project_link.setHtml(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:'Century Gothic'; font-size:10pt; font-weight:600; font-style:normal;\">\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Project link: </span><a href=\"https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher\"><span style=\" font-weight:400; text-decoration: underline; color:#2a90d8;\">https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher</span></a></p></body></html>", None))
         self.btn_patch_from_dir.setText(QCoreApplication.translate("MainWindow", u"Patch From Directory", None))
         self.btn_patch_from_install.setText(QCoreApplication.translate("MainWindow", u"Patch From Installation", None))
     # retranslateUi
