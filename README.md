@@ -31,6 +31,8 @@ Download the executable in [Releases](https://github.com/r0fld4nc3/stellaris-exe
 This is a common issue with unsigned or newly signed certificates.
   
 There isn't much I can do about it apart from generating a signature and letting it be evaluated over time. I can assure you this is nothing to be concerned of, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
+
+**This tool is currently only hosted on this GitHub project. I included the official signing timestamp of each file in each release so check against those if you must.**
   
 The provided software is completely safe.
 
