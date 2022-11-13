@@ -7,4 +7,4 @@ import winreg
 # 3rd-party
 from . import registry_helper
 from . import steam_helper
-from cli_menu.colours import Colours
+from logger.colours import Colours

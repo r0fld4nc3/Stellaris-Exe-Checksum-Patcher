@@ -2,4 +2,4 @@
 import os
 
 # 3rd-party
-from cli_menu.colours import Colours
+from logger.colours import Colours
