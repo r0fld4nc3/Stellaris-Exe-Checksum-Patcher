@@ -2,7 +2,7 @@ from . import *
 
 from PySide6 import QtWidgets
 
-class Capturing(list):
+class Capturing(list): # Deprecated and not used, here for simply backup reasons because it was really cool to figure it out.
     def __enter__(self):
         self._stdout = sys.stdout
         sys.stdout = self._stringio = StringIO()
@@ -17,6 +17,3 @@ def prompt_user_game_install_dialog():
     directory = QtWidgets.QFileDialog().getExistingDirectory(caption='Please choose Stellaris installation Folder...')
     
     return directory
-    
-def do_something_when_thread_ended():
-    print('Thread has ended.')

@@ -1,10 +1,11 @@
 from PySide6.QtCore import QObject, QRunnable, Slot, Signal
 
 class WorkerSignals(QObject):
-    finished_signal = Signal()
-    progress_signal = Signal(str)
+    started = Signal()
+    finished = Signal()
+    progress = Signal(str)
     terminal_progress = Signal(str)
-    fail_signal = Signal()
+    failed = Signal()
 
 class Worker(QRunnable):
     def __init__(self, target=None, args=(), kwargs=None) -> None:
@@ -17,9 +18,11 @@ class Worker(QRunnable):
 
     @Slot()
     def run(self):
-        """Long-running task."""
+        """Start task."""
         if self._target:
             if self._kwargs is None:
                 self._kwargs = {}
+            self.signals.started.emit()
             self._target(*self._args, *self._kwargs)
-        self.signals.finished_signal.emit()
+        self.signals.finished.emit()
+        

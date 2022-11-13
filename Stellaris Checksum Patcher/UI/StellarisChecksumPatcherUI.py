@@ -52,36 +52,36 @@ class Ui_MainWindow(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.hlayout_window_functions = QHBoxLayout()
         self.hlayout_window_functions.setObjectName(u"hlayout_window_functions")
-        self.pushButton = QPushButton(self.main_frame)
-        self.pushButton.setObjectName(u"pushButton")
+        self.btn_themed_exit_application = QPushButton(self.main_frame)
+        self.btn_themed_exit_application.setObjectName(u"btn_themed_exit_application")
         sizePolicy1 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.pushButton.sizePolicy().hasHeightForWidth())
-        self.pushButton.setSizePolicy(sizePolicy1)
-        self.pushButton.setMinimumSize(QSize(32, 24))
-        self.pushButton.setMaximumSize(QSize(32, 32))
-        self.pushButton.setBaseSize(QSize(32, 32))
+        sizePolicy1.setHeightForWidth(self.btn_themed_exit_application.sizePolicy().hasHeightForWidth())
+        self.btn_themed_exit_application.setSizePolicy(sizePolicy1)
+        self.btn_themed_exit_application.setMinimumSize(QSize(32, 24))
+        self.btn_themed_exit_application.setMaximumSize(QSize(32, 32))
+        self.btn_themed_exit_application.setBaseSize(QSize(32, 32))
         font = QFont()
         font.setFamilies([u"Orbitron"])
-        font.setPointSize(10)
+        font.setPointSize(18)
         font.setBold(False)
-        self.pushButton.setFont(font)
-        self.pushButton.setStyleSheet(u"QPushButton {\n"
-"color: rgb(255, 255, 255);\n"
+        self.btn_themed_exit_application.setFont(font)
+        self.btn_themed_exit_application.setStyleSheet(u"QPushButton#btn_themed_exit_application {\n"
+"color: rgb(25, 255, 236);\n"
 "background-color: rgba(22, 59, 56, 100);\n"
-"border: 4px solid rgb(35, 75, 70);\n"
+"border: 2px solid rgb(67, 144, 134);\n"
 "}\n"
-"QPushButton:hover {\n"
+"QPushButton#btn_themed_exit_application:hover {\n"
 "background-color: rgba(255, 179, 25, 100);\n"
 "border-color: rgba(255, 151, 33, 175);\n"
 "}\n"
-"QPushButton:pressed {\n"
+"QPushButton#btn_themed_exit_application:pressed {\n"
 "background-color: rgba(30, 80, 70, 100);\n"
 "border-color: rgb(67, 144, 134);\n"
 "}")
 
-        self.hlayout_window_functions.addWidget(self.pushButton, 0, Qt.AlignRight)
+        self.hlayout_window_functions.addWidget(self.btn_themed_exit_application, 0, Qt.AlignRight)
 
 
         self.verticalLayout.addLayout(self.hlayout_window_functions)
@@ -258,7 +258,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.pushButton.setText(QCoreApplication.translate("MainWindow", u"X", None))
+        self.btn_themed_exit_application.setText(QCoreApplication.translate("MainWindow", u"X", None))
         self.lbl_title.setText(QCoreApplication.translate("MainWindow", u"Stellaris Checksum Patcher", None))
         self.lbl_app_version.setText(QCoreApplication.translate("MainWindow", u"App Version", None))
         self.terminal_display.setHtml(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"

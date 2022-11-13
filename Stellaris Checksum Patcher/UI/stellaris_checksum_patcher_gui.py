@@ -4,16 +4,17 @@ from . import *
 from main import logger
 
 from PySide6 import QtWidgets, QtCore, QtGui
-from .ui_utils import prompt_user_game_install_dialog, do_something_when_thread_ended
-from .worker_threads import Worker, WorkerSignals
+from .ui_utils import prompt_user_game_install_dialog
+from .worker_threads import Worker
 from UI.StellarisChecksumPatcherUI import Ui_MainWindow
 from hex_patchers.HexPatcher import StellarisChecksumPatcher
 
 UI_ICONS_FOLDER = os.path.join(os.path.dirname(__file__), 'ui_icons')
 
 class StellarisChecksumPatcherGUI(Ui_MainWindow):
+    _app_version = ('.'.join([str(v) for v in StellarisChecksumPatcher.app_version]))
+    
     def __init__(self) -> None:
-        
         super(StellarisChecksumPatcherGUI, self).__init__()
         
         self.__set_app_id()
@@ -24,7 +25,6 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         self._has_run_once = False
         self._patch_successful = False
         self.is_patching = False
-        self._app_version = ('.'.join([str(v) for v in self.stellaris_patcher.app_version]))
         
         self._manual_install_dir = ''
         
@@ -32,6 +32,7 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         self.main_window = QtWidgets.QMainWindow()
         Ui_MainWindow.setupUi(self, self.main_window)
         self.main_window.setWindowTitle(f'Stellaris Checksum Patcher v{self._app_version}')
+        # self.main_window.setWindowFlags(QtCore.Qt.FramelessWindowHint) # Needs implementation of event filters and draggable events but cannot seem to get it working as of now.
         
         self.patch_icon = QtGui.QIcon(os.path.join(UI_ICONS_FOLDER, 'patch_icon.png'))
         
@@ -47,15 +48,46 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
         self.terminal_display.clear()
         
-        
         # Set App Version from HexPatcher
         self.lbl_app_version.setText(f'Version {self._app_version}')
         
-        # Perhaps add a GUI Version as well? Hmm
-        
+        # Handle initial connects        
         self.btn_patch_from_dir.clicked.connect(self.patch_from_directory_thread)
         self.btn_patch_from_install.clicked.connect(self.patch_from_game_install_thread)
-        logger.signals.progress_signal.connect(self.terminal_display_log)
+        self.btn_themed_exit_application.clicked.connect(self._app_quit)
+        logger.signals.progress.connect(self.terminal_display_log)
+        
+        # ThreadPool
+        self.thread_pool = QtCore.QThreadPool()
+        
+    # ===============================================
+    # ============== Protected methods ==============
+    # ===============================================
+        
+    def __set_app_id(self):
+        lpBuffer = wintypes.LPWSTR()
+        AppUserModelID = ctypes.windll.shell32.GetCurrentProcessExplicitAppUserModelID
+        AppUserModelID(ctypes.cast(ctypes.byref(lpBuffer), wintypes.LPWSTR))
+        appid = lpBuffer.value
+        ctypes.windll.kernel32.LocalFree(lpBuffer)
+        if appid is not None:
+            print(appid)
+    
+    # =============================================
+    # ============== Class Functions ==============
+    # =============================================
+        
+    def _app_quit(self):
+        try:
+            logger.log('Quitting Application.')
+            if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
+                logger.log('Waiting for finish.')
+                self.thread_pool.waitForDone(msecs=15000) # Wait for max 15 seconds.
+                self.thread_pool.clear()
+        except Exception as e:
+            logger.log_error(e)
+            
+        sys.exit()
         
     def _refresh_onscreen_log(self):
         self.terminal_display.update()
@@ -73,7 +105,7 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
     def replace_with_patched_file(self):
         # Do nothing if file is already patched.
-        if self.stellaris_patcher.is_patched:            
+        if self.stellaris_patcher.is_patched:
             return False
         
         self.terminal_display_log(' ')
@@ -173,7 +205,7 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
             else:
                 logger.log_error(f'Game executable not found in {dir_to_look}.')
             logger.log('Patch failed.')
-            self.worker.signals.fail_signal.emit()
+            self.worker.signals.failed.emit()
             return False
         
         logger.log('Applying Patch...')
@@ -212,6 +244,18 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         self._patch_successful = True
         self.is_patching = False
         
+    def _enable_ui_elements(self):
+        self.btn_patch_from_install.setDisabled(False)
+        self.btn_patch_from_dir.setDisabled(False)
+    
+    def _disable_ui_elements(self):
+        self.btn_patch_from_install.setDisabled(True)
+        self.btn_patch_from_dir.setDisabled(True)
+        
+    # ===============================================
+    # ============== Regular Functions ==============
+    # ===============================================
+        
     def patch_from_game_install_thread(self):
         if self.is_patching:
             return False
@@ -220,9 +264,9 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
         self.terminal_display.clear()
         
-        # Not run once OR (has run once and patch was successful)
-        self.thread_pool = QtCore.QThreadPool()
         self.worker = Worker(target=self._patch_from_game_install)
+        self.worker.signals.started.connect(self._disable_ui_elements)
+        self.worker.signals.finished.connect(self._enable_ui_elements)
         self.thread_pool.start(self.worker)
         
     def patch_from_prompt(self):
@@ -239,19 +283,11 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
         self.terminal_display.clear()
         
-        self.thread_pool = QtCore.QThreadPool()
         self.worker = Worker(target=self._patch_from_manual_game_install)
-        self.worker.signals.fail_signal.connect(self.patch_from_prompt)
+        self.worker.signals.failed.connect(self.patch_from_prompt)
+        self.worker.signals.started.connect(self._disable_ui_elements)
+        self.worker.signals.finished.connect(self._enable_ui_elements)
         self.thread_pool.start(self.worker)
-                
-    def __set_app_id(self):
-        lpBuffer = wintypes.LPWSTR()
-        AppUserModelID = ctypes.windll.shell32.GetCurrentProcessExplicitAppUserModelID
-        AppUserModelID(ctypes.cast(ctypes.byref(lpBuffer), wintypes.LPWSTR))
-        appid = lpBuffer.value
-        ctypes.windll.kernel32.LocalFree(lpBuffer)
-        if appid is not None:
-            print(appid)
     
     def show(self):
         self.main_window.show()

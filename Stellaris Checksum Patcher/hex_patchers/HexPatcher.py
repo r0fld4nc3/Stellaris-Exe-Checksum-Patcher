@@ -12,8 +12,9 @@ def get_current_dir():
     return application_path
 
 class StellarisChecksumPatcher:
+    app_version = [1, 0, 2]
+    
     def __init__(self) -> None:
-        self.app_version = [1, 0, 11]
         self.hex_data_list = []
         self._hex_data_list_working = []
         
@@ -47,79 +48,15 @@ class StellarisChecksumPatcher:
             self.exe_out_directory = os.path.abspath(os.path.join(os.path.join(get_current_dir(), os.pardir), 'bin'))
             self.exe_out_directory = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
             pass
-        
-    def clear_caches(self):
-        self._hex_data_list_working.clear()
-        self._checksum_block.clear()
-        self._checksum_offset_start = 0
-        self._checksum_offset_end = 0
-        self.is_patched = False
-        
-    def locate_game_install(self) -> os.path:
-        """
-        Returns path to game executable.
-        """
-        logger.log('Locating game install...')
-        stellaris_install_path = self._steam.get_game_install_path(self.title_name)
-        
-        if stellaris_install_path:
-            game_executable = os.path.join(stellaris_install_path, self.exe_default_filename)
-            if not os.path.exists(game_executable):
-                return None
-            return game_executable
-        
-        return None
     
-    def load_file_hex(self, file_path=None) -> bool:
-        logger.log('Loading file Hex.')
-        
-        file_path = str(file_path).replace('/', '\\')
-        
-        if not file_path:
-            file_path = os.path.join(self._base_dir, self.exe_default_filename)
-                
-            if not os.path.isfile(file_path):
-                logger.log_error(f'Unable to find required file: {file_path}')
-                return False
-        
-        self.hex_data_list.clear()
-        
-        if not os.path.exists(file_path):
-            logger.log_error(f'{file_path} does not exist.')
-            return False
-        
-        with open(file_path, 'rb') as f:
-            logger.log('Streaming File Hex Info...')
-            while True:
-                hex_data = f.read(16).hex()
-                if len(hex_data) == 0:
-                    break
-                self.hex_data_list.append(hex_data.upper())
-        
-        self.hex_data = ''.join(self.hex_data_list)
-        self.data_loaded = True
-        logger.log('Read Finished.')
-        
-        return True
+    # =============================================
+    # ============== Class Functions ==============
+    # =============================================
     
     def _generate_missing_paths(self, dir_path) -> None:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
-    
-    def write_hex_to_file(self, directory, filename, working_set=False):
-        dest = os.path.join(directory, f'{filename}.txt')
-        
-        self._generate_missing_paths(directory)
-        
-        to_write = self.hex_data_list
-        
-        if working_set:
-            to_write = self._hex_data_list_working
-        
-        with open(dest, 'w') as f:
-            for chunk in to_write:
-                f.write(chunk+'\n')
-    
+            
     def _compile_hex_file(self, directory=None, filename=None):
         if not directory:
             directory = self.exe_out_directory
@@ -281,6 +218,78 @@ class StellarisChecksumPatcher:
         self._hex_data_list_working = self._convert_hex_list_to_writable_chunk_list(chunk_split)
         
         return True
+    
+    # ===============================================
+    # ============== Regular Functions ==============
+    # ===============================================
+        
+    def clear_caches(self):
+        self._hex_data_list_working.clear()
+        self._checksum_block.clear()
+        self._checksum_offset_start = 0
+        self._checksum_offset_end = 0
+        self.is_patched = False
+        
+    def locate_game_install(self) -> os.path:
+        """
+        Returns path to game executable.
+        """
+        logger.log('Locating game install...')
+        stellaris_install_path = self._steam.get_game_install_path(self.title_name)
+        
+        if stellaris_install_path:
+            game_executable = os.path.join(stellaris_install_path, self.exe_default_filename)
+            if not os.path.exists(game_executable):
+                return None
+            return game_executable
+        
+        return None
+    
+    def load_file_hex(self, file_path=None) -> bool:
+        logger.log('Loading file Hex.')
+        
+        file_path = str(file_path).replace('/', '\\')
+        
+        if not file_path:
+            file_path = os.path.join(self._base_dir, self.exe_default_filename)
+                
+            if not os.path.isfile(file_path):
+                logger.log_error(f'Unable to find required file: {file_path}')
+                return False
+        
+        self.hex_data_list.clear()
+        
+        if not os.path.exists(file_path):
+            logger.log_error(f'{file_path} does not exist.')
+            return False
+        
+        with open(file_path, 'rb') as f:
+            logger.log('Streaming File Hex Info...')
+            while True:
+                hex_data = f.read(16).hex()
+                if len(hex_data) == 0:
+                    break
+                self.hex_data_list.append(hex_data.upper())
+        
+        self.hex_data = ''.join(self.hex_data_list)
+        self.data_loaded = True
+        logger.log('Read Finished.')
+        
+        return True
+    
+    def write_hex_to_file(self, directory, filename, working_set=False):
+        dest = os.path.join(directory, f'{filename}.txt')
+        
+        self._generate_missing_paths(directory)
+        
+        to_write = self.hex_data_list
+        
+        if working_set:
+            to_write = self._hex_data_list_working
+        
+        with open(dest, 'w') as f:
+            for chunk in to_write:
+                f.write(chunk+'\n')
         
     def patch(self) -> None:
         self.clear_caches()

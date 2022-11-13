@@ -44,7 +44,7 @@ class Logger:
     def log(self, log_text):
         log = f'[INFO] {log_text}'
         print(log)
-        self.signals.progress_signal.emit(log)
+        self.signals.progress.emit(log)
         self.write_to_log_file(log)
             
     def log_debug(self, log_text):
@@ -52,7 +52,7 @@ class Logger:
         if self._dev:
             if self._exe:
                 print(log)
-                self.signals.progress_signal.emit(log)
+                self.signals.progress.emit(log)
             else:
                 print(f'{Colours.BLUE}[DEBUG] {log_text}{Colours.DEFAULT}')
 
@@ -62,7 +62,7 @@ class Logger:
         log = f'[ERROR] {log_text}'
         if self._exe:
             print(log)
-            self.signals.progress_signal.emit(log)
+            self.signals.progress.emit(log)
         else:
             print(f'{Colours.RED}[ERROR]{Colours.DEFAULT} {log_text}')
             
@@ -73,7 +73,7 @@ class Logger:
         if self._dev:
             if self._exe:
                 print(log)
-                self.signals.progress_signal.emit(log)
+                self.signals.progress.emit(log)
             else:
                 print(f'{Colours.BLUE}[DEBUG]{Colours.RED}[ERROR]{Colours.DEFAULT} {log_text}')
         

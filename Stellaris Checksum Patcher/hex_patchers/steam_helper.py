@@ -17,23 +17,6 @@ class SteamHelper:
     def __init__(self):
         self.steam_install = None
         self.steam_library_paths = []
-
-    def get_steam_install_path(self):
-        logger.log('Acquiring Steam installation...')
-        
-        # Try 64-bit first
-        steam = registry_helper.read_key(STEAM_REGISTRY_PATH_64, STEAM_INSTALL_LOCATION_KEY)
-        
-        # Try 32-bit if 64 failed.
-        if not steam:
-            steam = registry_helper.read_key(STEAM_REGISTRY_PATH_32, STEAM_INSTALL_LOCATION_KEY)
-        
-        if steam:
-            self.steam_install = steam
-        else:
-            logger.log_error('Unable to acquire Steam installation.')
-        
-        return steam
     
     def _vdf_line_contains(self, vdf_line, argument_to_check) -> list:
         vdf_line = str(vdf_line).lstrip().rstrip()
@@ -42,50 +25,6 @@ class SteamHelper:
             return vdf_line.split('"')
         
         return None
-    
-    def get_from_vdf_file(self, vdf_file, key) -> list:
-        with open(vdf_file, 'r') as f:
-            lines = f.readlines()
-            
-        values_out = []
-            
-        for line in lines:
-            line = line.lstrip().rstrip()
-            
-            value = self._vdf_line_contains(line, key)
-            
-            if value:
-                for v in value:
-                    values_out.append(v)
-        
-        return values_out
-    
-    def get_steam_libraries(self):
-        logger.log('Getting available Steam Libraries...')
-        
-        if not self.steam_install:
-            self.steam_install = self.get_steam_install_path()
-            if not self.steam_install:
-                return False
-    
-        library_file = os.path.join(self.steam_install, STEAM_LIBRARY_FOLDERS_FILE_TRAIL)
-        
-        if not os.path.exists(library_file):
-            logger.log_error('Could not locate Steam Library file.')
-            return False
-        
-        path_list = self.get_from_vdf_file(library_file, '"PATH"')
-        if path_list:
-            # So far, path seems to be in the 2nd index of the list but let's iterate over list and check for valid path
-            for item in path_list:
-                if os.path.isdir(item):
-                    item = os.path.join(item, STEAM_STEAMAPPS_FOLDER)
-                    if item not in self.steam_library_paths:
-                        self.steam_library_paths.append(os.path.abspath(item))
-        
-        logger.log_debug(f'Known paths: {self.steam_library_paths}')
-            
-        return self.steam_library_paths
     
     def _get_game_install_info_from_name(self, game_name) -> dict:
         # Parse Steam appmanifests
@@ -131,6 +70,50 @@ class SteamHelper:
         
         logger.log_error(f'Unable to determine installation information for {game_name}')
         return {}
+    
+    def get_from_vdf_file(self, vdf_file, key) -> list:
+        with open(vdf_file, 'r') as f:
+            lines = f.readlines()
+            
+        values_out = []
+            
+        for line in lines:
+            line = line.lstrip().rstrip()
+            
+            value = self._vdf_line_contains(line, key)
+            
+            if value:
+                for v in value:
+                    values_out.append(v)
+        
+        return values_out
+    
+    def get_steam_libraries(self):
+        logger.log('Getting available Steam Libraries...')
+        
+        if not self.steam_install:
+            self.steam_install = self.get_steam_install_path()
+            if not self.steam_install:
+                return False
+    
+        library_file = os.path.join(self.steam_install, STEAM_LIBRARY_FOLDERS_FILE_TRAIL)
+        
+        if not os.path.exists(library_file):
+            logger.log_error('Could not locate Steam Library file.')
+            return False
+        
+        path_list = self.get_from_vdf_file(library_file, '"PATH"')
+        if path_list:
+            # So far, path seems to be in the 2nd index of the list but let's iterate over list and check for valid path
+            for item in path_list:
+                if os.path.isdir(item):
+                    item = os.path.join(item, STEAM_STEAMAPPS_FOLDER)
+                    if item not in self.steam_library_paths:
+                        self.steam_library_paths.append(os.path.abspath(item))
+        
+        logger.log_debug(f'Known paths: {self.steam_library_paths}')
+            
+        return self.steam_library_paths
         
     def get_game_install_path(self, game_name) -> os.path:
         logger.log('Acquiring Stellaris installation...')
@@ -144,4 +127,21 @@ class SteamHelper:
         install_folder = os.path.join(install_details.get('steam-library'), f'common/{title_name}')
         
         return install_folder
+    
+    def get_steam_install_path(self):
+        logger.log('Acquiring Steam installation...')
+        
+        # Try 64-bit first
+        steam = registry_helper.read_key(STEAM_REGISTRY_PATH_64, STEAM_INSTALL_LOCATION_KEY)
+        
+        # Try 32-bit if 64 failed.
+        if not steam:
+            steam = registry_helper.read_key(STEAM_REGISTRY_PATH_32, STEAM_INSTALL_LOCATION_KEY)
+        
+        if steam:
+            self.steam_install = steam
+        else:
+            logger.log_error('Unable to acquire Steam installation.')
+        
+        return steam
         
