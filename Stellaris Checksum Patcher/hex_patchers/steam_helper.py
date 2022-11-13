@@ -35,7 +35,7 @@ class SteamHelper:
         
         return steam
     
-    def __vdf_line_contains(self, vdf_line, argument_to_check) -> list:
+    def _vdf_line_contains(self, vdf_line, argument_to_check) -> list:
         vdf_line = str(vdf_line).lstrip().rstrip()
         # logger.log_debug(f'{str(argument_to_check).upper()} in {vdf_line.upper()} = {str(argument_to_check).upper() in vdf_line.upper()}')
         if str(argument_to_check).upper() in vdf_line.upper():
@@ -52,7 +52,7 @@ class SteamHelper:
         for line in lines:
             line = line.lstrip().rstrip()
             
-            value = self.__vdf_line_contains(line, key)
+            value = self._vdf_line_contains(line, key)
             
             if value:
                 for v in value:
@@ -87,7 +87,7 @@ class SteamHelper:
             
         return self.steam_library_paths
     
-    def __get_game_install_info_from_name(self, game_name) -> dict:
+    def _get_game_install_info_from_name(self, game_name) -> dict:
         # Parse Steam appmanifests
         
         logger.log(f'Getting installation details for game: {game_name}')
@@ -135,7 +135,7 @@ class SteamHelper:
     def get_game_install_path(self, game_name) -> os.path:
         logger.log('Acquiring Stellaris installation...')
         
-        install_details = self.__get_game_install_info_from_name(game_name)
+        install_details = self._get_game_install_info_from_name(game_name)
         
         if not install_details:
             return False

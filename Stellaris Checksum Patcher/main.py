@@ -1,7 +1,3 @@
-# built-ins
-import os
-import sys
-
 # 3rd-party
 from UI import stellaris_checksum_patcher_gui
 from logger.Logger import Logger

@@ -10,8 +10,8 @@ print(f'LOG PATH: {LOG_FOLDER}')
 
 class Logger:
     def __init__(self, dev=False, exe=False) -> None:
-        self.__dev = dev
-        self.__exe = exe
+        self._dev = dev
+        self._exe = exe
         
         self.signals = WorkerSignals()
         
@@ -49,8 +49,8 @@ class Logger:
             
     def log_debug(self, log_text):
         log = f'[DEBUG] {log_text}'
-        if self.__dev:
-            if self.__exe:
+        if self._dev:
+            if self._exe:
                 print(log)
                 self.signals.progress_signal.emit(log)
             else:
@@ -60,7 +60,7 @@ class Logger:
     
     def log_error(self, log_text):
         log = f'[ERROR] {log_text}'
-        if self.__exe:
+        if self._exe:
             print(log)
             self.signals.progress_signal.emit(log)
         else:
@@ -70,8 +70,8 @@ class Logger:
             
     def log_debug_error(self, log_text):
         log = f'[DEBUG][ERROR] {log_text}'
-        if self.__dev:
-            if self.__exe:
+        if self._dev:
+            if self._exe:
                 print(log)
                 self.signals.progress_signal.emit(log)
             else:

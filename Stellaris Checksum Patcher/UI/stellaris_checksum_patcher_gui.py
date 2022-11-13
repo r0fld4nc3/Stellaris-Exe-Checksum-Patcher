@@ -16,18 +16,22 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
         super(StellarisChecksumPatcherGUI, self).__init__()
         
-        self.set_app_id()
+        self.__set_app_id()
+        
+        # Patcher Service Class
+        self.stellaris_patcher = StellarisChecksumPatcher()
         
         self._has_run_once = False
         self._patch_successful = False
         self.is_patching = False
+        self._app_version = ('.'.join([str(v) for v in self.stellaris_patcher.app_version]))
         
         self._manual_install_dir = ''
         
         self.app = QtWidgets.QApplication(sys.argv)
         self.main_window = QtWidgets.QMainWindow()
         Ui_MainWindow.setupUi(self, self.main_window)
-        self.main_window.setWindowTitle("Stellaris Checksum Patcher")
+        self.main_window.setWindowTitle(f'Stellaris Checksum Patcher v{self._app_version}')
         
         self.patch_icon = QtGui.QIcon(os.path.join(UI_ICONS_FOLDER, 'patch_icon.png'))
         
@@ -43,21 +47,20 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
         self.terminal_display.clear()
         
-        self.stellaris_patcher = StellarisChecksumPatcher()
         
         # Set App Version from HexPatcher
-        self.lbl_app_version.setText(f'Version {(".".join([str(v) for v in self.stellaris_patcher.app_version]))}')
+        self.lbl_app_version.setText(f'Version {self._app_version}')
         
         # Perhaps add a GUI Version as well? Hmm
         
         self.btn_patch_from_dir.clicked.connect(self.patch_from_directory_thread)
         self.btn_patch_from_install.clicked.connect(self.patch_from_game_install_thread)
-        logger.signals.progress_signal.connect(self._terminal_display_log)
+        logger.signals.progress_signal.connect(self.terminal_display_log)
         
     def _refresh_onscreen_log(self):
         self.terminal_display.update()
         
-    def _terminal_display_log(self, t_log):
+    def terminal_display_log(self, t_log):
         self.terminal_display.insertPlainText(f'{t_log}\n')
         self._refresh_onscreen_log()
         
@@ -69,7 +72,11 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         self.is_patching = False
         
     def replace_with_patched_file(self):
-        self._terminal_display_log(' ')
+        # Do nothing if file is already patched.
+        if self.stellaris_patcher.is_patched:            
+            return False
+        
+        self.terminal_display_log(' ')
         patched_file = self.get_patched_file()
         original_file = self.stellaris_patcher.locate_game_install()
         
@@ -105,18 +112,18 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         if not copied:
             return False
         
-        self._terminal_display_log(' ')
+        self.terminal_display_log(' ')
         logger.log('Operations finished.')
             
         try:
             os.remove(patched_file)
         except Exception as e:
-            self._terminal_display_log(' ')
+            self.terminal_display_log(' ')
             logger.log_error('Unable to delete patched file.')
         
         return True
         
-    def patch_from_game_install(self):
+    def _patch_from_game_install(self):
         self.reset_caches()
         self._has_run_once = True
         self.is_patching = True
@@ -127,9 +134,9 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         if not game_executable:
             self.is_patching = False
             logger.log_error('Game installation not found.')
-            self._terminal_display_log(' ')
+            self.terminal_display_log(' ')
             logger.log('Patch failed.')
-            self._terminal_display_log(' ')
+            self.terminal_display_log(' ')
             logger.log('Please run again to manually select install directory.')
             self._refresh_onscreen_log()
             return False
@@ -138,7 +145,7 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
         logger.log('Applying Patch...')
         
-        self._terminal_display_log(' ')
+        self.terminal_display_log(' ')
         
         self.stellaris_patcher.patch()
             
@@ -149,7 +156,7 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         self._patch_successful = True
         self.is_patching = False
         
-    def patch_from_manual_game_install(self):
+    def _patch_from_manual_game_install(self):
         self.reset_caches()
         self._has_run_once = True
         self.is_patching = True
@@ -160,7 +167,7 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
         if not loaded:
             self.is_patching = False
-            self._terminal_display_log(' ')
+            self.terminal_display_log(' ')
             if not self._manual_install_dir or self._manual_install_dir == '':
                 logger.log_error('Game executable not found in current directory.')
             else:
@@ -171,7 +178,7 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
         logger.log('Applying Patch...')
         
-        self._terminal_display_log(' ')
+        self.terminal_display_log(' ')
         
         self.stellaris_patcher.patch()
         
@@ -182,7 +189,7 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         self._patch_successful = True
         self.is_patching = False
         
-    def patch_from_directory(self):
+    def _patch_from_directory(self):
         self.reset_caches()
         self.is_patching = True
         
@@ -191,7 +198,7 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
         if not loaded:
             self.is_patching = False
-            self._terminal_display_log(' ')
+            self.terminal_display_log(' ')
             logger.log_error('Game executable not found.')
             logger.log('Patch failed.')
             return False
@@ -215,7 +222,7 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         
         # Not run once OR (has run once and patch was successful)
         self.thread_pool = QtCore.QThreadPool()
-        self.worker = Worker(target=self.patch_from_game_install)
+        self.worker = Worker(target=self._patch_from_game_install)
         self.thread_pool.start(self.worker)
         
     def patch_from_prompt(self):
@@ -233,11 +240,11 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
         self.terminal_display.clear()
         
         self.thread_pool = QtCore.QThreadPool()
-        self.worker = Worker(target=self.patch_from_manual_game_install)
+        self.worker = Worker(target=self._patch_from_manual_game_install)
         self.worker.signals.fail_signal.connect(self.patch_from_prompt)
         self.thread_pool.start(self.worker)
                 
-    def set_app_id(self):
+    def __set_app_id(self):
         lpBuffer = wintypes.LPWSTR()
         AppUserModelID = ctypes.windll.shell32.GetCurrentProcessExplicitAppUserModelID
         AppUserModelID(ctypes.cast(ctypes.byref(lpBuffer), wintypes.LPWSTR))

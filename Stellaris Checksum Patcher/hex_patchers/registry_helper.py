@@ -4,7 +4,7 @@ from main import logger
 
 WINREG_KEY_READ = winreg.KEY_READ
 
-def __connect_to_registry() -> winreg.HKEYType:
+def _connect_to_registry() -> winreg.HKEYType:
     logger.log_debug('Connecting to Local Machine registry.')
 
     try:
@@ -18,7 +18,7 @@ def __connect_to_registry() -> winreg.HKEYType:
 def read_key(key_path, query_value):
     logger.log_debug(f'Reading Registry Key {key_path}')
     
-    reg = __connect_to_registry()
+    reg = _connect_to_registry()
     if not reg:
         return False
     
