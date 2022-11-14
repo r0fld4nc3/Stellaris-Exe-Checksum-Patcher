@@ -89,19 +89,120 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
             
         sys.exit()
         
-    def _refresh_onscreen_log(self):
+    def _refresh_terminal_log(self):
         self.terminal_display.update()
         
-    def terminal_display_log(self, t_log):
-        self.terminal_display.insertPlainText(f'{t_log}\n')
-        self._refresh_onscreen_log()
+    def _patch_from_game_install(self):
+        self.reset_caches()
+        self._has_run_once = True
+        self.is_patching = True
         
-    def get_patched_file(self):
-        return os.path.join(self.stellaris_patcher.exe_out_directory, self.stellaris_patcher.exe_modified_filename + '.exe')
+        logger.log('Patching from game installation.')
+        game_executable = self.stellaris_patcher.locate_game_install()
         
+        if not game_executable:
+            self.is_patching = False
+            logger.log_error('Game installation not found.')
+            self.terminal_display_log(' ')
+            logger.log('Patch failed.')
+            self.terminal_display_log(' ')
+            logger.log('Please run again to manually select install directory.')
+            self._refresh_terminal_log()
+            return False
+        
+        self.stellaris_patcher.load_file_hex(file_path=game_executable)
+        
+        logger.log('Applying Patch...')
+        
+        self.terminal_display_log(' ')
+        
+        self.stellaris_patcher.patch()
+            
+        self.replace_with_patched_file()
+        
+        self._refresh_terminal_log()
+            
+        self._patch_successful = True
+        self.is_patching = False
+        
+    def _patch_from_manual_game_install(self):
+        self.reset_caches()
+        self._has_run_once = True
+        self.is_patching = True
+        dir_to_look = os.path.join(self._manual_install_dir, self.stellaris_patcher.exe_default_filename)
+        
+        logger.log('Patching from directory.')
+        loaded = self.stellaris_patcher.load_file_hex(dir_to_look)
+        
+        if not loaded:
+            self.is_patching = False
+            self.terminal_display_log(' ')
+            if not self._manual_install_dir or self._manual_install_dir == '':
+                logger.log_error('Game executable not found in current directory.')
+            else:
+                logger.log_error(f'Game executable not found in {dir_to_look}.')
+            logger.log('Patch failed.')
+            self.worker.signals.failed.emit()
+            return False
+        
+        logger.log('Applying Patch...')
+        
+        self.terminal_display_log(' ')
+        
+        self.stellaris_patcher.patch()
+        
+        self.replace_with_patched_file()
+        
+        self._refresh_terminal_log()
+        
+        self._patch_successful = True
+        self.is_patching = False
+        
+    def _patch_from_directory(self):
+        self.reset_caches()
+        self.is_patching = True
+        
+        logger.log('Patching from current directory.')
+        loaded = self.stellaris_patcher.load_file_hex()
+        
+        if not loaded:
+            self.is_patching = False
+            self.terminal_display_log(' ')
+            logger.log_error('Game executable not found.')
+            logger.log('Patch failed.')
+            return False
+        
+        logger.log('Applying Patch...')
+        
+        self.stellaris_patcher.patch()
+        
+        self._refresh_terminal_log()
+        
+        self._patch_successful = True
+        self.is_patching = False
+        
+    def _enable_ui_elements(self):
+        self.btn_patch_from_install.setDisabled(False)
+        self.btn_patch_from_dir.setDisabled(False)
+    
+    def _disable_ui_elements(self):
+        self.btn_patch_from_install.setDisabled(True)
+        self.btn_patch_from_dir.setDisabled(True)
+        
+    # ===============================================
+    # ============== Regular Functions ==============
+    # ===============================================
+    
     def reset_caches(self):
         self._patch_successful = False
         self.is_patching = False
+        
+    def terminal_display_log(self, t_log):
+        self.terminal_display.insertPlainText(f'{t_log}\n')
+        self._refresh_terminal_log()
+        
+    def get_patched_file(self):
+        return os.path.join(self.stellaris_patcher.exe_out_directory, self.stellaris_patcher.exe_modified_filename + '.exe')
         
     def replace_with_patched_file(self):
         # Do nothing if file is already patched.
@@ -154,107 +255,6 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
             logger.log_error('Unable to delete patched file.')
         
         return True
-        
-    def _patch_from_game_install(self):
-        self.reset_caches()
-        self._has_run_once = True
-        self.is_patching = True
-        
-        logger.log('Patching from game installation.')
-        game_executable = self.stellaris_patcher.locate_game_install()
-        
-        if not game_executable:
-            self.is_patching = False
-            logger.log_error('Game installation not found.')
-            self.terminal_display_log(' ')
-            logger.log('Patch failed.')
-            self.terminal_display_log(' ')
-            logger.log('Please run again to manually select install directory.')
-            self._refresh_onscreen_log()
-            return False
-        
-        self.stellaris_patcher.load_file_hex(file_path=game_executable)
-        
-        logger.log('Applying Patch...')
-        
-        self.terminal_display_log(' ')
-        
-        self.stellaris_patcher.patch()
-            
-        self.replace_with_patched_file()
-        
-        self._refresh_onscreen_log()
-            
-        self._patch_successful = True
-        self.is_patching = False
-        
-    def _patch_from_manual_game_install(self):
-        self.reset_caches()
-        self._has_run_once = True
-        self.is_patching = True
-        dir_to_look = os.path.join(self._manual_install_dir, self.stellaris_patcher.exe_default_filename)
-        
-        logger.log('Patching from directory.')
-        loaded = self.stellaris_patcher.load_file_hex(dir_to_look)
-        
-        if not loaded:
-            self.is_patching = False
-            self.terminal_display_log(' ')
-            if not self._manual_install_dir or self._manual_install_dir == '':
-                logger.log_error('Game executable not found in current directory.')
-            else:
-                logger.log_error(f'Game executable not found in {dir_to_look}.')
-            logger.log('Patch failed.')
-            self.worker.signals.failed.emit()
-            return False
-        
-        logger.log('Applying Patch...')
-        
-        self.terminal_display_log(' ')
-        
-        self.stellaris_patcher.patch()
-        
-        self.replace_with_patched_file()
-        
-        self._refresh_onscreen_log()
-        
-        self._patch_successful = True
-        self.is_patching = False
-        
-    def _patch_from_directory(self):
-        self.reset_caches()
-        self.is_patching = True
-        
-        logger.log('Patching from current directory.')
-        loaded = self.stellaris_patcher.load_file_hex()
-        
-        if not loaded:
-            self.is_patching = False
-            self.terminal_display_log(' ')
-            logger.log_error('Game executable not found.')
-            logger.log('Patch failed.')
-            return False
-        
-        logger.log('Applying Patch...')
-        
-        self.stellaris_patcher.patch()
-        
-        self._refresh_onscreen_log()
-        
-        self._patch_successful = True
-        self.is_patching = False
-        
-    def _enable_ui_elements(self):
-        self.btn_patch_from_install.setDisabled(False)
-        self.btn_patch_from_dir.setDisabled(False)
-    
-    def _disable_ui_elements(self):
-        self.btn_patch_from_install.setDisabled(True)
-        self.btn_patch_from_dir.setDisabled(True)
-        
-    # ===============================================
-    # ============== Regular Functions ==============
-    # ===============================================
         
     def patch_from_game_install_thread(self):
         if self.is_patching:
