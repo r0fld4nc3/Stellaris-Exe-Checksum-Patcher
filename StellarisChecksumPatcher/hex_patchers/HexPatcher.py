@@ -1,8 +1,5 @@
 from . import *
 
-from main import logger
-from main import EXE
-
 def get_current_dir():
     if getattr(sys, 'frozen', False):
         application_path = os.path.dirname(sys.executable)
@@ -12,13 +9,13 @@ def get_current_dir():
     return application_path
 
 class StellarisChecksumPatcher:
-    app_version = [1, 0, 2]
+    app_version = [1, 0, 3]
     
     def __init__(self) -> None:
         self.hex_data_list = []
         self._hex_data_list_working = []
-        
-        self._dev = False # Separate as sometimes we may want to change dev dependent stuff like output dirs without having to print all the debug statements too.
+
+        self._dev = False # Sometimes we may want to change dev dependent stuff like output dirs without having to print all the debug statements too.
         
         self.data_loaded = False
         
@@ -47,13 +44,13 @@ class StellarisChecksumPatcher:
             self._base_dir = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
             self.exe_out_directory = os.path.abspath(os.path.join(os.path.join(get_current_dir(), os.pardir), 'bin'))
             self.exe_out_directory = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
-            pass
     
     # =============================================
     # ============== Class Functions ==============
     # =============================================
-    
-    def _generate_missing_paths(self, dir_path) -> None:
+
+    @staticmethod
+    def _generate_missing_paths(dir_path) -> None:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
             
@@ -73,16 +70,13 @@ class StellarisChecksumPatcher:
         if directory:
             self._generate_missing_paths(directory)
         else:
-            self._generate_missing_paths()
+            self._generate_missing_paths(get_current_dir())
             
         with open(dest, 'wb') as out:
             for line in self._hex_data_list_working:
                 chunk = binascii.unhexlify(str(line).rstrip())
                 out.write(chunk)
-            if EXE:
-                logger.log(f'Writing {filename}.exe to: {directory}')
-            else:
-                logger.log(f'Writing {Colours.YELLOW}{filename}.exe{Colours.DEFAULT} to: {directory}')
+            logger.log(f'Writing {filename}.exe to: {directory}')
             
         return True
             
@@ -117,17 +111,17 @@ class StellarisChecksumPatcher:
         out_list = []
         
         tmp_chunk = []
-        iter = 0
+        hex_iter = 0
         for hex_char in hex_chunk_set:
-            if iter < (self._chunk_char_len)/2:
+            if hex_iter < self._chunk_char_len/2:
                 tmp_chunk.append(hex_char)
             else:
                 out_list.append(''.join(tmp_chunk))
                 tmp_chunk.clear()
-                iter = 0
+                hex_iter = 0
                 tmp_chunk .append(hex_char)
                 
-            iter += 1
+            hex_iter += 1
         
         return out_list
             
@@ -209,7 +203,7 @@ class StellarisChecksumPatcher:
 
         if not self._hex_data_list_working:
             return False
-        
+        chunk_split = []
         for chunk in self._hex_data_list_working:
             chunk_split = chunk.split(' ')
             for offset, modify_hex in enumerate(checksum_block_modified):
@@ -270,8 +264,7 @@ class StellarisChecksumPatcher:
                 if len(hex_data) == 0:
                     break
                 self.hex_data_list.append(hex_data.upper())
-        
-        self.hex_data = ''.join(self.hex_data_list)
+
         self.data_loaded = True
         logger.log('Read Finished.')
         
@@ -291,7 +284,7 @@ class StellarisChecksumPatcher:
             for chunk in to_write:
                 f.write(chunk+'\n')
         
-    def patch(self) -> None:
+    def patch(self) -> bool:
         self.clear_caches()
         
         if not self.data_loaded:
@@ -309,17 +302,11 @@ class StellarisChecksumPatcher:
                 op_success = self._compile_hex_file()
         
         if op_success:
-            if EXE:
-                logger.log(f'Patch successful.'.upper())
-            else:
-                logger.log(f'Patch {Colours.GREEN}successful{Colours.DEFAULT}.'.upper())
+            logger.log(f'Patch successful.'.upper())
             return True
         else:
             print('\n')
-            if EXE:
-                logger.log(f'Patch failed.'.upper())
-            else:
-                logger.log(f'Patch {Colours.RED}failed{Colours.DEFAULT}.'.upper())
+            logger.log(f'Patch failed.'.upper())
     
         return False
         

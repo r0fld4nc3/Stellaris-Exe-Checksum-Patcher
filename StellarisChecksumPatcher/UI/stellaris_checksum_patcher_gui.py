@@ -1,6 +1,5 @@
 from . import *
 
-# 3rd-party
 from main import logger
 
 from PySide6 import QtWidgets, QtCore, QtGui
@@ -63,8 +62,9 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
     # ===============================================
     # ============== Protected methods ==============
     # ===============================================
-        
-    def __set_app_id(self):
+
+    @staticmethod
+    def __set_app_id():
         lpBuffer = wintypes.LPWSTR()
         AppUserModelID = ctypes.windll.shell32.GetCurrentProcessExplicitAppUserModelID
         AppUserModelID(ctypes.cast(ctypes.byref(lpBuffer), wintypes.LPWSTR))

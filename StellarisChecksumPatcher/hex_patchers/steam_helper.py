@@ -1,7 +1,5 @@
 from . import *
 
-from main import logger
-
 # KEY_LOCAL_MACHINE
 GAME_INSTALL_LOCATION_KEY = 'InstallLocation'
 
@@ -17,14 +15,15 @@ class SteamHelper:
     def __init__(self):
         self.steam_install = None
         self.steam_library_paths = []
-    
-    def _vdf_line_contains(self, vdf_line, argument_to_check) -> list:
+
+    @staticmethod
+    def _vdf_line_contains(vdf_line, argument_to_check) -> list:
         vdf_line = str(vdf_line).lstrip().rstrip()
         # logger.log_debug(f'{str(argument_to_check).upper()} in {vdf_line.upper()} = {str(argument_to_check).upper() in vdf_line.upper()}')
         if str(argument_to_check).upper() in vdf_line.upper():
             return vdf_line.split('"')
         
-        return None
+        return []
     
     def _get_game_install_info_from_name(self, game_name) -> dict:
         # Parse Steam appmanifests
@@ -34,13 +33,13 @@ class SteamHelper:
         if not self.steam_install:
             self.steam_install = self.get_steam_install_path()
             if not self.steam_install:
-                return False
+                return {}
         
         if not self.steam_library_paths:
             self.steam_library_paths = self.get_steam_libraries()
             if not self.steam_library_paths or self.steam_library_paths == []:
                 logger.log_error('No Steam Libraries found.')
-                return False
+                return {}
         
         for lib in self.steam_library_paths:
             for file in os.listdir(lib):

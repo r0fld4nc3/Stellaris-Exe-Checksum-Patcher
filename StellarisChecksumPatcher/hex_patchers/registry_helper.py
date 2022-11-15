@@ -1,7 +1,5 @@
 from . import *
 
-from main import logger
-
 WINREG_KEY_READ = winreg.KEY_READ
 
 def _connect_to_registry() -> winreg.HKEYType:
