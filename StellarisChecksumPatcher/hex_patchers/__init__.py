@@ -5,6 +5,6 @@ import binascii
 import winreg
 
 # 3rd-party
-from main import logger
+from utils.global_defines import logger, DEV
 from . import registry_helper
 from . import steam_helper

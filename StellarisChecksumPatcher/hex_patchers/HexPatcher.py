@@ -9,38 +9,38 @@ def get_current_dir():
     return application_path
 
 class StellarisChecksumPatcher:
-    app_version = [1, 0, 3]
+    app_version = [1, 0, 4]
     
-    def __init__(self) -> None:
-        self.hex_data_list = []
-        self._hex_data_list_working = []
+    def __init__(self, dev=DEV) -> None:
+        self.hex_data_list = [] # Incoming original Hex data, so we can always have a copy of the original.
+        self._hex_data_list_working = [] # Copy of original that will be taking the changes and be modified.
 
-        self._dev = False # Sometimes we may want to change dev dependent stuff like output dirs without having to print all the debug statements too.
+        self._dev = dev
         
         self.data_loaded = False
         
         self._chunk_char_len = 32 # Each line is comprised of 32 characters. Will need this to recompile from changed chunks back to binary
         
-        self._hex_begin_static = ['48', '8B', '12']
-        self._hex_end_static = ['85', 'C0']
-        self._hex_end_change_to = ['33', 'C0']
-        self._hex_wildcards_in_between = 14
+        self._hex_begin_static = ['48', '8B', '12'] # The Hex block begins with these values, so we can reference them.
+        self._hex_end_static = ['85', 'C0'] # The predicted end Hex values of the block.
+        self._hex_end_change_to = ['33', 'C0'] # Change the target ending Hexes of the block to this
+        self._hex_wildcards_in_between = 14 # Up to 14 possible values to reach the predicted target end Hex
         
         self._checksum_block = []
         self._checksum_offset_start = 0
         self._checksum_offset_end = 0
         
-        self.title_name = 'Stellaris'
-        self.exe_default_filename = 'stellaris.exe'
-        self.exe_out_directory = os.path.dirname(sys.executable)
-        self.exe_modified_filename = 'stellaris-patched'
+        self.title_name = 'Stellaris' # Steam title name
+        self.exe_default_filename = 'stellaris.exe' # Game executable name plus extension
+        self.exe_out_directory = os.path.dirname(sys.executable) # Where to place the patched executable.
+        self.exe_modified_filename = 'stellaris-patched' # Name of modified executable
         self.is_patched = False
         
-        self._base_dir = os.path.dirname(sys.executable)
+        self._base_dir = os.path.dirname(sys.executable) # The current base directory of the executable (when ran)
         
         self._steam = steam_helper.SteamHelper()
         
-        if self._dev:
+        if self._dev: # Change certain values if running from executable or IDE/Console. Development purposes.
             self._base_dir = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
             self.exe_out_directory = os.path.abspath(os.path.join(os.path.join(get_current_dir(), os.pardir), 'bin'))
             self.exe_out_directory = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
@@ -176,7 +176,7 @@ class StellarisChecksumPatcher:
                         elif end_sequence_candidate == self._hex_end_change_to:
                             logger.log_debug(f'Found potential start candidate: {start_candidate} starting from {index}')
                             logger.log_debug(f'Found potential patched end candidate: {end_sequence_candidate} ending at index {search_offset_start + end_sequence_len}')
-                            logger.log('Current executable is already patched and will not be touched further.')
+                            # logger.log('Current executable is already patched and will not be touched further.')
                             self.is_patched = True
                             return False
         
@@ -285,28 +285,45 @@ class StellarisChecksumPatcher:
                 f.write(chunk+'\n')
         
     def patch(self) -> bool:
+        """
+        Perform all necessary actions in bulk to patch the executable.
+
+        :return:
+        """
+
         self.clear_caches()
         
         if not self.data_loaded:
             op_success = False
         else:
             op_success = True
-        
-        if op_success:
+
+        # Each op_success will refer to the previous operation, therefore, when giving checking if-else
+        # The else will refer to the error of the previous operation.
+
+        if op_success: # Data was loaded.
             op_success = self._acquire_checksum_block()
             
-            if op_success:
+            if op_success: # Checksum block was acquired.
                 op_success = self._modify_checksum()
             
-            if op_success:
+            if op_success: # Checksum block was modified.
                 op_success = self._compile_hex_file()
+        else: # Data was not loaded.
+            logger.log_error('Unable to load data.')
+            return False
         
-        if op_success:
+        if op_success: # Patched exe file was generated.
+            print('\n')
             logger.log(f'Patch successful.'.upper())
             return True
-        else:
+        else: # Patched exe file was not generated.
             print('\n')
-            logger.log(f'Patch failed.'.upper())
+            # Here we could have failed because the file was already patched
+            if self.is_patched:
+                logger.log(f'Executable already patched.'.upper())
+            else:
+                logger.log_error(f'Patch failed.'.upper())
     
         return False
         

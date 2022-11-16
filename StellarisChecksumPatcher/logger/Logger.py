@@ -1,6 +1,6 @@
-from . import *
+import os
 
-from UI.worker_threads import WorkerSignals
+from UI.ui_utils import WorkerSignals
 
 SYS_DRIVE = os.getenv('SystemDrive')
 LOG_FOLDER = os.path.join(SYS_DRIVE, '\\ProgramData\\r0fld4nc3\\Apps\\Stellaris\\ChecksumPatcher')
