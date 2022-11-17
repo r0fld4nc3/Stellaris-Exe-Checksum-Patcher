@@ -15,7 +15,7 @@ Download the executable by clicking the above **``Downloads``** button or in [Re
 * Check notes at the end of this file on how to verify authenticity of the tool.
 
 <p align="center">
-<img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-02.png" width="762">
+<img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-03.png" width="762">
 </p>
 
 ## Ways To Patch
