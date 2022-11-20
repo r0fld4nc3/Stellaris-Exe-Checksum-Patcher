@@ -7,7 +7,7 @@ An easy and painless way to patch the game's executable so that mods are compati
 
 Download the executable by clicking the above **``Downloads``** button or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
 
-## ! Disclaimer !
+## ❗ Disclaimer :exclamation:
 * Remember to **not** upload the modified Stellaris executable to download or distribution sites.
 * My stance on this further down.
 * Use at your own risk. I take no responsibility for your actions or what you choose to do with the modified file.
@@ -18,7 +18,7 @@ Download the executable by clicking the above **``Downloads``** button or in [Re
 <img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-03.png" width="762">
 </p>
 
-## Ways To Patch
+## 🟢 Ways To Patch
 * **From Game Installation**
   * This method will automatically check for a Steam installation and patch the executable.
   * It will create a backup of the original adding a _.orig_ to the end of the file name.
@@ -28,8 +28,8 @@ Download the executable by clicking the above **``Downloads``** button or in [Re
   * If the game's executable isn't in the current directory, it will prompt for the game's install path and acquire the file from there.
   * It will create a backup of the original adding a _.orig_ to the end of the file name.
 
-# Notes
-## Windows protected your PC Warning
+# 🗒️ Notes
+## "Windows protected your PC" Warning
 This is a common issue with unsigned or newly signed certificates.
   
 There isn't much I can do about it apart from generating a signature and letting it be evaluated over time. I can assure you this is nothing to be concerned of, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
@@ -38,7 +38,7 @@ There isn't much I can do about it apart from generating a signature and letting
   
 The provided software is completely safe.
 
-# My Stance
+# 🔎 My Stance
 The sole reason for this patch comes mostly for the fact that we are barred from amazing Quality of Life and Visual mods if we wish to hunt for those Achievements, which can only be obtained by playing Ironman. 
 
 I don't wish to make it so that it becomes easier or _cheesier_ or _cheatier_ to acquire those Achievements as personally that would also completely devalue the effort made. I do support there being no access to the console or any other way to circumvent certain aspects that deter from the challenge, and I understand how difficult or nearly impossible it is to dynamically regulate which mods would be valid for Ironman and which ones would not.
