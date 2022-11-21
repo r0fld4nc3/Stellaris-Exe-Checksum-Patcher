@@ -1,9 +1,9 @@
-# Stellaris Checksum Patcher
+# Stellaris Checksum Patcher (Enable Achievements)
 
 [![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/stellaris-exe-checksum-patcher/total?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher.exe)
 [![Release Version Badge](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
 
-An easy and painless way to patch the game's executable so that mods are compatible with Ironman mode and anything that is prevented from a checkusm check.
+An easy and painless way to patch the game's executable so that mods are compatible with Ironman mode therefore also enabling the pursuit of Achievements with a mooded game.
 
 Download the executable by clicking the above **``Downloads``** button or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
 
