@@ -5,11 +5,13 @@
 
 ## 📣 Summary
 
+❗ Currently only supported on Windows.
+
 An easy and painless way to patch the game's executable so that mods are compatible with Ironman mode therefore also enabling the pursuit of Achievements with a modded game.
 
 Download the executable by clicking the above **``Downloads``** button or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
 
-## ❗ Disclaimer :exclamation:
+## ❗ Disclaimer ❗
 * Remember to **not** upload the modified Stellaris executable to download or distribution sites.
 * My stance on this further down.
 * Use at your own risk. I take no responsibility for your actions or what you choose to do with the modified file.
