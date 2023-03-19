@@ -8,6 +8,7 @@ Lib
 .idea
 # stored elsewhere due to sensitive information
 _build_config
+GitHub-Issues
 
 # Specific files
 BEFORE_COMPILE_CHECKLIST.txt

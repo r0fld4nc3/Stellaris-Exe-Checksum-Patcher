@@ -17,7 +17,7 @@ class Capturing(list):  # Deprecated and not used, here for simply backup reason
 
 
 def prompt_user_game_install_dialog():
-    directory = QtWidgets.QFileDialog().getExistingDirectory(caption='Please choose Stellaris installation Folder...')
+    directory = QtWidgets.QFileDialog().getExistingDirectory(caption="Please choose Stellaris installation Folder...")
 
     return directory
 
