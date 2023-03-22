@@ -22,10 +22,10 @@ class Updater:
         self.local_version = "1.0.0"
 
     def check_for_update(self):
-        logger.info("Checking for Stellaris Checksum Patcher release...")
+        logger.info("Checking for Stellaris Checksum Patcher update...")
 
         try:
-            response = requests.get(self.url, timeout=10)
+            response = requests.get(self.url, timeout=60)
         except requests.ConnectionError as con_err:
             logger.error(f"Unable to establish connection to update repo.")
             logger.debug_error(con_err)

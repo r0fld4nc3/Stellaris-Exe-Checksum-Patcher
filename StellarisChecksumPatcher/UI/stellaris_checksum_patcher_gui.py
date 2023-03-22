@@ -95,14 +95,14 @@ class StellarisChecksumPatcherGUI(Ui_MainWindow):
     def _app_quit(self):
         try:
             logger.info("Quitting Application.")
-            self.thread_pool.clear()
             if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
                 logger.info("Waiting for finish.")
-                self.thread_pool.waitForDone(msecs=15000) # Wait for max 15 seconds.
+                self.thread_pool.waitForDone(msecs=2000) # Wait for max 2 seconds.
+                logger.debug("Done waiting.")
         except Exception as e:
             logger.error(e)
-            
-        sys.exit()
+
+        sys.exit(0)
 
     def _set_terminal_clickable(self, is_clickable: bool):
         if is_clickable:

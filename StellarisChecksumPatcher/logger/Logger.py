@@ -52,6 +52,8 @@ class Logger:
         elif filepath and filename:
             self.log_file = pathlib.Path(filepath) /filename
 
+        self.create_log_folder()
+
         self.DEBUG = logging.DEBUG
         self.INFO = logging.INFO
         self.WARNING = logging.WARNING
@@ -87,13 +89,14 @@ class Logger:
 
         self.logger.addHandler(file_handler)
         self.logger.addHandler(stream_handler)
-        
-        self.create_log_folder()
 
-    @staticmethod
-    def create_log_folder():
+    def create_log_folder(self):
         if not os.path.exists(LOG_FOLDER):
             os.makedirs(LOG_FOLDER)
+
+        if not os.path.exists(self.log_file):
+            with open(self.log_file, 'w') as f:
+                f.write("")
             
     def restart_log_file(self):
         if not os.path.exists(LOG_FOLDER):
