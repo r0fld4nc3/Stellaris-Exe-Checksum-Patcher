@@ -9,7 +9,7 @@ def get_current_dir():
     return application_path
 
 class StellarisChecksumPatcher:
-    APP_VERSION = ["r", 1, 0, 6]
+    APP_VERSION = ["d", 1, 0, 7]
     
     def __init__(self, dev=is_debug) -> None:
         self.hex_data_list = [] # Incoming original Hex data, so we can always have a copy of the original.
