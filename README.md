@@ -3,6 +3,10 @@
 [![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/stellaris-exe-checksum-patcher/total?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher.exe)
 [![Release Version Badge](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
 
+# ❗ WARNING ❗
+
+It appears something about the checks has changed and while the Patcher still works and you **can** play Ironman with mods, the achievements **do not** trigger. Currently investigating this issue.
+
 ## 📣 Summary
 
 ❗ Currently only supported on Windows.
