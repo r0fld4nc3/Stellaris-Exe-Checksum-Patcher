@@ -3,9 +3,9 @@
 [![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/stellaris-exe-checksum-patcher/total?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher.exe)
 [![Release Version Badge](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
 
-# ❗ WARNING ❗
+# ❗ Note ❗
 
-It appears something about the checks has changed and while the Patcher still works and you **can** play Ironman with mods, the achievements **do not** trigger. Currently investigating this issue.
+The cause of the issue where after an update achievements were not longer being triggered has been identified. The issue is not that anything has changed from Paradox's side and the Patcher still works flawlessly. The issue is with updates and save games. I will be working on a "Fix Save Game" patch option as well to include in the Patcher in the future, to fix this issue.
 
 ## 📣 Summary
 
