@@ -5,7 +5,7 @@
 
 # ❗ Note ❗
 
-The cause of the issue where after an update achievements were not longer being triggered has been identified. The issue is not that anything has changed from Paradox's side and the Patcher still works flawlessly. The issue is with updates and save games. I will be working on a "Fix Save Game" patch option as well to include in the Patcher in the future, to fix this issue.
+The cause of the issue where after an update achievements were no longer being triggered has been identified. The issue is not that anything has changed from Paradox's side and the Patcher still works flawlessly. The issue is with updates and save games. I will be working on a "Fix Save Game" patch option as well to include in the Patcher in the future, to fix this issue.
 
 ## 📣 Summary
 
