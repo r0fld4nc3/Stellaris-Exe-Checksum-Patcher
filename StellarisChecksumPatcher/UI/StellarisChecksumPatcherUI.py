@@ -20,18 +20,18 @@ from PySide6.QtWidgets import (QAbstractScrollArea, QApplication, QFrame, QGridL
     QPushButton, QSizePolicy, QSpacerItem, QTextBrowser,
     QVBoxLayout, QWidget)
 
-class Ui_MainWindow(object):
-    def setupUi(self, MainWindow):
-        if not MainWindow.objectName():
-            MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1024, 848)
+class Ui_StellarisChecksumPatcherWIndow(object):
+    def setupUi(self, StellarisChecksumPatcherWIndow):
+        if not StellarisChecksumPatcherWIndow.objectName():
+            StellarisChecksumPatcherWIndow.setObjectName(u"StellarisChecksumPatcherWIndow")
+        StellarisChecksumPatcherWIndow.resize(1024, 848)
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
-        MainWindow.setSizePolicy(sizePolicy)
-        MainWindow.setStyleSheet(u"")
-        self.central_widget = QWidget(MainWindow)
+        sizePolicy.setHeightForWidth(StellarisChecksumPatcherWIndow.sizePolicy().hasHeightForWidth())
+        StellarisChecksumPatcherWIndow.setSizePolicy(sizePolicy)
+        StellarisChecksumPatcherWIndow.setStyleSheet(u"")
+        self.central_widget = QWidget(StellarisChecksumPatcherWIndow)
         self.central_widget.setObjectName(u"central_widget")
         sizePolicy.setHeightForWidth(self.central_widget.sizePolicy().hasHeightForWidth())
         self.central_widget.setSizePolicy(sizePolicy)
@@ -181,37 +181,6 @@ class Ui_MainWindow(object):
         self.hlayout_patch_buttons.setObjectName(u"hlayout_patch_buttons")
         self.hlayout_patch_buttons.setSizeConstraint(QLayout.SetDefaultConstraint)
         self.hlayout_patch_buttons.setContentsMargins(0, 0, 0, 0)
-        self.btn_patch_from_dir = QPushButton(self.main_frame)
-        self.btn_patch_from_dir.setObjectName(u"btn_patch_from_dir")
-        sizePolicy1.setHeightForWidth(self.btn_patch_from_dir.sizePolicy().hasHeightForWidth())
-        self.btn_patch_from_dir.setSizePolicy(sizePolicy1)
-        self.btn_patch_from_dir.setMinimumSize(QSize(12, 24))
-        self.btn_patch_from_dir.setMaximumSize(QSize(16777215, 75))
-        self.btn_patch_from_dir.setBaseSize(QSize(12, 24))
-        font5 = QFont()
-        font5.setFamilies([u"Century Gothic"])
-        font5.setPointSize(14)
-        font5.setBold(True)
-        self.btn_patch_from_dir.setFont(font5)
-        self.btn_patch_from_dir.setLayoutDirection(Qt.RightToLeft)
-        self.btn_patch_from_dir.setAutoFillBackground(False)
-        self.btn_patch_from_dir.setStyleSheet(u"QPushButton {\n"
-"color: rgb(255, 255, 255);\n"
-"background-color: rgba(22, 59, 56, 100);\n"
-"border: 4px solid rgb(35, 75, 70);\n"
-"}\n"
-"QPushButton:hover {\n"
-"background-color: rgba(255, 179, 25, 100);\n"
-"border-color: rgba(255, 151, 33, 175);\n"
-"}\n"
-"QPushButton:pressed {\n"
-"background-color: rgba(30, 80, 70, 100);\n"
-"border-color: rgb(67, 144, 134);\n"
-"}")
-        self.btn_patch_from_dir.setIconSize(QSize(64, 64))
-
-        self.hlayout_patch_buttons.addWidget(self.btn_patch_from_dir)
-
         self.btn_patch_from_install = QPushButton(self.main_frame)
         self.btn_patch_from_install.setObjectName(u"btn_patch_from_install")
         sizePolicy1.setHeightForWidth(self.btn_patch_from_install.sizePolicy().hasHeightForWidth())
@@ -219,6 +188,10 @@ class Ui_MainWindow(object):
         self.btn_patch_from_install.setMinimumSize(QSize(12, 24))
         self.btn_patch_from_install.setMaximumSize(QSize(16777215, 75))
         self.btn_patch_from_install.setBaseSize(QSize(12, 24))
+        font5 = QFont()
+        font5.setFamilies([u"Century Gothic"])
+        font5.setPointSize(14)
+        font5.setBold(True)
         self.btn_patch_from_install.setFont(font5)
         self.btn_patch_from_install.setLayoutDirection(Qt.RightToLeft)
         self.btn_patch_from_install.setAutoFillBackground(False)
@@ -240,28 +213,55 @@ class Ui_MainWindow(object):
 
         self.hlayout_patch_buttons.addWidget(self.btn_patch_from_install)
 
+        self.btn_fix_save_file = QPushButton(self.main_frame)
+        self.btn_fix_save_file.setObjectName(u"btn_fix_save_file")
+        sizePolicy1.setHeightForWidth(self.btn_fix_save_file.sizePolicy().hasHeightForWidth())
+        self.btn_fix_save_file.setSizePolicy(sizePolicy1)
+        self.btn_fix_save_file.setMinimumSize(QSize(12, 24))
+        self.btn_fix_save_file.setMaximumSize(QSize(16777215, 75))
+        self.btn_fix_save_file.setBaseSize(QSize(12, 24))
+        self.btn_fix_save_file.setFont(font5)
+        self.btn_fix_save_file.setLayoutDirection(Qt.RightToLeft)
+        self.btn_fix_save_file.setAutoFillBackground(False)
+        self.btn_fix_save_file.setStyleSheet(u"QPushButton {\n"
+"color: rgb(255, 255, 255);\n"
+"background-color: rgba(22, 59, 56, 100);\n"
+"border: 4px solid rgb(35, 75, 70);\n"
+"}\n"
+"QPushButton:hover {\n"
+"background-color: rgba(255, 179, 25, 100);\n"
+"border-color: rgba(255, 151, 33, 175);\n"
+"}\n"
+"QPushButton:pressed {\n"
+"background-color: rgba(30, 80, 70, 100);\n"
+"border-color: rgb(67, 144, 134);\n"
+"}")
+        self.btn_fix_save_file.setIconSize(QSize(64, 64))
+
+        self.hlayout_patch_buttons.addWidget(self.btn_fix_save_file)
+
 
         self.verticalLayout.addLayout(self.hlayout_patch_buttons)
 
 
         self.gridLayout.addWidget(self.main_frame, 0, 1, 1, 1)
 
-        MainWindow.setCentralWidget(self.central_widget)
+        StellarisChecksumPatcherWIndow.setCentralWidget(self.central_widget)
 
-        self.retranslateUi(MainWindow)
+        self.retranslateUi(StellarisChecksumPatcherWIndow)
 
         self.btn_patch_from_install.setDefault(False)
 
 
-        QMetaObject.connectSlotsByName(MainWindow)
+        QMetaObject.connectSlotsByName(StellarisChecksumPatcherWIndow)
     # setupUi
 
-    def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.btn_themed_exit_application.setText(QCoreApplication.translate("MainWindow", u"X", None))
-        self.lbl_title.setText(QCoreApplication.translate("MainWindow", u"Stellaris Checksum Patcher", None))
-        self.lbl_app_version.setText(QCoreApplication.translate("MainWindow", u"App Version", None))
-        self.terminal_display.setHtml(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+    def retranslateUi(self, StellarisChecksumPatcherWIndow):
+        StellarisChecksumPatcherWIndow.setWindowTitle(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"MainWindow", None))
+        self.btn_themed_exit_application.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"X", None))
+        self.lbl_title.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Stellaris Checksum Patcher", None))
+        self.lbl_app_version.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"App Version", None))
+        self.terminal_display.setHtml(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:'Century Gothic'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
@@ -270,12 +270,12 @@ class Ui_MainWindow(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Orbitron';\">[INFO] Read finished.</span></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-"
                         "right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Orbitron';\">[INFO] Acquiring Checksum Block...</span></p></body></html>", None))
-        self.txt_browser_project_link.setHtml(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+        self.txt_browser_project_link.setHtml(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:'Century Gothic'; font-size:10pt; font-weight:600; font-style:normal;\">\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Project link: </span><a href=\"https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher\"><span style=\" font-weight:400; text-decoration: underline; color:#2a90d8;\">https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher</span></a></p></body></html>", None))
-        self.btn_patch_from_dir.setText(QCoreApplication.translate("MainWindow", u"Patch From Directory", None))
-        self.btn_patch_from_install.setText(QCoreApplication.translate("MainWindow", u"Patch From Installation", None))
+        self.btn_patch_from_install.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Patch From Installation", None))
+        self.btn_fix_save_file.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Fix Save Achievements", None))
     # retranslateUi
 

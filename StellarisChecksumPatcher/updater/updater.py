@@ -71,16 +71,17 @@ class Updater:
             return True
 
         if _pulled_minor > _existing_minor:
-            logger.info(
-                f"There is a new version available: {'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
-            return True
+            if _existing_major <= _pulled_major:
+                logger.info(f"There is a new version available: {'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
+                return True
 
         if _pulled_micro > _existing_micro:
-            logger.info(f"There is a new version available: {'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
-            return True
+            if _existing_major <= _pulled_major and _existing_minor <= _pulled_minor:
+                logger.info(f"There is a new version available: {'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
+                return True
 
         if logger.log_level == logger.DEBUG:
-            logger.info(f"No updates found: {'.'.join(_pulled_version)} (repo) <==> {'.'.join(_existing_version)} (current)")
+            logger.info(f"No updates found: {'.'.join(_pulled_version)} (repo) ==> {'.'.join(_existing_version)} (current)")
         else:
             logger.info("No updates found.")
         return False

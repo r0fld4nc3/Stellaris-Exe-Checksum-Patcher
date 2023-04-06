@@ -1,7 +1,7 @@
 from . import *
 
 from PySide6 import QtWidgets
-from PySide6.QtCore import QObject, QRunnable, Slot, Signal
+from PySide6.QtCore import QObject, QRunnable, QThread, Slot, Signal
 
 
 class Capturing(list):  # Deprecated and not used, here for simply backup reasons because it was really cool to figure it out.
@@ -14,12 +14,6 @@ class Capturing(list):  # Deprecated and not used, here for simply backup reason
         self.extend(self._stringio.getvalue().splitlines())
         del self._stringio  # free up some memory
         sys.stdout = self._stdout
-
-
-def prompt_user_game_install_dialog():
-    directory = QtWidgets.QFileDialog().getExistingDirectory(caption="Please choose Stellaris installation Folder...")
-
-    return directory
 
 class WorkerSignals(QObject):
     started = Signal()
@@ -47,3 +41,25 @@ class Worker(QRunnable):
             self.signals.started.emit()
             self._target(*self._args, *self._kwargs)
         self.signals.finished.emit()
+
+class Threader(QThread):
+    def __init__(self, target, args=(), kwargs=None) -> None:
+        self.signals = WorkerSignals()
+
+        QThread.__init__(self)
+        self._target = target
+        self._args = args
+        self._kwargs = kwargs
+
+    def run(self):
+        """Start Thread."""
+        if self._target:
+            if self._kwargs is None:
+                self._kwargs = {}
+            self.signals.started.emit()
+            self._target(*self._args, *self._kwargs)
+        self.signals.finished.emit()
+
+    def stop(self):
+        self.signals.sig_quit.emit()
+        self.exit(0)

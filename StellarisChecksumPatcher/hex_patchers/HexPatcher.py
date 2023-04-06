@@ -9,7 +9,7 @@ def get_current_dir():
     return application_path
 
 class StellarisChecksumPatcher:
-    APP_VERSION = ["d", 1, 0, 7]
+    APP_VERSION = ["d", 1, 1, 0]
     
     def __init__(self, dev=is_debug) -> None:
         self.hex_data_list = [] # Incoming original Hex data, so we can always have a copy of the original.
@@ -48,7 +48,7 @@ class StellarisChecksumPatcher:
     # =============================================
 
     @staticmethod
-    def _generate_missing_paths(dir_path) -> None:
+    def generate_missing_paths(dir_path) -> None:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
             
@@ -66,9 +66,9 @@ class StellarisChecksumPatcher:
         dest = os.path.join(directory, f"{filename}.exe")
         
         if directory:
-            self._generate_missing_paths(directory)
+            self.generate_missing_paths(directory)
         else:
-            self._generate_missing_paths(get_current_dir())
+            self.generate_missing_paths(get_current_dir())
             
         with open(dest, "wb") as out:
             for line in self._hex_data_list_working:
@@ -78,7 +78,7 @@ class StellarisChecksumPatcher:
             
         return True
             
-    def _convert_to_two_space(self, condense_chunks=False) -> list:
+    def convert_to_two_space(self, condense_chunks=False) -> list:
         # https://stackoverflow.com/a/10070449
         
         """
@@ -95,6 +95,7 @@ class StellarisChecksumPatcher:
         
         for chunk in self.hex_data_list:
             converted = " ".join(chunk[i:i+2] for i in range(0,len(chunk),2))
+            # logger.debug(f"Converted chunk {chunk} to {converted}")
             formatted_hex_data_list.append(converted)
             
         if condense_chunks:
@@ -105,7 +106,7 @@ class StellarisChecksumPatcher:
         
         return self._hex_data_list_working
     
-    def _convert_hex_list_to_writable_chunk_list(self, hex_chunk_set: list) -> list:
+    def convert_hex_list_to_writable_chunk_list(self, hex_chunk_set: list) -> list:
         out_list = []
         
         tmp_chunk = []
@@ -123,17 +124,18 @@ class StellarisChecksumPatcher:
         
         return out_list
             
-    def _acquire_checksum_block(self) -> bool:
+    def acquire_checksum_block(self) -> bool:
         logger.info("Acquiring Checksum Block...")
         
-        working_set_hex = self._convert_to_two_space(condense_chunks=True)
-        
+        working_set_hex = self.convert_to_two_space(condense_chunks=True)
+
+        # Potential Target block
         potential_candidate = False
         
         for chunk in working_set_hex:
             chunk_split = chunk.split(" ")
-            # logger.log_debug(f"Chunk: {chunk}")
-            # logger.log_debug(f"Chunk Split: {chunk_split}")
+            # logger.debug(f"Chunk: {chunk}")
+            # logger.debug(f"Chunk Split: {chunk_split}")
             for index, hex_char in enumerate(chunk_split):
                 # CHECK FOR START SEQUENCE
                 if hex_char in self._hex_begin_static and hex_char == self._hex_begin_static[0]:
@@ -154,11 +156,11 @@ class StellarisChecksumPatcher:
                         # [start_index_chars, start_index_chars+1, start_index_chars+2, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, end_hex_char, end_hex_char+1]
                         # [48, 8B, 12, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, ??, 85, C0]
                         search_offset_start = index + start_sequence_len + self._hex_wildcards_in_between
-                        # logger.log_debug(f"Search Offset Start {search_offset_start}")
+                        # logger.debug(f"Search Offset Start {search_offset_start}")
                         for end_candidate in chunk_split[search_offset_start:search_offset_start + end_sequence_len]:
                             end_sequence_candidate.append(end_candidate)
                         
-                        # logger.log_debug(f"End Candidate: {end_sequence_candidate}")
+                        # logger.debug(f"End Candidate: {end_sequence_candidate}")
                         
                         if end_sequence_candidate == self._hex_end_static:
                             logger.debug(f"Found potential start candidate: {start_candidate} starting from {index}")
@@ -168,22 +170,22 @@ class StellarisChecksumPatcher:
                             self._checksum_offset_start = index
                             self._checksum_offset_end = search_offset_start + end_sequence_len
                             logger.info(f"Found potential matching sequence.")
-                            logger.debug(f"({index}) {''.join(self._checksum_block)} ({search_offset_start + self._checksum_offset_end})")
+                            logger.debug(f"<{index}> {''.join(self._checksum_block)} ({search_offset_start + self._checksum_offset_end})")
                             potential_candidate = True
                             break
                         elif end_sequence_candidate == self._hex_end_change_to:
                             logger.debug(f"Found potential start candidate: {start_candidate} starting from {index}")
                             logger.debug(f"Found potential patched end candidate: {end_sequence_candidate} ending at index {search_offset_start + end_sequence_len}")
-                            # logger.log("Current executable is already patched and will not be touched further.")
+                            # logger.debug("Current executable is already patched and will not be touched further.")
                             self.is_patched = True
                             return False
-        
+
         if potential_candidate:
             return True
         
         return False
 
-    def _modify_checksum(self):
+    def modify_checksum(self):
         logger.info("Patching Block...")
         if not self._checksum_block:
             return False
@@ -207,7 +209,7 @@ class StellarisChecksumPatcher:
             for offset, modify_hex in enumerate(checksum_block_modified):
                 chunk_split[self._checksum_offset_start+offset] = modify_hex
     
-        self._hex_data_list_working = self._convert_hex_list_to_writable_chunk_list(chunk_split)
+        self._hex_data_list_working = self.convert_hex_list_to_writable_chunk_list(chunk_split)
         
         return True
     
@@ -271,7 +273,7 @@ class StellarisChecksumPatcher:
     def write_hex_to_file(self, directory, filename, working_set=False):
         dest = os.path.join(directory, f"{filename}.txt")
         
-        self._generate_missing_paths(directory)
+        self.generate_missing_paths(directory)
         
         to_write = self.hex_data_list
         
@@ -300,10 +302,10 @@ class StellarisChecksumPatcher:
         # The else will refer to the error of the previous operation.
 
         if op_success: # Data was loaded.
-            op_success = self._acquire_checksum_block()
+            op_success = self.acquire_checksum_block()
             
             if op_success: # Checksum block was acquired.
-                op_success = self._modify_checksum()
+                op_success = self.modify_checksum()
             
             if op_success: # Checksum block was modified.
                 op_success = self.compile_hex_file()
