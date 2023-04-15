@@ -10,6 +10,8 @@ import pathlib
 import subprocess
 
 # Needs a .env
+# Create a .env in the same directory as the UI folder, with the CONVERTER_PATH = ""entry.
+# This entry points to the folder where the converter for .ui files is.
 env_file = dotenv.find_dotenv('.env')
 if not env_file:
     print("ERROR: Unable to find .env file.")
@@ -17,7 +19,7 @@ if not env_file:
 
 dotenv.load_dotenv(env_file)
 
-python_path = os.getenv("PYTHON_PATH")
+python_path = os.getenv("CONVERTER_PATH")
 
 def main():
     converter_path = python_path
