@@ -1,5 +1,3 @@
-# TODO: Refactor logging to use logging library.
-
 import os
 import pathlib
 import logging

@@ -4,6 +4,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from .ui_utils import Worker, Threader
 from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWIndow
 from hex_patchers.HexPatcher import StellarisChecksumPatcher
+from save_patcher.save_patcher import repair_save
 
 class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
     _app_version = (".".join([str(v) for v in StellarisChecksumPatcher.APP_VERSION]))
@@ -389,9 +390,6 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         self.threader.start()
         # self.thread_pool.start(self.worker)
 
-    def fix_save_achievements(self, save_file_path):
-        logger.info(f"{save_file_path=}")
-
     def fix_save_achievements_thread(self):
         if self.is_patching:
             return
@@ -402,10 +400,23 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
 
         # Before starting the thread, ask which save file the user wants to repair.
         # Simply point to the .sav file and we will do the rest.
+        # Usually located in user Documents. Attempt to grab that directory on open
+        documents_dir = os.path.expanduser('~') + "\\Documents\\Paradox Interactive\\Stellaris\\save games"
+        if not os.path.exists(documents_dir):
+            documents_dir = os.path.dirname(sys.executable)
 
-        save_file_path = None
+        save_file_path = QtWidgets.QFileDialog().getOpenFileName(
+                caption="Save file to repair...",
+                dir=documents_dir
+        )[0]
 
-        self.threader = Threader(target=lambda save=save_file_path: self.fix_save_achievements(save))
+        if save_file_path or save_file_path != '':
+            logger.info(f"Save file: {save_file_path}")
+
+        if not save_file_path:
+            return False
+
+        self.threader = Threader(target=lambda save_file=save_file_path: repair_save(save_file))
         self.threader.setTerminationEnabled(True)
         # self.threader.signals.failed.connect(self.TOOD)
         self.threader.signals.started.connect(self.disable_ui_elements)

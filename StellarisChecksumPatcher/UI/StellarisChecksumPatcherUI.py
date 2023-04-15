@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'StellarisChecksumPatcherUI.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.0
+## Created by: Qt User Interface Compiler version 6.5.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -24,7 +24,7 @@ class Ui_StellarisChecksumPatcherWIndow(object):
     def setupUi(self, StellarisChecksumPatcherWIndow):
         if not StellarisChecksumPatcherWIndow.objectName():
             StellarisChecksumPatcherWIndow.setObjectName(u"StellarisChecksumPatcherWIndow")
-        StellarisChecksumPatcherWIndow.resize(1024, 848)
+        StellarisChecksumPatcherWIndow.resize(966, 821)
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -181,6 +181,37 @@ class Ui_StellarisChecksumPatcherWIndow(object):
         self.hlayout_patch_buttons.setObjectName(u"hlayout_patch_buttons")
         self.hlayout_patch_buttons.setSizeConstraint(QLayout.SetDefaultConstraint)
         self.hlayout_patch_buttons.setContentsMargins(0, 0, 0, 0)
+        self.btn_fix_save_file = QPushButton(self.main_frame)
+        self.btn_fix_save_file.setObjectName(u"btn_fix_save_file")
+        sizePolicy1.setHeightForWidth(self.btn_fix_save_file.sizePolicy().hasHeightForWidth())
+        self.btn_fix_save_file.setSizePolicy(sizePolicy1)
+        self.btn_fix_save_file.setMinimumSize(QSize(12, 24))
+        self.btn_fix_save_file.setMaximumSize(QSize(16777215, 75))
+        self.btn_fix_save_file.setBaseSize(QSize(12, 24))
+        font5 = QFont()
+        font5.setFamilies([u"Century Gothic"])
+        font5.setPointSize(14)
+        font5.setBold(True)
+        self.btn_fix_save_file.setFont(font5)
+        self.btn_fix_save_file.setLayoutDirection(Qt.RightToLeft)
+        self.btn_fix_save_file.setAutoFillBackground(False)
+        self.btn_fix_save_file.setStyleSheet(u"QPushButton {\n"
+"color: rgb(255, 255, 255);\n"
+"background-color: rgba(22, 59, 56, 100);\n"
+"border: 4px solid rgb(35, 75, 70);\n"
+"}\n"
+"QPushButton:hover {\n"
+"background-color: rgba(255, 179, 25, 100);\n"
+"border-color: rgba(255, 151, 33, 175);\n"
+"}\n"
+"QPushButton:pressed {\n"
+"background-color: rgba(30, 80, 70, 100);\n"
+"border-color: rgb(67, 144, 134);\n"
+"}")
+        self.btn_fix_save_file.setIconSize(QSize(64, 64))
+
+        self.hlayout_patch_buttons.addWidget(self.btn_fix_save_file)
+
         self.btn_patch_from_install = QPushButton(self.main_frame)
         self.btn_patch_from_install.setObjectName(u"btn_patch_from_install")
         sizePolicy1.setHeightForWidth(self.btn_patch_from_install.sizePolicy().hasHeightForWidth())
@@ -188,10 +219,6 @@ class Ui_StellarisChecksumPatcherWIndow(object):
         self.btn_patch_from_install.setMinimumSize(QSize(12, 24))
         self.btn_patch_from_install.setMaximumSize(QSize(16777215, 75))
         self.btn_patch_from_install.setBaseSize(QSize(12, 24))
-        font5 = QFont()
-        font5.setFamilies([u"Century Gothic"])
-        font5.setPointSize(14)
-        font5.setBold(True)
         self.btn_patch_from_install.setFont(font5)
         self.btn_patch_from_install.setLayoutDirection(Qt.RightToLeft)
         self.btn_patch_from_install.setAutoFillBackground(False)
@@ -212,33 +239,6 @@ class Ui_StellarisChecksumPatcherWIndow(object):
         self.btn_patch_from_install.setFlat(False)
 
         self.hlayout_patch_buttons.addWidget(self.btn_patch_from_install)
-
-        self.btn_fix_save_file = QPushButton(self.main_frame)
-        self.btn_fix_save_file.setObjectName(u"btn_fix_save_file")
-        sizePolicy1.setHeightForWidth(self.btn_fix_save_file.sizePolicy().hasHeightForWidth())
-        self.btn_fix_save_file.setSizePolicy(sizePolicy1)
-        self.btn_fix_save_file.setMinimumSize(QSize(12, 24))
-        self.btn_fix_save_file.setMaximumSize(QSize(16777215, 75))
-        self.btn_fix_save_file.setBaseSize(QSize(12, 24))
-        self.btn_fix_save_file.setFont(font5)
-        self.btn_fix_save_file.setLayoutDirection(Qt.RightToLeft)
-        self.btn_fix_save_file.setAutoFillBackground(False)
-        self.btn_fix_save_file.setStyleSheet(u"QPushButton {\n"
-"color: rgb(255, 255, 255);\n"
-"background-color: rgba(22, 59, 56, 100);\n"
-"border: 4px solid rgb(35, 75, 70);\n"
-"}\n"
-"QPushButton:hover {\n"
-"background-color: rgba(255, 179, 25, 100);\n"
-"border-color: rgba(255, 151, 33, 175);\n"
-"}\n"
-"QPushButton:pressed {\n"
-"background-color: rgba(30, 80, 70, 100);\n"
-"border-color: rgb(67, 144, 134);\n"
-"}")
-        self.btn_fix_save_file.setIconSize(QSize(64, 64))
-
-        self.hlayout_patch_buttons.addWidget(self.btn_fix_save_file)
 
 
         self.verticalLayout.addLayout(self.hlayout_patch_buttons)
@@ -275,7 +275,7 @@ class Ui_StellarisChecksumPatcherWIndow(object):
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:'Century Gothic'; font-size:10pt; font-weight:600; font-style:normal;\">\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Project link: </span><a href=\"https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher\"><span style=\" font-weight:400; text-decoration: underline; color:#2a90d8;\">https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher</span></a></p></body></html>", None))
-        self.btn_patch_from_install.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Patch From Installation", None))
         self.btn_fix_save_file.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Fix Save Achievements", None))
+        self.btn_patch_from_install.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Patch From Installation", None))
     # retranslateUi
 
