@@ -84,13 +84,13 @@ def repair_save(save_file):
         if achievements_line_start == -1 and "achievement={" in line:
             existing_achievements = True
             achievements_line_start = i
-            logger.info(f"Achievements line found: {i}")
+            logger.debug(f"Achievements line found: {i}")
 
         # If existing achievements line, the next } will be the closing bracket
         if existing_achievements and achievements_line_end == -1:
             if "}" in line:
                 achievements_line_end = i
-                logger.info(f"Achievements line close found: {i}")
+                logger.debug(f"Achievements line close found: {i}")
                 break
 
         # Deal with new contents directly.
