@@ -8,7 +8,8 @@ class Settings:
     def __init__(self):
         self.patcher_settings = {
                 "app-version": "",
-                "install-location": "",
+                "install-dir": "",
+                "save-games-dir": "",
         }
         self._config_file_name = "stellaris-checksum-patcher-settings.json"
         self.config_file = pathlib.Path(config_folder) / self._config_file_name
@@ -23,12 +24,12 @@ class Settings:
         return v
 
     def set_install_location(self, install_path) -> None:
-        self.patcher_settings["install-location"] = install_path
+        self.patcher_settings["install-dir"] = install_path
         self.save_config()
 
     def get_install_location(self) -> str:
         self.load_config()
-        i = self.patcher_settings.get("install-location")
+        i = self.patcher_settings.get("install-dir")
         return i
 
     def save_config(self):
@@ -39,7 +40,6 @@ class Settings:
         with open(self.config_file, 'w') as config_file:
             config_file.write(json.dumps(self.patcher_settings, indent=2))
             logger.debug(f"Saved config to {self.config_file}")
-
 
     def load_config(self):
         if config_folder == '' or not pathlib.Path(config_folder).exists()\

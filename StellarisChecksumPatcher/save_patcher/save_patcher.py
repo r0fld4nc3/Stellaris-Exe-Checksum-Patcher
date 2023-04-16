@@ -108,6 +108,12 @@ def repair_save(save_file):
     # gamestate
     gamestate_file = pathlib.Path(repair_directory) / "gamestate"
 
+    # meta
+    meta_file = pathlib.Path(repair_directory) / "meta"
+
+    # =======================================================
+    # =================== GAMESTATE BLOCK ===================
+    # =======================================================
     with open(gamestate_file, 'r') as f:
         file = f.read()
 
@@ -121,12 +127,19 @@ def repair_save(save_file):
         logger.error("Unable to fix save as achievements could not be retrieved.")
         return False
 
+    # ==========================================================
+    # =================== ACHIEVEMENTS BLOCK ===================
+    # ==========================================================
     achievements_line_start = -1
     achievements_line_end = -1
     existing_achievements = False
     clusters_found = False
     is_proper_file = False
 
+    # For each change we must iterate the file contents
+    # As the insert changes the indices around and as such we must re iterate to account
+    # For the new indices.
+    # Achievement
     for i, line in enumerate(file_contents):
         if achievements_line_start == -1 and "achievement={" in line:
             existing_achievements = True
@@ -142,9 +155,38 @@ def repair_save(save_file):
 
         # Deal with new contents directly.
         if not existing_achievements and "clusters={" in line:
+            logger.debug(f"clusters in line {i}.")
             clusters_found = True
             new_file_contents.insert(i, achievements)
             break
+
+    # Ironman flag
+    # Ironman flag
+    # For ironman=yes
+    # We must parse the file to find galaxy={ section
+    # In galaxy section, we must find name=
+    # Immediately below name= there should be a line for ironman
+    # If it isn't and if we don't find ironman= anywhere in the file
+    # Insert ironman=yes at index of name= + 1, so it is the line directly below name=
+    has_ironman_flag = False
+    _has_passed_galaxy_line = False
+
+    # Check for ironman flag existing once before full parse
+    if "ironman=yes" in file_contents:
+        has_ironman_flag = True
+
+    if not has_ironman_flag:
+        for i, line in enumerate(file_contents):
+            if "galaxy={" in line:
+                logger.debug("Passed galaxy={")
+                _has_passed_galaxy_line = True
+
+            if _has_passed_galaxy_line:
+                if "name=" in line:
+                    logger.debug("Found name= in galaxy={")
+                    logger.info("Setting ironman flag to yes.")
+                    new_file_contents.insert(i+1, "\tironman=yes") # Must be a tabbed insert
+                    break
 
     # Double check conditions are met to be able to write the proper file
     if existing_achievements or clusters_found:
@@ -170,12 +212,39 @@ def repair_save(save_file):
         else:
             new_file_contents[achievements_line_start] = achievements
 
+    # ==============================================================
+    # =================== END ACHIEVEMENTS BLOCK ===================
+    # ==============================================================
+
     temp_file = pathlib.Path(tempfile.gettempdir()) / "gamestate"
     with open(temp_file, 'w') as new_file:
         new_file.write('\n'.join(new_file_contents))
 
-    # Replace temp gamestate with the extracted gamestate
+    # Replace extracted gamestate with temp gamestate
     shutil.copy(temp_file, gamestate_file)
+
+    # ==================================================
+    # =================== META BLOCK ===================
+    # ==================================================
+    logger.debug("Repairing meta")
+    with open(meta_file, 'r') as f:
+        file = f.read()
+
+    file_contents = file.splitlines()
+    new_file_contents = file_contents.copy()
+
+    if "ironman=yes" not in new_file_contents:
+        logger.debug(f"\n{new_file_contents}")
+        logger.debug("ironman=yes not found in meta file.")
+        new_file_contents.append("ironman=yes")
+        logger.debug(f"\n{new_file_contents}")
+
+    temp_file = pathlib.Path(tempfile.gettempdir()) / "meta"
+    with open(temp_file, 'w') as new_file:
+        new_file.write('\n'.join(new_file_contents))
+
+    # Replace extracted meta with temp meta
+    shutil.copy(temp_file, meta_file)
 
     # Rebuild .sav file
     with zipfile.ZipFile(save_file, 'w', zipfile.ZIP_DEFLATED) as zf:
