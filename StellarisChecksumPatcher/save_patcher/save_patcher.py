@@ -8,7 +8,7 @@ import zipfile
 import tempfile
 
 # 3rd Party
-from utils.global_defines import logger
+from utils.global_defines import logger, system
 
 def get_current_dir():
     if getattr(sys, "frozen", False):
@@ -17,6 +17,53 @@ def get_current_dir():
         application_path = os.path.dirname(__file__)
 
     return application_path
+
+
+def get_user_save_folder():
+    logger.info("Attempting to locate Stellaris save game folder.")
+    pdx_dir = ''
+    documents_dir = ''
+
+    # Windows
+    if system == "Windows":
+        logger.info("Locating for Windows system.")
+        documents_dir = os.path.expanduser('~') + "\\Documents\\Paradox Interactive\\Stellaris\\save games"
+    # Unix
+    elif system == "Linux" or system == "Darwin":
+        # NOTE, IT COULD BE INSTALLED ON OTHER DRIVES
+        # FIND libraryfolders.vdf IN .steam/root/config
+        # GET THE OTHER DRIVES IN THE libraryfolders.vdf
+        # ITERATE THROUGH THOSE DRIVES TO FIND THE save games FOLDER.
+
+        logger.info("Locating for Linux/Unix/Darwin system.")
+        home_steam = os.path.join(os.path.expanduser('~'), ".steam")
+        for root, dirs, files in os.walk(home_steam):
+            logger.debug(f"{root}")
+            logger.debug(f"\t{dirs}")
+            if pathlib.Path(root).name == "Paradox Interactive":
+                print(f"Found in {root}")
+                pdx_dir = root
+                break
+            for usr_dir in dirs:
+                if pathlib.Path(usr_dir).name == "Paradox Interactive":
+                    print(f"Found in {usr_dir}")
+                    pdx_dir = usr_dir
+                    break
+
+        if pdx_dir != '':
+            documents_dir = pathlib.Path(pdx_dir) / "Stellaris" / "save games"
+    # Uh oh
+    else:
+        logger.error("Unable to acquire targetr system.")
+        pass
+
+    if not pathlib.Path(documents_dir).exists():
+        logger.info(f"Unable to find documents dir. Current try: \"{documents_dir}\"")
+        documents_dir = os.path.dirname(sys.executable)
+    else:
+        logger.info(f"Found {documents_dir}")
+
+    return documents_dir
 
 
 def repair_save(save_file):

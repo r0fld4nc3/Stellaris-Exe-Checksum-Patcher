@@ -9,4 +9,4 @@ import json
 from time import sleep
 from io import StringIO
 from ctypes import wintypes
-from utils.global_defines import logger, config_folder, updater, settings
+from utils.global_defines import logger, config_folder, updater, settings, APP_VERSION

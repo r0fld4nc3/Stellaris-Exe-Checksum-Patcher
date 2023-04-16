@@ -4,10 +4,10 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from .ui_utils import Worker, Threader
 from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWIndow
 from hex_patchers.HexPatcher import StellarisChecksumPatcher
-from save_patcher.save_patcher import repair_save
+from save_patcher.save_patcher import repair_save, get_user_save_folder
 
 class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
-    _app_version = (".".join([str(v) for v in StellarisChecksumPatcher.APP_VERSION]))
+    _app_version = (".".join([str(v) for v in APP_VERSION]))
     UI_ICONS_FOLDER = os.path.join(os.path.dirname(__file__), "ui_icons")
 
     def __init__(self) -> None:
@@ -44,6 +44,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         self._has_run_once = False
         self._patch_successful = False
         self.is_patching = False
+        self.auto_patch_failed = False
 
         self._manual_install_dir = ''
         self._replace_failed_reasons = []
@@ -131,6 +132,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         """
         self.reset_caches()
         self._has_run_once = True
+        self.auto_patch_failed = False
         self.is_patching = True
 
         self.set_terminal_clickable(False)
@@ -144,8 +146,9 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
                 game_executable = self.stellaris_patcher.locate_game_install()
         else:
             game_executable = self.stellaris_patcher.locate_game_install()
-        
+
         if not game_executable:
+            self.auto_patch_failed = True
             self.is_patching = False
             logger.error("Game installation not found.")
             self.terminal_display_log(" ")
@@ -183,83 +186,6 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
 
         return True
         
-    def patch_from_manual_game_install(self) -> bool:
-        """
-        Attempts to patch the executable located in the current application's directory. Will prompt for a directory
-        in the event that the executable is not found.
-
-        To be called from Worker Thread.
-        :return: True if patched succesfully.
-        """
-
-        self.reset_caches()
-        self._has_run_once = True
-        self.is_patching = True
-
-        dir_to_look = os.path.join(self._manual_install_dir, self.stellaris_patcher.exe_default_filename)
-
-        self.set_terminal_clickable(False)
-        
-        logger.info("Patching from directory.")
-        loaded = self.stellaris_patcher.load_file_hex(dir_to_look)
-        
-        if not loaded:
-            self.is_patching = False
-            self.terminal_display_log(" ")
-            if not self._manual_install_dir or self._manual_install_dir == "":
-                logger.error("Game executable not found in current directory.")
-            else:
-                logger.error(f"Game executable not found in {dir_to_look}.")
-            logger.info("Patch failed.")
-            self.worker.signals.failed.emit()
-            self.set_terminal_clickable(True)
-            return False
-
-        # Patch can proceed, therefore save game install location
-        settings.set_install_location(self._manual_install_dir)
-
-        logger.info("Applying Patch...")
-        
-        self.terminal_display_log(" ")
-
-        self.stellaris_patcher.patch()  # Here if the file IS patched, there is the "is_patched" flag
-
-        replaced = self.replace_with_patched_file()
-
-        self._patch_successful = True
-        self.is_patching = False
-
-        # Handle feedback if replacing failed
-        if not replaced and not self.stellaris_patcher.is_patched:
-            logger.info(f"Unable to replace original game file. Please attempt to do so manually.")
-
-        self.operations_finished_report()
-
-        self.set_terminal_clickable(True)
-
-        return True
-        
-    def patch_from_directory(self): # Legacy?
-        self.reset_caches()
-        self.is_patching = True
-        
-        logger.info("Patching from current directory.")
-        loaded = self.stellaris_patcher.load_file_hex()
-        
-        if not loaded:
-            self.is_patching = False
-            self.terminal_display_log(" ")
-            logger.error("Game executable not found.")
-            logger.info("Patch failed.")
-            return False
-        
-        logger.info("Applying Patch...")
-        
-        self.stellaris_patcher.patch()
-        
-        self._patch_successful = True
-        self.is_patching = False
-        
     def enable_ui_elements(self):
         self.btn_patch_from_install.setDisabled(False)
         self.btn_fix_save_file.setDisabled(False)
@@ -281,6 +207,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         self._replace_failed_reasons.clear()
         self._patch_successful = False
         self.is_patching = False
+        self.auto_patch_failed = False
         
     def terminal_display_log(self, t_log):
         self.terminal_display.insertPlainText(f"{t_log}\n")
@@ -357,7 +284,11 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         logger.restart_log_file()
         
         self.terminal_display.clear()
-        
+
+        # If install failed, ask for directory and then perform the normal patching operation
+        if self._has_run_once and self.auto_patch_failed:
+            self.patch_from_prompt()
+
         # self.worker = Worker(target=self.patch_from_game_install)
         self.threader = Threader(target=self.patch_from_game_install)
         self.threader.signals.started.connect(self.disable_ui_elements)
@@ -368,27 +299,8 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
     def patch_from_prompt(self):
         self._manual_install_dir = QtWidgets.QFileDialog().getExistingDirectory(
                 caption="Please choose Stellaris installation Folder...")
-        # self.stellaris_patcher._manual_install_dir = self._manual_install_dir
-        if self._manual_install_dir and self._manual_install_dir != '':
-            self._has_run_once = False
-            self.patch_from_directory_thread()
-            
-    def patch_from_directory_thread(self):
-        if self.is_patching:
-            return
-        
-        logger.restart_log_file()
-        
-        self.terminal_display.clear()
-        
-        # self.worker = Worker(target=self.patch_from_manual_game_install)
-        self.threader = Threader(target=self.patch_from_manual_game_install)
-        self.threader.setTerminationEnabled(True)
-        self.threader.signals.failed.connect(self.patch_from_prompt)
-        self.threader.signals.started.connect(self.disable_ui_elements)
-        self.threader.signals.finished.connect(self.enable_ui_elements)
-        self.threader.start()
-        # self.thread_pool.start(self.worker)
+        if self._manual_install_dir:
+            self._manual_install_dir = os.path.abspath(self._manual_install_dir)
 
     def fix_save_achievements_thread(self):
         if self.is_patching:
@@ -401,9 +313,9 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         # Before starting the thread, ask which save file the user wants to repair.
         # Simply point to the .sav file and we will do the rest.
         # Usually located in user Documents. Attempt to grab that directory on open
-        documents_dir = os.path.expanduser('~') + "\\Documents\\Paradox Interactive\\Stellaris\\save games"
-        if not os.path.exists(documents_dir):
-            documents_dir = os.path.dirname(sys.executable)
+
+        # Windows
+        documents_dir = get_user_save_folder()
 
         save_file_path = QtWidgets.QFileDialog().getOpenFileName(
                 caption="Save file to repair...",

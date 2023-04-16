@@ -3,20 +3,22 @@ import os
 import pathlib
 import platform
 
-_system = platform.system()
+APP_VERSION = ["r", 1, 1, 0]
+
+system = platform.system()
 debug_commands = ("-debug", "-d")
 
-if _system == "Windows":
+if system == "Windows":
     print("Target System Windows")
     sys_drive = os.getenv("LOCALAPPDATA")
     config_folder = pathlib.Path(sys_drive + "\\r0fld4nc3\\Apps\\Stellaris\\ChecksumPatcher")
-elif _system == "Linux" or _system == "Darwin":
+elif system == "Linux" or system == "Darwin":
     print("Target System Linux")
     sys_drive = pathlib.Path("usr/bin/r0fld4nc3")
     config_folder = pathlib.Path(sys_drive) / "Apps" / "Stellaris" / "ChecksumPatcher"
 else:
     print("Target System Other")
-    print(_system)
+    print(system)
     sys_drive = pathlib.Path.cwd()
     config_folder = pathlib.Path(sys_drive) / r"\r0fld4nc3" / "Apps" / "Stellaris" / "ChecksumPatcher"
 

@@ -1,5 +1,6 @@
 # built-ins
 import os
+import pathlib
 import sys
 import binascii
 import winreg

@@ -9,8 +9,6 @@ def get_current_dir():
     return application_path
 
 class StellarisChecksumPatcher:
-    APP_VERSION = ["r", 1, 1, 0]
-    
     def __init__(self, dev=is_debug) -> None:
         self.hex_data_list = [] # Incoming original Hex data, so we can always have a copy of the original.
         self._hex_data_list_working = [] # Copy of original that will be taking the changes and be modified.
@@ -244,12 +242,9 @@ class StellarisChecksumPatcher:
         
         file_path = str(file_path).replace('/', '\\')
         
-        if not file_path:
-            file_path = os.path.join(self._base_dir, self.exe_default_filename)
-                
-            if not os.path.isfile(file_path):
-                logger.error(f"Unable to find required file: {file_path}")
-                return False
+        if not os.path.isfile(file_path):
+            logger.error(f"Unable to find required file: {file_path}")
+            return False
         
         self.hex_data_list.clear()
         
@@ -269,20 +264,6 @@ class StellarisChecksumPatcher:
         logger.info("Read Finished.")
         
         return True
-    
-    def write_hex_to_file(self, directory, filename, working_set=False):
-        dest = os.path.join(directory, f"{filename}.txt")
-        
-        self.generate_missing_paths(directory)
-        
-        to_write = self.hex_data_list
-        
-        if working_set:
-            to_write = self._hex_data_list_working
-        
-        with open(dest, 'w') as f:
-            for chunk in to_write:
-                f.write(chunk + '\n')
         
     def patch(self) -> bool:
         """

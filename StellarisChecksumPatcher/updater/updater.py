@@ -19,7 +19,7 @@ class Updater:
         self.pulled_release = {}
         self.download_location = ""  # Local disk location to save the downloaded file.
 
-        self.local_version = "1.0.0"
+        self.local_version = "1.0.0" # Default version, should be dynamically substituted.
 
     def check_for_update(self):
         logger.info("Checking for Stellaris Checksum Patcher update...")

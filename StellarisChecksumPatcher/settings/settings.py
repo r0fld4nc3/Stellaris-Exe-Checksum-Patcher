@@ -48,6 +48,17 @@ class Settings:
             return False
 
         logger.debug(f"Loading config from {config_folder}")
+        config_error = False
         with open(self.config_file, 'r') as config_file:
-            self.patcher_settings = json.load(config_file)
+            try:
+                self.patcher_settings = json.load(config_file)
+            except Exception as e:
+                logger.error("An error occurred trying to read config file.")
+                logger.error(e)
+                config_error = True
+
+        if config_error:
+            logger.info("Generating new config file.")
+            with open(self.config_file, 'w') as config_file:
+                config_file.write(json.dumps(self.patcher_settings, indent=2))
         logger.debug(self.patcher_settings)

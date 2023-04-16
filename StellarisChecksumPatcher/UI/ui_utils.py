@@ -1,6 +1,5 @@
 from . import *
 
-from PySide6 import QtWidgets
 from PySide6.QtCore import QObject, QRunnable, QThread, Slot, Signal
 
 
