@@ -8,7 +8,7 @@ import zipfile
 import tempfile
 
 # 3rd Party
-from utils.global_defines import logger, system
+from utils.global_defines import logger, system, settings
 
 def get_current_dir():
     if getattr(sys, "frozen", False):
@@ -21,7 +21,6 @@ def get_current_dir():
 
 def get_user_save_folder():
     logger.info("Attempting to locate Stellaris save game folder.")
-    pdx_dir = ''
     documents_dir = ''
 
     # Windows
@@ -34,6 +33,8 @@ def get_user_save_folder():
         # FIND libraryfolders.vdf IN .steam/root/config
         # GET THE OTHER DRIVES IN THE libraryfolders.vdf
         # ITERATE THROUGH THOSE DRIVES TO FIND THE save games FOLDER.
+
+        pdx_dir = ''
 
         logger.info("Locating for Linux/Unix/Darwin system.")
         home_steam = os.path.join(os.path.expanduser('~'), ".steam")
@@ -54,7 +55,7 @@ def get_user_save_folder():
             documents_dir = pathlib.Path(pdx_dir) / "Stellaris" / "save games"
     # Uh oh
     else:
-        logger.error("Unable to acquire targetr system.")
+        logger.error("Unable to acquire target system.")
         pass
 
     if not pathlib.Path(documents_dir).exists():
@@ -68,26 +69,27 @@ def get_user_save_folder():
 
 def repair_save(save_file):
     # .sav
-    save_directory = pathlib.Path(save_file).parent
+    save_dir = pathlib.Path(save_file).parent
     save_file_name = pathlib.Path(save_file).name
     save_file_times = (os.stat(save_file).st_atime, os.stat(save_file).st_mtime)
 
-    logger.info(f"Save Directory: {save_directory}")
+    logger.info(f"Save Directory: {save_dir}")
     logger.info(f"Save Name: {save_file_name}")
 
     # Repair directory
-    repair_directory = save_directory / "save_repair"
-    pathlib.Path(repair_directory).mkdir(parents=True, exist_ok=True)
-    logger.debug(f"Repair Directory: {repair_directory}")
+    repair_dir = save_dir / "save_repair"
+    pathlib.Path(repair_dir).mkdir(parents=True, exist_ok=True)
+    logger.debug(f"Repair Directory: {repair_dir}")
 
     # Backup directory
-    backup_directory = pathlib.Path(get_current_dir()) / "saves_backup" / save_directory.name
-    backup_save_file = pathlib.Path(backup_directory) / save_file_name
-    pathlib.Path(backup_directory).mkdir(parents=True, exist_ok=True)
+    # backup_dir = pathlib.Path(get_current_dir()) / "saves_backup" / save_dir.name
+    backup_dir = settings.get_config_dir() / "saves_backup" / save_dir.name
+    backup_save_file = pathlib.Path(backup_dir) / save_file_name
+    pathlib.Path(backup_dir).mkdir(parents=True, exist_ok=True)
 
     # Create Backup of the save
     try:
-        logger.info(f"Backup Directory: {backup_directory}")
+        logger.info(f"Backup Directory: {backup_dir}")
         shutil.copy2(save_file, backup_save_file)
         logger.info(f"Backed up {save_file_name} to {backup_save_file}")
     except Exception as e:
@@ -96,25 +98,25 @@ def repair_save(save_file):
     # Try to unzip the save file
     try:
         with zipfile.ZipFile(save_file, 'r') as zip_file:
-            zip_file.extractall(repair_directory)
+            zip_file.extractall(repair_dir)
     except Exception as e:
         logger.error(e)
 
     # Store files and their access times
     files_access_times = {}
-    for file in pathlib.Path(repair_directory).iterdir():
+    for file in pathlib.Path(repair_dir).iterdir():
         files_access_times[file.name] = (os.stat(file).st_atime, os.stat(file).st_mtime)
 
     # gamestate
-    gamestate_file = pathlib.Path(repair_directory) / "gamestate"
+    gamestate_file = pathlib.Path(repair_dir) / "gamestate"
 
     # meta
-    meta_file = pathlib.Path(repair_directory) / "meta"
+    meta_file = pathlib.Path(repair_dir) / "meta"
 
     # =======================================================
     # =================== GAMESTATE BLOCK ===================
     # =======================================================
-    with open(gamestate_file, 'r') as f:
+    with open(gamestate_file, 'r', encoding="utf-8") as f:
         file = f.read()
 
     file_contents = file.splitlines()
@@ -217,7 +219,7 @@ def repair_save(save_file):
     # ==============================================================
 
     temp_file = pathlib.Path(tempfile.gettempdir()) / "gamestate"
-    with open(temp_file, 'w') as new_file:
+    with open(temp_file, 'w', encoding="utf-8") as new_file:
         new_file.write('\n'.join(new_file_contents))
 
     # Replace extracted gamestate with temp gamestate
@@ -227,7 +229,7 @@ def repair_save(save_file):
     # =================== META BLOCK ===================
     # ==================================================
     logger.debug("Repairing meta")
-    with open(meta_file, 'r') as f:
+    with open(meta_file, 'r', encoding="utf-8") as f:
         file = f.read()
 
     file_contents = file.splitlines()
@@ -240,7 +242,7 @@ def repair_save(save_file):
         logger.debug(f"\n{new_file_contents}")
 
     temp_file = pathlib.Path(tempfile.gettempdir()) / "meta"
-    with open(temp_file, 'w') as new_file:
+    with open(temp_file, 'w', encoding="utf-8") as new_file:
         new_file.write('\n'.join(new_file_contents))
 
     # Replace extracted meta with temp meta
@@ -248,18 +250,18 @@ def repair_save(save_file):
 
     # Rebuild .sav file
     with zipfile.ZipFile(save_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for file in pathlib.Path(repair_directory).iterdir():
+        for file in pathlib.Path(repair_dir).iterdir():
             # Fix files access times to their originals
             fname = file.name
             if fname in files_access_times.keys():
                 os.utime(file, files_access_times.get(fname, None))
-            with open(file, 'r') as fread:
+            with open(file, 'r', encoding="utf-8") as fread:
                 zf.writestr(pathlib.Path(file).name, fread.read())
 
     # Set access times from original
     os.utime(save_file, save_file_times)
 
-    shutil.rmtree(repair_directory)
+    shutil.rmtree(repair_dir)
 
     logger.info("Finished repairing save.")
     return True
@@ -293,7 +295,7 @@ def pull_latest_achivements_file():
         # Update local achievements file
         logger.info("Updating achievements file with repo content.")
         try:
-            with open(achievements_file, 'w') as ach_f:
+            with open(achievements_file, 'w', encoding="utf-8") as ach_f:
                 ach_f.write(achievements)
         except Exception as e:
             logger.error(f"Error writing to achievements file.\nError: {e}")
@@ -304,7 +306,7 @@ def pull_latest_achivements_file():
         logger.debug(f"Achievements file: {achievements_file}")
 
         try:
-            with open(achievements_file, 'r') as ach_f:
+            with open(achievements_file, 'r', encoding="utf-8") as ach_f:
                 achievements = ach_f.read()
         except Exception as e:
             logger.error(f"Error in accessing achievements file.\nError: {e}")

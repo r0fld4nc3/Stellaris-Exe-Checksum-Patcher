@@ -32,14 +32,14 @@ class StellarisChecksumPatcher:
         
         self.title_name = "Stellaris" # Steam title name
         self.exe_default_filename = "stellaris.exe" # Game executable name plus extension
-        self.exe_out_directory = os.path.abspath(get_current_dir()) # Where to place the patched executable.
+        self.exe_out_dir = get_current_dir() # Where to place the patched executable.
         self.exe_modified_filename = "stellaris-patched" # Name of modified executable
         self.is_patched = False
         
         self._steam = steam_helper.SteamHelper()
 
         if self._dev: # Change certain values if running from executable or IDE/Console. Development purposes.
-            self.exe_out_directory = os.path.abspath(os.path.join(get_current_dir(), os.pardir))
+            self.exe_out_dir = os.path.join(get_current_dir(), os.pardir)
 
     # =============================================
     # ============== Class Functions ==============
@@ -52,9 +52,9 @@ class StellarisChecksumPatcher:
             
     def compile_hex_file(self, directory=None, filename=None):
         if not directory:
-            directory = self.exe_out_directory
+            directory = self.exe_out_dir
         else:
-            self.exe_out_directory = directory
+            self.exe_out_dir = directory
         
         if not filename:
             filename = self.exe_modified_filename
@@ -68,7 +68,7 @@ class StellarisChecksumPatcher:
         else:
             self.generate_missing_paths(get_current_dir())
             
-        with open(dest, "wb") as out:
+        with open(dest, "wb", encoding="utf-8") as out:
             for line in self._hex_data_list_working:
                 chunk = binascii.unhexlify(str(line).rstrip())
                 out.write(chunk)

@@ -20,6 +20,7 @@ class WorkerSignals(QObject):
     progress = Signal(str)
     terminal_progress = Signal(str)
     failed = Signal()
+    sig_quit = Signal()
 
 
 class Worker(QRunnable):

@@ -1,6 +1,7 @@
 import json
 import os
 import pathlib
+import sys
 
 from utils.global_defines import logger, config_folder
 
@@ -12,6 +13,7 @@ class Settings:
                 "save-games-dir": "",
         }
         self._config_file_name = "stellaris-checksum-patcher-settings.json"
+        self.config_dir = pathlib.Path(config_folder)
         self.config_file = pathlib.Path(config_folder) / self._config_file_name
 
     def set_app_version(self, version: str):
@@ -32,24 +34,33 @@ class Settings:
         i = self.patcher_settings.get("install-dir")
         return i
 
+    def get_save_games_dir(self) -> str:
+        self.load_config()
+        s = self.patcher_settings.get("save-games-dir")
+        return s
+
+    def set_save_games_dir(self, save_games_dir: str):
+        self.patcher_settings["save-games-dir"] = str(save_games_dir)
+        self.save_config()
+
     def save_config(self):
         if config_folder == '' or not pathlib.Path(config_folder).exists():
             os.makedirs(config_folder)
             logger.debug(f"Generated config folder {config_folder}")
 
-        with open(self.config_file, 'w') as config_file:
+        with open(self.config_file, 'w', encoding="utf-8") as config_file:
             config_file.write(json.dumps(self.patcher_settings, indent=2))
             logger.debug(f"Saved config to {self.config_file}")
 
     def load_config(self):
         if config_folder == '' or not pathlib.Path(config_folder).exists()\
                 or not pathlib.Path(self.config_file).exists():
-            logger.debug(f"Config does not exists.")
+            logger.debug(f"Config does not exist.")
             return False
 
         logger.debug(f"Loading config from {config_folder}")
         config_error = False
-        with open(self.config_file, 'r') as config_file:
+        with open(self.config_file, 'r', encoding="utf-8") as config_file:
             try:
                 self.patcher_settings = json.load(config_file)
             except Exception as e:
@@ -59,6 +70,12 @@ class Settings:
 
         if config_error:
             logger.info("Generating new config file.")
-            with open(self.config_file, 'w') as config_file:
+            with open(self.config_file, 'w', encoding="utf-8") as config_file:
                 config_file.write(json.dumps(self.patcher_settings, indent=2))
         logger.debug(self.patcher_settings)
+
+    def get_config_dir(self) -> pathlib.Path:
+        if not self.config_dir or not pathlib.Path(self.config_dir).exists:
+            return pathlib.Path(os.path.dirname(sys.executable))
+
+        return self.config_dir

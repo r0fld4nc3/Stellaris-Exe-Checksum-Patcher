@@ -1,3 +1,6 @@
+import os.path
+import pathlib
+
 from . import *
 
 from PySide6 import QtWidgets, QtCore, QtGui
@@ -70,10 +73,10 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         
         # Worker
         self.worker = None
-        self.threader = None
 
         # ThreadPool
         self.thread_pool = QtCore.QThreadPool()
+        self.active_threads = []
 
         self.load_configs()
 
@@ -101,9 +104,14 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
             if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
                 logger.info("Waiting for finish.")
                 self.thread_pool.waitForDone(msecs=2000) # Wait for max 2 seconds.
-                if self.threader:
-                    self.threader.stop()
                 logger.debug("Done waiting.")
+
+            if self.active_threads:
+                for thread in self.active_threads:
+                    try:
+                        thread.stop()
+                    except Exception as e:
+                        logger.error(f"Error in stopping Thread. {e}")
         except Exception as e:
             logger.error(e)
 
@@ -194,6 +202,24 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         self.btn_patch_from_install.setDisabled(True)
         self.btn_fix_save_file.setDisabled(True)
 
+    def remove_thread(self, thread_id_remove):
+        # Iterates through active threads, checks for ID and stops then removes thread
+        logger.debug(f"Thread Remove: {thread_id_remove}")
+
+        for iter_thread in self.active_threads:
+            iter_id = iter_thread.currentThread()
+            logger.debug(f"Iter Thread: {iter_id}")
+            if iter_id == thread_id_remove:
+                logger.debug(f"Attempting to remove {iter_thread} ({iter_id})")
+                try:
+                    iter_thread.stop()
+                    self.active_threads.remove(iter_thread)
+                except Exception as e:
+                    logger.error(f"Error in attempting to stop and remove Thread: {e}")
+                break
+
+        logger.debug("Remove thread finished")
+
     # ===============================================
     # ============== Regular Functions ==============
     # ===============================================
@@ -219,7 +245,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
 
         :return: Path to file
         """
-        return os.path.join(self.stellaris_patcher.exe_out_directory, self.stellaris_patcher.exe_modified_filename + '.exe')
+        return os.path.join(self.stellaris_patcher.exe_out_dir, self.stellaris_patcher.exe_modified_filename + '.exe')
         
     def replace_with_patched_file(self) -> bool:
         logger.debug("DEVELOPMENT PURPOSES ABORTING REPLACE. REMOVE THIS CALL WHEN BUILDING FINAL!")
@@ -290,10 +316,13 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
             self.patch_from_prompt()
 
         # self.worker = Worker(target=self.patch_from_game_install)
-        self.threader = Threader(target=self.patch_from_game_install)
-        self.threader.signals.started.connect(self.disable_ui_elements)
-        self.threader.signals.finished.connect(self.enable_ui_elements)
-        self.threader.start()
+        thread_patch_exe = Threader(target=self.patch_from_game_install)
+        thread_id = thread_patch_exe.currentThread()
+        thread_patch_exe.signals.started.connect(self.disable_ui_elements)
+        thread_patch_exe.signals.finished.connect(self.enable_ui_elements)
+        thread_patch_exe.signals.finished.connect(lambda: self.remove_thread(thread_id))
+        self.active_threads.append(thread_patch_exe)
+        thread_patch_exe.start()
         # self.thread_pool.start(self.worker)
         
     def patch_from_prompt(self):
@@ -328,16 +357,26 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         if not save_file_path:
             return False
 
-        self.threader = Threader(target=lambda save_file=save_file_path: repair_save(save_file))
-        self.threader.setTerminationEnabled(True)
+        save_games_dir = pathlib.Path(save_file_path).parent.parent
+        logger.info(f"Save games directory: {os.path.normpath(save_games_dir)}")
+        settings.set_save_games_dir(save_games_dir)
+
+        thread_repair_save = Threader(target=lambda save_file=save_file_path: repair_save(save_file))
+        thread_id = thread_repair_save.currentThread()
+        thread_repair_save.setTerminationEnabled(True)
         # self.threader.signals.failed.connect(self.TOOD)
-        self.threader.signals.started.connect(self.disable_ui_elements)
-        self.threader.signals.finished.connect(self.enable_ui_elements)
-        self.threader.start()
+        thread_repair_save.signals.started.connect(self.disable_ui_elements)
+        thread_repair_save.signals.finished.connect(self.enable_ui_elements)
+        thread_repair_save.signals.finished.connect(lambda: self.remove_thread(thread_id)) # Removes thead by ID
+        self.active_threads.append(thread_repair_save)
+        thread_repair_save.start()
 
     def check_update(self):
-        self.threader = Threader(target=updater.check_for_update)
-        self.threader.start()
+        thread_update = Threader(target=updater.check_for_update)
+        thread_id = thread_update.currentThread()
+        thread_update.signals.finished.connect(lambda: self.remove_thread(thread_id))
+        self.active_threads.append(thread_update)
+        thread_update.start()
         # self.thread_pool.start(self.worker)
     
     def show(self):

@@ -93,14 +93,14 @@ class Logger:
             os.makedirs(LOG_FOLDER)
 
         if not os.path.exists(self.log_file):
-            with open(self.log_file, 'w') as f:
+            with open(self.log_file, 'w', encoding="utf-8") as f:
                 f.write("")
             
     def restart_log_file(self):
         if not os.path.exists(LOG_FOLDER):
             os.makedirs(LOG_FOLDER)
             
-        with open(self.log_file, 'w') as f:
+        with open(self.log_file, 'w', encoding="utf-8") as f:
             f.write('')
                 
     def write_to_log_file(self, log_input):
@@ -108,10 +108,10 @@ class Logger:
             log_input = ""
             
         if not os.path.exists(self.log_file):
-            with open(self.log_file, 'w') as f:
+            with open(self.log_file, 'w', encoding="utf-8") as f:
                 f.write(log_input + '\n')
         else:
-            with open(self.log_file, 'a') as f:
+            with open(self.log_file, 'a', encoding="utf-8") as f:
                 f.write(log_input + '\n')
     
     def info(self, log_input):
