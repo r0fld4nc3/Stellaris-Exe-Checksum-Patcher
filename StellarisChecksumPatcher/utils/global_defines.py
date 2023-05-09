@@ -3,7 +3,7 @@ import os
 import pathlib
 import platform
 
-APP_VERSION = ["r", 1, 1, 0]
+APP_VERSION = ['r', 1, 1, 0, "-dev"] # To add more arguments after the rX.Y.Z, always have the '-' suffix before. Example ['r', 0, 0, 1, "-dev", "-nightly"]
 
 system = platform.system()
 debug_commands = ("-debug", "-d")
@@ -26,6 +26,7 @@ from logger.Logger import Logger
 
 if len(sys.argv) > 1 and str(sys.argv[1]).lower() in debug_commands:
     is_debug = True
+    APP_VERSION.append("-debug") # Yes, I allow changing of the CONST here, since it's a one time startup change
     print(f"Sys Drive: {sys_drive}")
     print(f"Config Folder: {config_folder}")
 else:

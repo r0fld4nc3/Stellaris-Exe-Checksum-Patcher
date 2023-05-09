@@ -49,13 +49,13 @@ class Updater:
         return is_new_version
 
     def compare_release_versions(self, pulled, existing) -> bool:
-        _pulled_version = list(str(pulled).lower().split("v")[1].split("."))
+        _pulled_version = str(pulled).lower().split('-')[0].split('v')[1].split('.')
         _pulled_major = self._to_int(_pulled_version[0])
         _pulled_minor = self._to_int(_pulled_version[1])
         _pulled_micro = self._to_int(_pulled_version[2])
 
         try:
-            _existing_version = list(str(existing).lower().split("v")[1].split("."))
+            _existing_version = str(existing).lower().split('-')[0].split('v')[1].split('.')
         except IndexError:
             _existing_version = list(str(existing).lower().split("."))
         _existing_major = self._to_int(_existing_version[0])
