@@ -16,6 +16,12 @@ STEAM_STEAMAPPS_FOLDER = "steamapps"
 STEAM_APP_MANIFEST_FILE_PREFIX = "appmanifest"
 STEAM_LIBRARY_FOLDERS_FILE_TRAIL = "config\libraryfolders.vdf" # Trail to join to steam install main path
 
+LINUX_DISTRO_PATHS = [
+    os.path.join(os.path.expanduser('~'), ".steam"),
+    os.path.join(os.path.expanduser('~'), ".local/share/Steam"),
+    os.path.join(os.path.expanduser('~'), ".var/app/com.valvesoftware.Steam/.local/share/Steam"),
+]
+
 class SteamHelper:
     def __init__(self):
         self.steam_install = None
@@ -191,7 +197,26 @@ class SteamHelper:
             if not steam:
                 steam = registry_helper.read_key(STEAM_REGISTRY_PATH_32, STEAM_INSTALL_LOCATION_KEY)
         elif system == "Linux" or system == "Darwin":
+            home_steam = ''
             steam = None
+            libraryfolders_vdf_file = "libraryfolders.vdf"
+
+            for distro_path in LINUX_DISTRO_PATHS:
+                if pathlib.Path(distro_path).exists():
+                    home_steam = distro_path
+                    print(f"Found: {home_steam}")
+                    break
+
+            if not home_steam:
+                print("Count not find Steam install.")
+                return ''
+
+            print("Locating for Linux\\Unix\\Darwin system. Please be patient, could take a bit.")
+            for root, dirs, files in os.walk(home_steam):
+                root += 1
+                os.system("clear")
+                if libraryfolders_vdf_file in files:
+                    steam = pathlib.Path(root) / libraryfolders_vdf_file
         else:
             steam = None
 

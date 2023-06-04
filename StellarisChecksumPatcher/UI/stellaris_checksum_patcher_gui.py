@@ -1,10 +1,9 @@
 import os.path
-import pathlib
 
 from . import *
 
 from PySide6 import QtWidgets, QtCore, QtGui
-from .ui_utils import Worker, Threader
+from .ui_utils import Threader
 from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWIndow
 from hex_patchers.HexPatcher import StellarisChecksumPatcher
 from save_patcher.save_patcher import repair_save, get_user_save_folder

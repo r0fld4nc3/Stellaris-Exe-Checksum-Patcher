@@ -14,7 +14,7 @@ if system == "Windows":
     config_folder = pathlib.Path(sys_drive + "\\r0fld4nc3\\Apps\\Stellaris\\ChecksumPatcher")
 elif system == "Linux" or system == "Darwin":
     print("Target System Linux")
-    sys_drive = pathlib.Path("usr/bin/r0fld4nc3")
+    sys_drive = pathlib.Path(os.path.join(os.path.expanduser('~'), "usr/bin/r0fld4nc3"))
     config_folder = pathlib.Path(sys_drive) / "Apps" / "Stellaris" / "ChecksumPatcher"
 else:
     print("Target System Other")
