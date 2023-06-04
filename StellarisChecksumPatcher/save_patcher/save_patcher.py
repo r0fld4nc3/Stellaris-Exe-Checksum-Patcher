@@ -36,7 +36,7 @@ def get_user_save_folder():
 
         pdx_dir = ''
 
-        logger.info("Locating for Linux/Unix/Darwin system.")
+        logger.info("Locating for Linux\\Unix\\Darwin system.")
         home_steam = os.path.join(os.path.expanduser('~'), ".steam")
         for root, dirs, files in os.walk(home_steam):
             logger.debug(f"{root}")
@@ -162,7 +162,6 @@ def repair_save(save_file):
             new_file_contents.insert(i, achievements)
             break
 
-    # Ironman flag
     # Ironman flag
     # For ironman=yes
     # We must parse the file to find galaxy={ section

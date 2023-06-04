@@ -276,6 +276,6 @@ class Ui_StellarisChecksumPatcherWIndow(object):
 "</style></head><body style=\" font-family:'Century Gothic'; font-size:10pt; font-weight:600; font-style:normal;\">\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Project link: </span><a href=\"https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher\"><span style=\" font-weight:400; text-decoration: underline; color:#2a90d8;\">https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher</span></a></p></body></html>", None))
         self.btn_fix_save_file.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Fix Save Achievements", None))
-        self.btn_patch_from_install.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Patch From Installation", None))
+        self.btn_patch_from_install.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Patch Executable", None))
     # retranslateUi
 

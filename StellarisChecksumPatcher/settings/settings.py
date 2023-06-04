@@ -43,22 +43,48 @@ class Settings:
         self.patcher_settings["save-games-dir"] = str(save_games_dir)
         self.save_config()
 
+    def clean_save_file(self):
+        """
+        Removes unused keys from the save file.
+        :return: `bool`
+        """
+
+        if not self.config_dir or not pathlib.Path(self.config_dir).exists():
+            logger.info("No config folder found.")
+            return False
+
+        with open(self.config_file, 'r', encoding="utf-8") as config_file:
+            settings = dict(json.load(config_file))
+
+        for setting in reversed(list(settings.keys())):
+            if setting not in self.patcher_settings.keys():
+                settings.pop(setting)
+                logger.debug(f"Cleared unused settings key: {setting}")
+
+        with open(self.config_file, 'w', encoding="utf-8") as config_file:
+            config_file.write(json.dumps(settings, indent=2))
+            logger.debug(f"Saved cleaned config: {self.config_file}")
+
+        return True
+
     def save_config(self):
-        if config_folder == '' or not pathlib.Path(config_folder).exists():
-            os.makedirs(config_folder)
-            logger.debug(f"Generated config folder {config_folder}")
+        if self.config_dir == '' or not pathlib.Path(self.config_dir).exists():
+            os.makedirs(self.config_dir)
+            logger.debug(f"Generated config folder {self.config_dir}")
 
         with open(self.config_file, 'w', encoding="utf-8") as config_file:
             config_file.write(json.dumps(self.patcher_settings, indent=2))
             logger.debug(f"Saved config to {self.config_file}")
 
     def load_config(self):
-        if config_folder == '' or not pathlib.Path(config_folder).exists()\
+        if self.config_dir == '' or not pathlib.Path(self.config_dir).exists()\
                 or not pathlib.Path(self.config_file).exists():
             logger.debug(f"Config does not exist.")
             return False
 
-        logger.debug(f"Loading config from {config_folder}")
+        self.clean_save_file()
+
+        logger.debug(f"Loading config from {self.config_dir}")
         config_error = False
         with open(self.config_file, 'r', encoding="utf-8") as config_file:
             try:

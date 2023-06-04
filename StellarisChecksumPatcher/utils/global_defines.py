@@ -3,7 +3,7 @@ import os
 import pathlib
 import platform
 
-APP_VERSION = ['r', 1, 1, 0, "-dev"] # To add more arguments after the rX.Y.Z, always have the '-' suffix before. Example ['r', 0, 0, 1, "-dev", "-nightly"]
+APP_VERSION = ['r', 1, 1, 0] # To add more arguments after the rX.Y.Z, always have the '-' suffix before. Example ['r', 0, 0, 1, "-dev", "-nightly"]
 
 system = platform.system()
 debug_commands = ("-debug", "-d")

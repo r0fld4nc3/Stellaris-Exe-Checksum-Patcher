@@ -38,7 +38,8 @@ class StellarisChecksumPatcher:
         
         self._steam = steam_helper.SteamHelper()
 
-        if self._dev: # Change certain values if running from executable or IDE/Console. Development purposes.
+        # Change certain values if running from executable or IDE/Console. Development purposes.
+        if self._dev:
             self.exe_out_dir = os.path.join(get_current_dir(), os.pardir)
 
     # =============================================
@@ -57,23 +58,26 @@ class StellarisChecksumPatcher:
             self.exe_out_dir = directory
         
         if not filename:
-            filename = self.exe_modified_filename
+            if system == "Windows":
+                filename = f"{self.exe_modified_filename}.exe"
+            elif system == "Linux" or system == "Darwin":
+                filename = self.exe_modified_filename
         else:
             self.exe_modified_filename = filename
-            
-        dest = os.path.join(directory, f"{filename}.exe")
-        
+
+        dest = os.path.join(directory, f"{filename}")
+
         if directory:
             self.generate_missing_paths(directory)
         else:
             self.generate_missing_paths(get_current_dir())
             
-        with open(dest, "wb", encoding="utf-8") as out:
+        with open(dest, "wb") as out:
             for line in self._hex_data_list_working:
                 chunk = binascii.unhexlify(str(line).rstrip())
                 out.write(chunk)
-            logger.info(f"Writing {filename}.exe to: {directory}")
-            
+            logger.info(f"Writing {filename} to: {directory}")
+
         return True
             
     def convert_to_two_space(self, condense_chunks=False) -> list:
@@ -222,7 +226,7 @@ class StellarisChecksumPatcher:
         self._checksum_offset_end = 0
         self.is_patched = False
         
-    def locate_game_install(self) -> Union[str, None]:
+    def locate_game_executable(self) -> Union[str, None]:
         """
         Returns path to game executable.
         """

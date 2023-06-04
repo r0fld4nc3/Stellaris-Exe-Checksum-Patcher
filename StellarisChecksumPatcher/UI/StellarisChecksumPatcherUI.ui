@@ -458,7 +458,7 @@ border-color: rgb(67, 144, 134);
 }</string>
            </property>
            <property name="text">
-            <string>Patch From Installation</string>
+            <string>Patch Executable</string>
            </property>
            <property name="iconSize">
             <size>
