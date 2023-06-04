@@ -23,15 +23,16 @@ Download the executable by clicking the above **``Downloads``** button or in [Re
 </p>
 
 ## 🟢 Patches
-* **From Game Installation**
+* **Patch Executable**
   * This method will automatically check for a Steam installation and patch the executable.
   * It will create a backup of the original adding a _.orig_ to the end of the file name.
-  * If it cannot find the installation, will prompt via dialog for the install folder
+  * If it cannot find the installation, will prompt via dialog for the install folder.
+  * Will remember the installation location for next time.
 
 * **Fix Save Achievements**
   * Will ask for the save file to work on
   * Attempts to fix achievements not being present.
-  * Sets Ironman flag to "yes".
+  * Sets Ironman flag(s) to "yes".
 
 # 🗒️ Notes
 ## "Windows protected your PC" Warning
