@@ -147,7 +147,10 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         
         logger.info("Patching from game installation.")
 
-        if self._install_dir:
+        # Test settings for install location
+        _settings_install_dir = settings.get_install_location()
+
+        if self._install_dir or _settings_install_dir:
             game_executable = os.path.join(self._install_dir, self.stellaris_patcher.exe_default_filename)
             # Make sure the file exists
             if not os.path.exists(game_executable):
@@ -169,7 +172,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         self._install_dir = os.path.dirname(game_executable)
 
         # Patch can proceed, therefore save game install location
-        settings.set_install_location(game_executable)
+        settings.set_install_location(os.path.dirname(game_executable))
         
         self.stellaris_patcher.load_file_hex(file_path=game_executable)
         
@@ -239,21 +242,13 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         self.terminal_display.insertPlainText(f"{t_log}\n")
         self.refresh_terminal_log()
         
-    def get_patched_file(self) -> str:
-        """
-        Returns path to patched file BUT does NOT CHECK if file exists.
-
-        :return: Path to file
-        """
-        return os.path.join(self.stellaris_patcher.exe_out_dir, self.stellaris_patcher.exe_modified_filename + '.exe')
-        
     def replace_with_patched_file(self) -> bool:
         # Do nothing if file is already patched.
         if self.stellaris_patcher.is_patched:
             return False
 
         self.terminal_display_log(' ')
-        patched_file = self.get_patched_file()
+        patched_file = os.path.join(self.stellaris_patcher.exe_out_dir, self.stellaris_patcher.exe_modified_filename)
 
         # Here we check if we already have an install location saved in config
         # Otherwise try to look for it.

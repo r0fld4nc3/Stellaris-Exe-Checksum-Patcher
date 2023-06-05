@@ -14,12 +14,16 @@ STEAM_REGISTRY_PATH_64 = "SOFTWARE\WOW6432Node\Valve\Steam"
 STEAM_INSTALL_LOCATION_KEY ="InstallPath"
 STEAM_STEAMAPPS_FOLDER = "steamapps"
 STEAM_APP_MANIFEST_FILE_PREFIX = "appmanifest"
-STEAM_LIBRARY_FOLDERS_FILE_TRAIL = "config\libraryfolders.vdf" # Trail to join to steam install main path
+LIBRARY_FOLDERS_VDF_FILE = "libraryfolders.vdf"
+if system == "Windows":
+    STEAM_LIBRARY_FOLDERS_FILE_TRAIL = "config\\" + LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
+else:
+    STEAM_LIBRARY_FOLDERS_FILE_TRAIL = "config/" + LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
 
 LINUX_DISTRO_PATHS = [
     os.path.join(os.path.expanduser('~'), ".steam"),
     os.path.join(os.path.expanduser('~'), ".local/share/Steam"),
-    os.path.join(os.path.expanduser('~'), ".var/app/com.valvesoftware.Steam/.local/share/Steam"),
+    os.path.join(os.path.expanduser('~'), ".var/app/com.valvesoftware.Steam/.local/share/Steam")
 ]
 
 class SteamHelper:
@@ -38,7 +42,8 @@ class SteamHelper:
         return []
 
     def get_game_install_info_from_name(self, game_name) -> dict:
-        # Parse Steam appmanifests (.acf files)
+        # Parse Steam appmanifests (.acf files) in case of windows
+        # For linux, get libraries and find the install folder
 
         logger.info(f"Getting installation details for game: {game_name}")
 
@@ -146,12 +151,20 @@ class SteamHelper:
     def get_steam_libraries(self) -> Union[list, bool]:
         logger.info("Getting available Steam Libraries...")
 
+        library_file = ''
+
         if not self.steam_install:
             self.steam_install = self.get_steam_install_path()
             if not self.steam_install:
                 return False
 
-        library_file = os.path.join(self.steam_install, STEAM_LIBRARY_FOLDERS_FILE_TRAIL)
+        if system == "Windows":
+            library_file = os.path.join(self.steam_install, STEAM_LIBRARY_FOLDERS_FILE_TRAIL)
+        else:
+            for root, dirs, files in os.walk(self.steam_install):
+                if "config" in dirs:
+                    library_file = os.path.join(root, STEAM_LIBRARY_FOLDERS_FILE_TRAIL)
+                    break
 
         if not os.path.exists(library_file):
             logger.error("Could not locate Steam Library file.")
@@ -197,26 +210,14 @@ class SteamHelper:
             if not steam:
                 steam = registry_helper.read_key(STEAM_REGISTRY_PATH_32, STEAM_INSTALL_LOCATION_KEY)
         elif system == "Linux" or system == "Darwin":
-            home_steam = ''
             steam = None
-            libraryfolders_vdf_file = "libraryfolders.vdf"
-
             for distro_path in LINUX_DISTRO_PATHS:
                 if pathlib.Path(distro_path).exists():
-                    home_steam = distro_path
-                    print(f"Found: {home_steam}")
+                    steam = str(distro_path).replace('\\', '/')
                     break
 
-            if not home_steam:
+            if not steam:
                 print("Count not find Steam install.")
-                return ''
-
-            print("Locating for Linux\\Unix\\Darwin system. Please be patient, could take a bit.")
-            for root, dirs, files in os.walk(home_steam):
-                root += 1
-                os.system("clear")
-                if libraryfolders_vdf_file in files:
-                    steam = pathlib.Path(root) / libraryfolders_vdf_file
         else:
             steam = None
 

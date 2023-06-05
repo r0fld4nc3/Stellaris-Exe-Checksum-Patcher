@@ -1,3 +1,5 @@
+import pathlib
+
 from . import *
 
 def get_current_dir():
@@ -16,8 +18,6 @@ class StellarisChecksumPatcher:
         self._dev = dev
         
         self.data_loaded = False
-
-        self._manual_install_dir = ""
         
         self._chunk_char_len = 32 # Each line is comprised of 32 characters. Will need this to recompile from changed chunks back to binary
         
@@ -31,9 +31,14 @@ class StellarisChecksumPatcher:
         self._checksum_offset_end = 0
         
         self.title_name = "Stellaris" # Steam title name
-        self.exe_default_filename = "stellaris.exe" # Game executable name plus extension
-        self.exe_out_dir = get_current_dir() # Where to place the patched executable.
+        if system == "Windows":
+            # Windows and Proton Linux
+            self.exe_default_filename = "stellaris.exe" # Game executable name plus extension
+        else:
+            # Native Linux
+            self.exe_default_filename = "stellaris"
         self.exe_modified_filename = "stellaris-patched" # Name of modified executable
+        self.exe_out_dir = get_current_dir() # Where to place the patched executable.
         self.is_patched = False
         
         self._steam = steam_helper.SteamHelper()
@@ -58,10 +63,7 @@ class StellarisChecksumPatcher:
             self.exe_out_dir = directory
         
         if not filename:
-            if system == "Windows":
-                filename = f"{self.exe_modified_filename}.exe"
-            elif system == "Linux" or system == "Darwin":
-                filename = self.exe_modified_filename
+            filename = self.exe_modified_filename
         else:
             self.exe_modified_filename = filename
 
@@ -234,7 +236,30 @@ class StellarisChecksumPatcher:
         stellaris_install_path = self._steam.get_game_install_path(self.title_name)
         
         if stellaris_install_path:
+            # This may or may not have .exe depending on pure system
+            # If Windows, has .exe, if Linux, doesn't. If Proton Linux, it is deteected as Linux but needs .exe
             game_executable = os.path.join(stellaris_install_path, self.exe_default_filename)
+            if system == "Windows":
+                if str(self.exe_modified_filename).endswith(".exe"):
+                    self.exe_modified_filename += ".exe"
+                logger.debug(f"System: Windows. Modified file name = {self.exe_modified_filename}")
+            else:
+                game_executable.replace("\\", "/")
+
+            # Now we gotta test this shit because of Proton Linux
+            # Means we are on Linux but this shit needs and .exe like Windows
+            if system == "Linux" or system == "Darwin":
+                if not os.path.exists(game_executable):
+                    logger.info(f"System is Linux/Darwin but {game_executable} does not exist. Appending .exe")
+                    if not str(self.exe_default_filename).endswith(".exe"):
+                        self.exe_default_filename += ".exe"
+                    if not str(self.exe_modified_filename).endswith(".exe"):
+                        self.exe_modified_filename += ".exe"
+
+                    logger.debug(f"System: Linux (Proton). Modified file name = {self.exe_modified_filename}")
+                    game_executable = os.path.join(stellaris_install_path, self.exe_default_filename).replace('\\', '/')
+                    logger.info(f"Linux (Proton): {game_executable}")
+
             if not os.path.exists(game_executable):
                 return None
             return game_executable
@@ -243,19 +268,22 @@ class StellarisChecksumPatcher:
     
     def load_file_hex(self, file_path=None) -> bool:
         logger.info("Loading file Hex.")
-        
-        file_path = str(file_path).replace('/', '\\')
-        
+
+        if system == "Windows":
+            file_path = str(file_path).replace('/', '\\')
+        else:
+            file_path.replace('\\', '/')
+
         if not os.path.isfile(file_path):
             logger.error(f"Unable to find required file: {file_path}")
             return False
-        
+
         self.hex_data_list.clear()
-        
+
         if not os.path.exists(file_path):
             logger.error(f"{file_path} does not exist.")
             return False
-        
+
         with open(file_path, "rb") as f:
             logger.info("Streaming File Hex Info...")
             while True:
@@ -266,7 +294,7 @@ class StellarisChecksumPatcher:
 
         self.data_loaded = True
         logger.info("Read Finished.")
-        
+
         return True
         
     def patch(self) -> bool:
