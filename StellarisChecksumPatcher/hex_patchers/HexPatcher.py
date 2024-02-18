@@ -1,6 +1,6 @@
 import pathlib
-
 from . import *
+
 
 def get_current_dir():
     if getattr(sys, "frozen", False):
@@ -9,6 +9,7 @@ def get_current_dir():
         application_path = os.path.dirname(__file__)
 
     return application_path
+
 
 class StellarisChecksumPatcher:
     def __init__(self, dev=is_debug) -> None:
@@ -19,7 +20,7 @@ class StellarisChecksumPatcher:
         
         self.data_loaded = False
         
-        self._chunk_char_len = 32 # Each line is comprised of 32 characters. Will need this to recompile from changed chunks back to binary
+        self._chunk_char_len = 32 # Each line is 32 characters. Need to recompile from changed chunks back to binary
         
         self._hex_begin_static = ["48", "8B", "12"] # The Hex block begins with these values, so we can reference them.
         self._hex_end_static = ["85", "C0"] # The predicted end Hex values of the block.
@@ -237,7 +238,7 @@ class StellarisChecksumPatcher:
         
         if stellaris_install_path:
             # This may or may not have .exe depending on pure system
-            # If Windows, has .exe, if Linux, doesn't. If Proton Linux, it is deteected as Linux but needs .exe
+            # If Windows, has .exe, if Linux, doesn't. If Proton Linux, it is detected as Linux but needs .exe
             game_executable = os.path.join(stellaris_install_path, self.exe_default_filename)
             if system == "Windows":
                 if str(self.exe_modified_filename).endswith(".exe"):
@@ -246,7 +247,7 @@ class StellarisChecksumPatcher:
             else:
                 game_executable.replace("\\", "/")
 
-            # Now we gotta test this shit because of Proton Linux
+            # Now we have to test this because of Linux
             # Means we are on Linux but this shit needs and .exe like Windows
             if system == "Linux" or system == "Darwin":
                 if not os.path.exists(game_executable):

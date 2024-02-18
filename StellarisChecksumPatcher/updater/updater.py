@@ -3,6 +3,7 @@ import json
 
 from utils.global_defines import logger
 
+
 class Updater:
     def __init__(self):
         self.owner = "r0fld4nc3"
@@ -17,7 +18,7 @@ class Updater:
         self._download_url = "browser_download_url"
 
         self.pulled_release = {}
-        self.download_location = ""  # Local disk location to save the downloaded file.
+        self.download_location = "" # Local disk location to save the downloaded file.
 
         self.local_version = "1.0.0" # Default version, should be dynamically substituted.
 

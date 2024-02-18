@@ -2,6 +2,7 @@ from . import *
 
 WINREG_KEY_READ = winreg.KEY_READ
 
+
 def _connect_to_registry() -> winreg.HKEYType:
     logger.debug('Connecting to Local Machine registry.')
 
@@ -12,6 +13,7 @@ def _connect_to_registry() -> winreg.HKEYType:
         connection = None
 
     return connection
+
 
 def read_key(key_path, query_value):
     logger.debug(f'Reading Registry Key {key_path}')
@@ -27,7 +29,7 @@ def read_key(key_path, query_value):
         logger.debug(f'Retrieved {path_name}')
     
         winreg.CloseKey(key)
-    except Exception as e:
+    except Exception:
         path_name = None
         logger.error(f'Unable to read key.')
         

@@ -9,9 +9,9 @@ import vdf
 GAME_INSTALL_LOCATION_KEY = "InstallLocation"
 
 # KEY_LOCAL_MACHINE
-STEAM_REGISTRY_PATH_32 = "SOFTWARE\Valve\Steam"
-STEAM_REGISTRY_PATH_64 = "SOFTWARE\WOW6432Node\Valve\Steam"
-STEAM_INSTALL_LOCATION_KEY ="InstallPath"
+STEAM_REGISTRY_PATH_32 = r"SOFTWARE\Valve\Steam"
+STEAM_REGISTRY_PATH_64 = r"SOFTWARE\WOW6432Node\Valve\Steam"
+STEAM_INSTALL_LOCATION_KEY = "InstallPath"
 STEAM_STEAMAPPS_FOLDER = "steamapps"
 STEAM_APP_MANIFEST_FILE_PREFIX = "appmanifest"
 LIBRARY_FOLDERS_VDF_FILE = "libraryfolders.vdf"
@@ -25,6 +25,7 @@ LINUX_DISTRO_PATHS = [
     os.path.join(os.path.expanduser('~'), ".local/share/Steam"),
     os.path.join(os.path.expanduser('~'), ".var/app/com.valvesoftware.Steam/.local/share/Steam")
 ]
+
 
 class SteamHelper:
     def __init__(self):
@@ -73,7 +74,7 @@ class SteamHelper:
                     logger.debug(f"{file} is not a file.")
                     continue
 
-                if not STEAM_APP_MANIFEST_FILE_PREFIX in fname:
+                if STEAM_APP_MANIFEST_FILE_PREFIX not in fname:
                     continue
 
                 app_id = self.get_from_vdf_file(file, "appid")[0] # List of AppIDs

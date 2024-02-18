@@ -8,6 +8,7 @@ from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWIndow
 from hex_patchers.HexPatcher import StellarisChecksumPatcher
 from save_patcher.save_patcher import repair_save, get_user_save_folder
 
+
 class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
     _app_version = (".".join([str(v) for v in APP_VERSION]))
     UI_ICONS_FOLDER = os.path.join(os.path.dirname(__file__), "ui_icons")
@@ -180,7 +181,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         
         self.terminal_display_log(' ')
         
-        self.stellaris_patcher.patch() # Here if the file IS patched, there is the "is_patched" flag
+        self.stellaris_patcher.patch()  # Here if the file IS patched, there is the "is_patched" flag
             
         replaced = self.replace_with_patched_file()
 
@@ -221,7 +222,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
                     logger.error(f"Error in attempting to stop and remove Thread: {e}")
                 break
 
-        logger.debug("Remove thread finished")
+        logger.debug(f"Remove thread finished ( {thread_id_remove} )")
 
     # ===============================================
     # ============== Regular Functions ==============
@@ -280,7 +281,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         logger.info("Moving patched file.")
         try:
             logger.debug(f"{patched_file} -> {original_file}")
-            shutil.copy(patched_file, original_file)
+            shutil.copy(patched_file, original_file) # TODO: Check this warning
             copied = True
         except Exception as e:
             logger.error("Failed to move patched file.")
@@ -361,10 +362,10 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         thread_repair_save = Threader(target=lambda save_file=save_file_path: repair_save(save_file))
         thread_id = thread_repair_save.currentThread()
         thread_repair_save.setTerminationEnabled(True)
-        # self.threader.signals.failed.connect(self.TOOD)
+        # self.threader.signals.failed.connect(self.TODO)
         thread_repair_save.signals.started.connect(self.disable_ui_elements)
         thread_repair_save.signals.finished.connect(self.enable_ui_elements)
-        thread_repair_save.signals.finished.connect(lambda: self.remove_thread(thread_id)) # Removes thead by ID
+        thread_repair_save.signals.finished.connect(lambda: self.remove_thread(thread_id))  # Removes thead by ID
         self.active_threads.append(thread_repair_save)
         thread_repair_save.start()
 
@@ -379,6 +380,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
     def show(self):
         self.main_window.show()
         sys.exit(self.app.exec_())
+
 
 class EventFilterOvr(QtCore.QObject):
     def eventFilter(self, obj, event):

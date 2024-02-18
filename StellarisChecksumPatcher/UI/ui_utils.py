@@ -3,7 +3,7 @@ from . import *
 from PySide6.QtCore import QObject, QRunnable, QThread, Slot, Signal
 
 
-class Capturing(list):  # Deprecated and not used, here for simply backup reasons because it was really cool to figure it out.
+class Capturing(list):  # Deprecated, here for simply backup reasons because it was really cool to figure it out.
     def __enter__(self):
         self._stdout = sys.stdout
         sys.stdout = self._stringio = StringIO()
@@ -13,6 +13,7 @@ class Capturing(list):  # Deprecated and not used, here for simply backup reason
         self.extend(self._stringio.getvalue().splitlines())
         del self._stringio  # free up some memory
         sys.stdout = self._stdout
+
 
 class WorkerSignals(QObject):
     started = Signal()
@@ -41,6 +42,7 @@ class Worker(QRunnable):
             self.signals.started.emit()
             self._target(*self._args, *self._kwargs)
         self.signals.finished.emit()
+
 
 class Threader(QThread):
     def __init__(self, target, args=(), kwargs=None) -> None:

@@ -5,6 +5,7 @@ import sys
 
 from utils.global_defines import logger, config_folder
 
+
 class Settings:
     def __init__(self):
         self.patcher_settings = {
