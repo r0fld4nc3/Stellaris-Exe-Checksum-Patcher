@@ -37,8 +37,6 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         self.main_window.installEventFilter(self.grabber_filter)
         self.start_pos = None
 
-        self.__set_app_id() # Setting App ID on Windows
-
         # Set App Version from HexPatcher
         self.lbl_app_version.setText(f"Version {self._app_version}")
 
@@ -80,20 +78,6 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         self.active_threads = []
 
         self.load_configs()
-
-    # ===============================================
-    # ============== Protected methods ==============
-    # ===============================================
-
-    @staticmethod
-    def __set_app_id():
-        lpBuffer = wintypes.LPWSTR()
-        AppUserModelID = ctypes.windll.shell32.GetCurrentProcessExplicitAppUserModelID
-        AppUserModelID(ctypes.cast(ctypes.byref(lpBuffer), wintypes.LPWSTR))
-        appid = lpBuffer.value
-        ctypes.windll.kernel32.LocalFree(lpBuffer)
-        if appid is not None:
-            print(appid)
     
     # =============================================
     # ============== Class Functions ==============

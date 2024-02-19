@@ -8,7 +8,7 @@ import zipfile
 import tempfile
 
 # 3rd Party
-from utils.global_defines import logger, system, settings
+from utils.global_defines import logger, settings, OS
 
 def get_current_dir():
     if getattr(sys, "frozen", False):
@@ -24,11 +24,11 @@ def get_user_save_folder():
     documents_dir = ''
 
     # Windows
-    if system == "Windows":
+    if OS.WINDOWS:
         logger.info("Locating for Windows system.")
         documents_dir = os.path.expanduser('~') + "\\Documents\\Paradox Interactive\\Stellaris\\save games"
     # Unix
-    elif system == "Linux" or system == "Darwin":
+    elif OS.LINUX or OS.MACOS:
         # NOTE, IT COULD BE INSTALLED ON OTHER DRIVES
         # FIND libraryfolders.vdf IN .steam/root/config
         # GET THE OTHER DRIVES IN THE libraryfolders.vdf

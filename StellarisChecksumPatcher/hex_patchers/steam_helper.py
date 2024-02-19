@@ -2,7 +2,7 @@ from . import *
 from typing import Union
 
 # 3rd Party
-from utils.global_defines import system
+from utils.global_defines import OS
 import vdf
 
 # KEY_LOCAL_MACHINE
@@ -15,7 +15,7 @@ STEAM_INSTALL_LOCATION_KEY = "InstallPath"
 STEAM_STEAMAPPS_FOLDER = "steamapps"
 STEAM_APP_MANIFEST_FILE_PREFIX = "appmanifest"
 LIBRARY_FOLDERS_VDF_FILE = "libraryfolders.vdf"
-if system == "Windows":
+if OS.WINDOWS:
     STEAM_LIBRARY_FOLDERS_FILE_TRAIL = "config\\" + LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
 else:
     STEAM_LIBRARY_FOLDERS_FILE_TRAIL = "config/" + LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
@@ -159,7 +159,7 @@ class SteamHelper:
             if not self.steam_install:
                 return False
 
-        if system == "Windows":
+        if OS.WINDOWS:
             library_file = os.path.join(self.steam_install, STEAM_LIBRARY_FOLDERS_FILE_TRAIL)
         else:
             for root, dirs, files in os.walk(self.steam_install):
@@ -203,14 +203,14 @@ class SteamHelper:
     def get_steam_install_path(self) -> str:
         logger.info("Acquiring Steam installation...")
 
-        if system == "Windows":
+        if OS.WINDOWS:
             # Try 64-bit first
             steam = registry_helper.read_key(STEAM_REGISTRY_PATH_64, STEAM_INSTALL_LOCATION_KEY)
 
             # Try 32-bit if 64 failed.
             if not steam:
                 steam = registry_helper.read_key(STEAM_REGISTRY_PATH_32, STEAM_INSTALL_LOCATION_KEY)
-        elif system == "Linux" or system == "Darwin":
+        elif OS.LINUX or OS.MACOS:
             steam = None
             for distro_path in LINUX_DISTRO_PATHS:
                 if pathlib.Path(distro_path).exists():
