@@ -1,4 +1,5 @@
-from . import *
+import sys
+from io import StringIO
 
 from PySide6.QtCore import QObject, QRunnable, QThread, Slot, Signal
 

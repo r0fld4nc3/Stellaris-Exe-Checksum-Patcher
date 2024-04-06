@@ -1,6 +1,8 @@
-from . import *
+from utils.global_defines import OS, logger
 
 if OS.WINDOWS:
+    import winreg
+
     WINREG_KEY_READ = winreg.KEY_READ
 
     def _connect_to_registry() -> winreg.HKEYType:

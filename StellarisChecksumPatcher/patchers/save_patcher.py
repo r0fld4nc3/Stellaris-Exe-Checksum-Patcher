@@ -10,6 +10,8 @@ import tempfile
 # 3rd Party
 from utils.global_defines import logger, settings, OS
 
+Path = pathlib.Path
+
 def get_current_dir():
     if getattr(sys, "frozen", False):
         application_path = os.path.dirname(sys.executable)
@@ -24,41 +26,42 @@ def get_user_save_folder():
     documents_dir = ''
 
     # Windows
-    if OS.WINDOWS:
+    if OS.WINDOWS or OS.MACOS:
         logger.info("Locating for Windows system.")
-        documents_dir = os.path.expanduser('~') + "\\Documents\\Paradox Interactive\\Stellaris\\save games"
+        documents_dir = Path.home() / "Documents" / "Paradox Interactive" / "Stellaris" / "save games"
     # Unix
-    elif OS.LINUX or OS.MACOS:
-        # NOTE, IT COULD BE INSTALLED ON OTHER DRIVES
+    elif OS.LINUX:
+        # TODO: IT COULD BE INSTALLED ON OTHER DRIVES
         # FIND libraryfolders.vdf IN .steam/root/config
         # GET THE OTHER DRIVES IN THE libraryfolders.vdf
         # ITERATE THROUGH THOSE DRIVES TO FIND THE save games FOLDER.
 
         pdx_dir = ''
 
-        logger.info("Locating for Linux\\Unix\\Darwin system.")
-        home_steam = os.path.join(os.path.expanduser('~'), ".steam")
+        home_steam = Path.home() / ".steam"
+
+        logger.info("Locating for Linux\\Unix system.")
         for root, dirs, files in os.walk(home_steam):
             logger.debug(f"{root}")
             logger.debug(f"\t{dirs}")
-            if pathlib.Path(root).name == "Paradox Interactive":
+            if Path(root).name == "Paradox Interactive":
                 print(f"Found in {root}")
                 pdx_dir = root
                 break
             for usr_dir in dirs:
-                if pathlib.Path(usr_dir).name == "Paradox Interactive":
+                if Path(usr_dir).name == "Paradox Interactive":
                     print(f"Found in {usr_dir}")
                     pdx_dir = usr_dir
                     break
 
-        if pdx_dir != '':
-            documents_dir = pathlib.Path(pdx_dir) / "Stellaris" / "save games"
+        if pdx_dir:
+            documents_dir = Path(pdx_dir) / "Stellaris" / "save games"
     # Uh oh
     else:
         logger.error("Unable to acquire target system.")
         pass
 
-    if not pathlib.Path(documents_dir).exists():
+    if not Path(documents_dir).exists():
         logger.info(f"Unable to find documents dir. Current try: \"{documents_dir}\"")
         documents_dir = os.path.dirname(sys.executable)
     else:
@@ -69,8 +72,8 @@ def get_user_save_folder():
 
 def repair_save(save_file):
     # .sav
-    save_dir = pathlib.Path(save_file).parent
-    save_file_name = pathlib.Path(save_file).name
+    save_dir = Path(save_file).parent
+    save_file_name = Path(save_file).name
     save_file_times = (os.stat(save_file).st_atime, os.stat(save_file).st_mtime)
 
     logger.info(f"Save Directory: {save_dir}")
@@ -78,14 +81,14 @@ def repair_save(save_file):
 
     # Repair directory
     repair_dir = save_dir / "save_repair"
-    pathlib.Path(repair_dir).mkdir(parents=True, exist_ok=True)
+    Path(repair_dir).mkdir(parents=True, exist_ok=True)
     logger.debug(f"Repair Directory: {repair_dir}")
 
     # Backup directory
-    # backup_dir = pathlib.Path(get_current_dir()) / "saves_backup" / save_dir.name
+    # backup_dir = Path(get_current_dir()) / "saves_backup" / save_dir.name
     backup_dir = settings.get_config_dir() / "saves_backup" / save_dir.name
-    backup_save_file = pathlib.Path(backup_dir) / save_file_name
-    pathlib.Path(backup_dir).mkdir(parents=True, exist_ok=True)
+    backup_save_file = Path(backup_dir) / save_file_name
+    Path(backup_dir).mkdir(parents=True, exist_ok=True)
 
     # Create Backup of the save
     try:
@@ -104,14 +107,14 @@ def repair_save(save_file):
 
     # Store files and their access times
     files_access_times = {}
-    for file in pathlib.Path(repair_dir).iterdir():
+    for file in Path(repair_dir).iterdir():
         files_access_times[file.name] = (os.stat(file).st_atime, os.stat(file).st_mtime)
 
     # gamestate
-    gamestate_file = pathlib.Path(repair_dir) / "gamestate"
+    gamestate_file = Path(repair_dir) / "gamestate"
 
     # meta
-    meta_file = pathlib.Path(repair_dir) / "meta"
+    meta_file = Path(repair_dir) / "meta"
 
     # =======================================================
     # =================== GAMESTATE BLOCK ===================
@@ -217,7 +220,7 @@ def repair_save(save_file):
     # =================== END ACHIEVEMENTS BLOCK ===================
     # ==============================================================
 
-    temp_file = pathlib.Path(tempfile.gettempdir()) / "gamestate"
+    temp_file = Path(tempfile.gettempdir()) / "gamestate"
     with open(temp_file, 'w', encoding="utf-8") as new_file:
         new_file.write('\n'.join(new_file_contents))
 
@@ -240,7 +243,7 @@ def repair_save(save_file):
         new_file_contents.append("ironman=yes")
         logger.debug(f"\n{new_file_contents}")
 
-    temp_file = pathlib.Path(tempfile.gettempdir()) / "meta"
+    temp_file = Path(tempfile.gettempdir()) / "meta"
     with open(temp_file, 'w', encoding="utf-8") as new_file:
         new_file.write('\n'.join(new_file_contents))
 
@@ -249,13 +252,13 @@ def repair_save(save_file):
 
     # Rebuild .sav file
     with zipfile.ZipFile(save_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for file in pathlib.Path(repair_dir).iterdir():
+        for file in Path(repair_dir).iterdir():
             # Fix files access times to their originals
             fname = file.name
             if fname in files_access_times.keys():
                 os.utime(file, files_access_times.get(fname, None))
             with open(file, 'r', encoding="utf-8") as fread:
-                zf.writestr(pathlib.Path(file).name, fread.read())
+                zf.writestr(Path(file).name, fread.read())
 
     # Set access times from original
     os.utime(save_file, save_file_times)
@@ -286,7 +289,7 @@ def pull_latest_achivements_file():
     if not response.status_code == 200:
         logger.error("Not a valid repository.")
 
-    achievements_file = pathlib.Path(os.path.dirname(__file__)).parent / "achievements" / "achievements.txt"
+    achievements_file = Path(os.path.dirname(__file__)).parent / "achievements" / "achievements.txt"
     try:
         pulled_release = response.json()["content"]
         achievements = base64.b64decode(pulled_release).decode("utf-8")

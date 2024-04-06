@@ -35,6 +35,16 @@ class Settings:
         i = self.patcher_settings.get("install-dir")
         return i
 
+    def set_executable_name(self, executable_name: str):
+        self.patcher_settings["exe-name"] = executable_name
+        self.save_config()
+
+    def get_executable_name(self) -> str:
+        self.load_config()
+        name = self.patcher_settings.get("exe-name")
+
+        return name
+
     def get_save_games_dir(self) -> str:
         self.load_config()
         s = self.patcher_settings.get("save-games-dir")

@@ -4,7 +4,7 @@ import logging
 from time import localtime, strftime
 
 from UI.ui_utils import WorkerSignals
-from . import config_folder
+from utils.global_defines import config_folder
 
 LOG_FOLDER = config_folder
 LOG_FILE = "StellarisChecksumPatcherLog.txt"
@@ -12,6 +12,15 @@ LOG_FILE = "StellarisChecksumPatcherLog.txt"
 print(f"LOG PATH: {LOG_FOLDER}")
 
 class Logger:
+    # Attempt at Singleton pattern
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.__init__(*args, **kwargs)
+        return cls._instance
+
     def __init__(self,
                  is_debug=False,
                  logger_name: str = "DefaultAppLogger",
@@ -75,18 +84,20 @@ class Logger:
             self.log_level = self.DEBUG
 
         self.logger = logging.getLogger(logger_name)
+        print(f"logger: {self.logger}")
         self.logger.setLevel(self.log_level)
 
-        formatter = logging.Formatter("[%(asctime)s] [%(levelname)-4s]: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-        file_handler = logging.FileHandler(self.log_file)
-        stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(self.log_level)
+        if not self.logger.handlers:
+            formatter = logging.Formatter("[%(asctime)s] [%(levelname)-4s]: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+            file_handler = logging.FileHandler(self.log_file)
+            stream_handler = logging.StreamHandler()
+            stream_handler.setLevel(self.log_level)
 
-        stream_handler.setFormatter(formatter)
-        file_handler.setFormatter(formatter)
+            stream_handler.setFormatter(formatter)
+            file_handler.setFormatter(formatter)
 
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(stream_handler)
+            self.logger.addHandler(file_handler)
+            self.logger.addHandler(stream_handler)
 
     def create_log_folder(self):
         if not os.path.exists(LOG_FOLDER):
@@ -118,6 +129,11 @@ class Logger:
         console_log = f"[INFO] {log_input}"
         self.signals.progress.emit(console_log)
         self.logger.info(f"{log_input}")
+
+    def warning(self, log_input):
+        console_log = f"[WARNING] {log_input}"
+        self.signals.progress.emit(console_log)
+        self.logger.warning(f"{log_input}")
             
     def debug(self, log_input):
         console_log = f"[DEBUG] {log_input}"

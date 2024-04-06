@@ -1,1 +1,0 @@
-from utils.global_defines import program_data_path, config_folder

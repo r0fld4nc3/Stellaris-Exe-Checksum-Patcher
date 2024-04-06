@@ -1,17 +1,19 @@
-import os.path
-
-from . import *
-
+import os
+import pathlib
+import sys
 from PySide6 import QtWidgets, QtCore, QtGui
-from .ui_utils import Threader
-from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWIndow
-from hex_patchers.HexPatcher import StellarisChecksumPatcher
-from save_patcher.save_patcher import repair_save, get_user_save_folder
 
+from .ui_utils import Threader
+from utils.global_defines import logger, updater, settings, APP_VERSION, OS
+from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWIndow
+from patchers import stellaris_patch
+from patchers.save_patcher import repair_save, get_user_save_folder
+
+Path = pathlib.Path
 
 class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
     _app_version = (".".join([str(v) for v in APP_VERSION]))
-    UI_ICONS_FOLDER = os.path.join(os.path.dirname(__file__), "ui_icons")
+    ui_icons_folder = str(Path(__file__).parent / "ui_icons")
 
     def __init__(self) -> None:
         super(StellarisChecksumPatcherGUI, self).__init__()
@@ -21,8 +23,8 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         self.main_window = QtWidgets.QMainWindow()
         Ui_StellarisChecksumPatcherWIndow.setupUi(self, self.main_window)
 
-        self.patch_icon = QtGui.QIcon(os.path.join(self.UI_ICONS_FOLDER, "patch_icon.png"))
-        self.save_patch_icon = QtGui.QIcon(os.path.join(self.UI_ICONS_FOLDER, "save_patch_icon.png"))
+        self.patch_icon = QtGui.QIcon(str(Path(self.ui_icons_folder) / "patch_icon.png"))
+        self.save_patch_icon = QtGui.QIcon(str(Path(self.ui_icons_folder) / "save_patch_icon.png"))
 
         # Add additional main_window stuff here
         self.main_window.setWindowTitle(f"Stellaris Checksum Patcher v{self._app_version}")
@@ -40,16 +42,13 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         # Set App Version from HexPatcher
         self.lbl_app_version.setText(f"Version {self._app_version}")
 
-        # Patcher Service Class
-        self.stellaris_patcher = StellarisChecksumPatcher()
-
-        self._has_run_once = False
-        self._patch_successful = False
+        self.has_run_once = False
         self.is_patching = False
         self.auto_patch_failed = False
 
-        self._install_dir = ''
-        self._replace_failed_reasons = []
+        self.install_dir = ''
+        self.game_executable_name = ''
+        self.replace_failed_reasons = []
 
         # =========== Patch Save File Button ===========
         self.btn_fix_save_file.setIcon(self.save_patch_icon)
@@ -111,10 +110,6 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
     def refresh_terminal_log(self):
         # Could potentially not be useful anymore. Here to force redraw of elements in the QTextBrowser.
         self.terminal_display.update()
-
-    def operations_finished_report(self):
-        self.terminal_display_log(' ')
-        logger.info("Operations finished.")
         
     def patch_game_executable(self) -> bool:
         """
@@ -124,59 +119,85 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         :return: bool
         """
         self.reset_caches()
-        self._has_run_once = True
-        self.auto_patch_failed = False
-        self.is_patching = True
+        self.has_run_once = True # Set for the runtime lifetime
+        self.is_patching = True # Because this is triggered when the button to patch was clicked
 
         self.set_terminal_clickable(False)
-        
+
         logger.info("Patching from game installation.")
 
         # Test settings for install location
-        _settings_install_dir = settings.get_install_location()
+        settings_install_dir = settings.get_install_location()
 
-        if self._install_dir or _settings_install_dir:
-            game_executable = os.path.join(self._install_dir, self.stellaris_patcher.exe_default_filename)
+        if self.install_dir or settings_install_dir:
+            game_executable = Path(self.install_dir) / stellaris_patch.EXE_DEFAULT_FILENAME
             # Make sure the file exists
-            if not os.path.exists(game_executable):
-                game_executable = self.stellaris_patcher.locate_game_executable()
+            if not Path(game_executable).exists():
+                game_executable = stellaris_patch.locate_game_executable()
         else:
-            game_executable = self.stellaris_patcher.locate_game_executable()
+            game_executable = stellaris_patch.locate_game_executable()
 
         if not game_executable:
             self.auto_patch_failed = True
             self.is_patching = False
+
             logger.error("Game installation not found.")
             self.terminal_display_log(" ")
             logger.info("Patch failed.")
             self.terminal_display_log(" ")
             logger.info("Please run again to manually select install directory.")
             self.set_terminal_clickable(True)
+
+            # TODO: Could we not make it run again calling own function? So it doesn't have to be user driven?
+            # self.patch_game_executable()
             return False
 
-        self._install_dir = os.path.dirname(game_executable)
+        self.install_dir = game_executable.parent # executable's directory
+        exe_name = game_executable.name
 
-        # Patch can proceed, therefore save game install location
-        settings.set_install_location(os.path.dirname(game_executable))
-        
-        self.stellaris_patcher.load_file_hex(file_path=game_executable)
-        
-        logger.info("Applying Patch...")
-        
+        # Update game executable name in settings
+        if exe_name != self.game_executable_name:
+            self.game_executable_name = exe_name
+            settings.set_executable_name(self.game_executable_name)
+
+        if game_executable:
+            # Patch can proceed, therefore save game install location
+            settings.set_install_location(str(game_executable))
+
+            # MacOS exception, as it will return a .app, and is a dir
+            # Append the postpend filepath to inside the .app
+            macos_app_folder = None
+            if OS.MACOS:
+                macos_app_folder = stellaris_patch.macos_dotapp_to_folder(game_executable)
+
+                # Get the POSIX executable inside
+                logger.info("System is MacOS. Appending proper path to Contents inside .app")
+                game_executable = macos_app_folder / stellaris_patch.EXE_PATH_POSTPEND
+                logger.info(f"Game Executable: {game_executable}")
+
+            # Check if it is patched
+            is_patched = stellaris_patch.is_patched(game_executable)
+
+            if is_patched:
+                logger.info("File is already patched")
+            else:
+                # Create a backup
+                stellaris_patch.create_backup(game_executable)
+
+                logger.info("Applying Patch...")
+
+                patched = stellaris_patch.patch(game_executable, duplicate_to=Path("/Users/ralph/Applications"), both=True)
+
+                self.is_patching = False
+
+                if not patched:
+                    logger.error(f"Unable to replace original game file.\n")
+
+            # Restore MacOS folder to .app if system is MacOS
+            stellaris_patch.macos_folder_to_dotapp(macos_app_folder)
+
         self.terminal_display_log(' ')
-        
-        self.stellaris_patcher.patch()  # Here if the file IS patched, there is the "is_patched" flag
-            
-        replaced = self.replace_with_patched_file()
-
-        self._patch_successful = True
-        self.is_patching = False
-
-        # Handle feedback if replacing failed
-        if not replaced and not self.stellaris_patcher.is_patched:
-            logger.info(f"Unable to replace original game file. Please attempt to do so manually.\n")
-
-        self.operations_finished_report()
+        logger.info("Operations finished.")
 
         self.set_terminal_clickable(True)
 
@@ -212,75 +233,20 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
     # ============== Regular Functions ==============
     # ===============================================
     def load_configs(self):
-        self._install_dir = settings.get_install_location()
+        self.install_dir = settings.get_install_location()
+        self.game_executable_name = settings.get_executable_name()
         settings.set_app_version(f"{self._app_version[2:]}")
         updater.local_version = str(self._app_version)[2:]
         self.check_update()
 
     def reset_caches(self):
-        self._replace_failed_reasons.clear()
-        self._patch_successful = False
+        self.replace_failed_reasons.clear()
         self.is_patching = False
         self.auto_patch_failed = False
         
     def terminal_display_log(self, t_log):
         self.terminal_display.insertPlainText(f"{t_log}\n")
         self.refresh_terminal_log()
-        
-    def replace_with_patched_file(self) -> bool:
-        # Do nothing if file is already patched.
-        if self.stellaris_patcher.is_patched:
-            return False
-
-        self.terminal_display_log(' ')
-        patched_file = os.path.join(self.stellaris_patcher.exe_out_dir, self.stellaris_patcher.exe_modified_filename)
-
-        # Here we check if we already have an install location saved in config
-        # Otherwise try to look for it.
-        if self._install_dir:
-            original_file = os.path.join(self._install_dir, self.stellaris_patcher.exe_default_filename)
-        else:
-            original_file = self.stellaris_patcher.locate_game_executable()
-
-        # Rename original file
-        renamed = False
-        logger.info("Backing up original file.")
-        try:
-            backup_file = f"{original_file}.orig"
-            if not os.path.exists(backup_file):
-                logger.debug(f"Renaming {original_file} -> {backup_file}")
-                os.rename(original_file, original_file + ".orig")
-            else:
-                logger.info("Backed up file already exists.")
-            renamed = True
-        except Exception as e:
-            logger.error("Failed to rename original file.")
-            logger.debug_error(e)
-            
-        if not renamed:
-            return False
-        
-        # Copy patched file and rename
-        copied = False
-        logger.info("Moving patched file.")
-        try:
-            logger.debug(f"{patched_file} -> {original_file}")
-            shutil.copy(patched_file, original_file) # TODO: Check this warning
-            copied = True
-        except Exception as e:
-            logger.error("Failed to move patched file.")
-            logger.debug_error(e)
-            
-        if not copied:
-            return False
-            
-        try:
-            os.remove(patched_file)
-        except Exception:
-            self.terminal_display_log(' ')
-            logger.error("Unable to delete patched file.")
-        
-        return True
         
     def patch_game_executable_thread(self):
         if self.is_patching:
@@ -291,8 +257,8 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         self.terminal_display.clear()
 
         # If install failed, ask for directory and then perform the normal patching operation
-        if self._has_run_once and self.auto_patch_failed:
-            self._install_dir = self.prompt_install_dir()
+        if self.has_run_once and self.auto_patch_failed:
+            self.install_dir = self.prompt_install_dir()
 
         # self.worker = Worker(target=self.patch_from_game_install)
         thread_patch_exe = Threader(target=self.patch_game_executable)
@@ -309,7 +275,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         _install_dir = QtWidgets.QFileDialog().getExistingDirectory(
                 caption="Please choose Stellaris installation Folder...")
         if _install_dir:
-            _install_dir = os.path.abspath(_install_dir)
+            _install_dir = Path(_install_dir).absolute().resolve()
 
         return _install_dir
 
@@ -346,7 +312,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         thread_repair_save = Threader(target=lambda save_file=save_file_path: repair_save(save_file))
         thread_id = thread_repair_save.currentThread()
         thread_repair_save.setTerminationEnabled(True)
-        # self.threader.signals.failed.connect(self.TODO)
+        # self.threader.signals.failed.connect() # TODO
         thread_repair_save.signals.started.connect(self.disable_ui_elements)
         thread_repair_save.signals.finished.connect(self.enable_ui_elements)
         thread_repair_save.signals.finished.connect(lambda: self.remove_thread(thread_id))  # Removes thead by ID

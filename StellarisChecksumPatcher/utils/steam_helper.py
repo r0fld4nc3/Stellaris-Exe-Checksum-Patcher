@@ -1,9 +1,13 @@
-from . import *
+# built-ins
+import os
+import pathlib
+from utils import registry_helper
 from typing import Union
 
-# 3rd Party
-from utils.global_defines import OS
+from utils.global_defines import OS, logger
 import vdf
+
+Path = pathlib.Path
 
 # KEY_LOCAL_MACHINE
 GAME_INSTALL_LOCATION_KEY = "InstallLocation"
@@ -15,15 +19,16 @@ STEAM_INSTALL_LOCATION_KEY = "InstallPath"
 STEAM_STEAMAPPS_FOLDER = "steamapps"
 STEAM_APP_MANIFEST_FILE_PREFIX = "appmanifest"
 LIBRARY_FOLDERS_VDF_FILE = "libraryfolders.vdf"
-if OS.WINDOWS:
-    STEAM_LIBRARY_FOLDERS_FILE_TRAIL = "config\\" + LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
-else:
-    STEAM_LIBRARY_FOLDERS_FILE_TRAIL = "config/" + LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
+STEAM_LIBRARY_FOLDERS_FILE_TRAIL = Path("config") / LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
 
 LINUX_DISTRO_PATHS = [
-    os.path.join(os.path.expanduser('~'), ".steam"),
-    os.path.join(os.path.expanduser('~'), ".local/share/Steam"),
-    os.path.join(os.path.expanduser('~'), ".var/app/com.valvesoftware.Steam/.local/share/Steam")
+    pathlib.Path.home() / ".steam",
+    pathlib.Path.home() / ".local" / "share" / "Steam",
+    pathlib.Path.home() / ".var" / "app" / "com.valvesoftware.Steam" / ".local" / "share" / "Steam"
+]
+
+MACOS_DISTRO_PATHS = [
+    pathlib.Path.home() / "Library" / "Application Support" / "Steam"
 ]
 
 
@@ -86,7 +91,7 @@ class SteamHelper:
                 logger.debug(f"{app_id}: {title}")
                 if title == game_name:
                     logger.debug(f"Found title match: {title} with App Id {app_id} in {fname} in library {lib}")
-                    logger.info(f'Found game install in {os.path.join(lib, f"common/{title}")}'.replace('/', '\\'))
+                    logger.info(f'Found game install in {pathlib.Path(os.path.join(lib, f"common/{title}"))}')
                     logger.write_to_log_file('')
                     return {
                         "title": title,
@@ -187,7 +192,7 @@ class SteamHelper:
 
         return self.steam_library_paths
 
-    def get_game_install_path(self, game_name) -> Union[str, bool]:
+    def get_game_install_path(self, game_name) -> Union[pathlib.Path, bool]:
         logger.info("Acquiring Stellaris installation...")
 
         install_details = self.get_game_install_info_from_name(game_name)
@@ -196,11 +201,11 @@ class SteamHelper:
             return False
 
         title_name = install_details.get("title")
-        install_folder = os.path.join(install_details.get("steam-library"), f"common\\{title_name}")
+        install_folder = Path(install_details.get("steam-library")) / "common" / title_name
 
         return install_folder
 
-    def get_steam_install_path(self) -> str:
+    def get_steam_install_path(self) -> pathlib.Path:
         logger.info("Acquiring Steam installation...")
 
         if OS.WINDOWS:
@@ -210,15 +215,18 @@ class SteamHelper:
             # Try 32-bit if 64 failed.
             if not steam:
                 steam = registry_helper.read_key(STEAM_REGISTRY_PATH_32, STEAM_INSTALL_LOCATION_KEY)
-        elif OS.LINUX or OS.MACOS:
+        elif OS.LINUX:
             steam = None
             for distro_path in LINUX_DISTRO_PATHS:
-                if pathlib.Path(distro_path).exists():
-                    steam = str(distro_path).replace('\\', '/')
+                if Path(distro_path).exists():
+                    steam = distro_path
                     break
-
-            if not steam:
-                print("Count not find Steam install.")
+        elif OS.MACOS:
+            steam = None
+            for distro_path in MACOS_DISTRO_PATHS:
+                if Path(distro_path).exists():
+                    steam = distro_path
+                    break
         else:
             steam = None
 

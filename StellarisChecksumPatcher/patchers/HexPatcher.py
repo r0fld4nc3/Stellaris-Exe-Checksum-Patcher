@@ -1,4 +1,13 @@
-from . import *
+import sys
+import os
+import pathlib
+import binascii
+from typing import Union
+
+from utils.global_defines import is_debug, OS, logger
+from utils import steam_helper
+
+Path = pathlib.Path
 
 def get_current_dir():
     if getattr(sys, "frozen", False):
@@ -30,13 +39,30 @@ class StellarisChecksumPatcher:
         self._checksum_offset_end = 0
         
         self.title_name = "Stellaris" # Steam title name
+
+        # This may or may not have .exe depending on pure system
+        # If Windows, has .exe,
+        # On Linux, it doesn't.
+        # If Proton Linux, it is detected as Linux but needs .exe
+        # On MacOS it is a .app
         if OS.WINDOWS:
             # Windows and Proton Linux
             self.exe_default_filename = "stellaris.exe" # Game executable name plus extension
-        else:
+            self.exe_modified_filename = "stellaris-patched.exe" # Name of modified executable
+
+        elif OS.LINUX:
             # Native Linux
             self.exe_default_filename = "stellaris"
-        self.exe_modified_filename = "stellaris-patched" # Name of modified executable
+            self.exe_modified_filename = "stellaris-patched" # Name of modified executable
+
+        elif OS.MACOS:
+            self.exe_default_filename = "stellaris.app"
+            self.exe_modified_filename = "stellaris-patched.app"  # Name of modified executable
+
+        else:
+            self.exe_default_filename = "stellaris.wtf"
+            self.exe_modified_filename = "stellaris-patched.wtf"  # Name of modified executable
+
         self.exe_out_dir = get_current_dir() # Where to place the patched executable.
         self.is_patched = False
         
@@ -227,39 +253,22 @@ class StellarisChecksumPatcher:
         self._checksum_offset_end = 0
         self.is_patched = False
         
-    def locate_game_executable(self) -> Union[str, None]:
+    def locate_game_executable(self) -> Union[Path, None]:
         """
         Returns path to game executable.
         """
         logger.info("Locating game install...")
         stellaris_install_path = self._steam.get_game_install_path(self.title_name)
-        
+
+        # Add additional check, becuase it might be Proton Linux and therefore have a .exe
+        if OS.LINUX and not stellaris_install_path:
+            logger.info("System is Linux but unable to locate native game install. Trying as Proton Linux")
+            stellaris_install_path = self._steam.get_game_install_path(self.title_name + ".exe")
+
         if stellaris_install_path:
-            # This may or may not have .exe depending on pure system
-            # If Windows, has .exe, if Linux, doesn't. If Proton Linux, it is detected as Linux but needs .exe
-            game_executable = os.path.join(stellaris_install_path, self.exe_default_filename)
-            if OS.WINDOWS:
-                if str(self.exe_modified_filename).endswith(".exe"):
-                    self.exe_modified_filename += ".exe"
-                logger.debug(f"System: Windows. Modified file name = {self.exe_modified_filename}")
-            else:
-                game_executable.replace("\\", "/")
+            game_executable = Path(stellaris_install_path) / self.exe_default_filename
 
-            # Now we have to test this because of Linux
-            # Means we are on Linux but this shit needs and .exe like Windows
-            if OS.LINUX or OS.MACOS:
-                if not os.path.exists(game_executable):
-                    logger.info(f"System is Linux/Darwin but {game_executable} does not exist. Appending .exe")
-                    if not str(self.exe_default_filename).endswith(".exe"):
-                        self.exe_default_filename += ".exe"
-                    if not str(self.exe_modified_filename).endswith(".exe"):
-                        self.exe_modified_filename += ".exe"
-
-                    logger.debug(f"System: Linux (Proton). Modified file name = {self.exe_modified_filename}")
-                    game_executable = os.path.join(stellaris_install_path, self.exe_default_filename).replace('\\', '/')
-                    logger.info(f"Linux (Proton): {game_executable}")
-
-            if not os.path.exists(game_executable):
+            if not Path(game_executable).exists():
                 return None
             return game_executable
         
@@ -268,18 +277,26 @@ class StellarisChecksumPatcher:
     def load_file_hex(self, file_path=None) -> bool:
         logger.info("Loading file Hex.")
 
-        if OS.WINDOWS:
-            file_path = str(file_path).replace('/', '\\')
-        else:
-            file_path.replace('\\', '/')
+        file_path = Path(file_path)
 
-        if not os.path.isfile(file_path):
-            logger.error(f"Unable to find required file: {file_path}")
+        # Special check for macOS because .app is not recognised as a file
+        if not OS.MACOS:
+            if not file_path.is_file():
+                logger.error(f"Unable to find required file: {file_path}")
+                return False
+        else:
+            # .app is actually a directory
+            macos_stellaris_app = file_path / "Contents" / "MacOS" / "stellaris"
+            logger.info(f"Checking if this exists and is a file: {macos_stellaris_app}")
+            if macos_stellaris_app.exists() and macos_stellaris_app.is_file():
+                logger.info(f"Found: {macos_stellaris_app}")
+                return True
+            logger.error(f"Unable to find required file: {macos_stellaris_app}")
             return False
 
         self.hex_data_list.clear()
 
-        if not os.path.exists(file_path):
+        if not Path(file_path).exists():
             logger.error(f"{file_path} does not exist.")
             return False
 
