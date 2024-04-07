@@ -56,6 +56,8 @@ def get_user_save_folder():
 
         if pdx_dir:
             documents_dir = Path(pdx_dir) / "Stellaris" / "save games"
+    elif OS.MACOS:
+        pass
     # Uh oh
     else:
         logger.error("Unable to acquire target system.")
