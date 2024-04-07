@@ -52,7 +52,11 @@ def locate_game_executable() -> Union[Path, None]:
     return None
 
 def is_patched(file_path: Path) -> bool:
+    # TODO: This is say it's patched even though it isn't. Fix
     logger.info(f"Checking if patched: {file_path}")
+
+    logger.warning("is_patched: Returning False due to to-do implementation reasons")
+    return False
 
     with open(file_path, 'rb') as file:
         binary_data = file.read()
@@ -71,10 +75,12 @@ def is_patched(file_path: Path) -> bool:
 def create_backup(file_path: Path, overwrite=False) -> bool:
     backup_file = Path(str(file_path) + ".orig")
 
+    logger.info(f"Creating backup of {file_path}")
+
     # Create or replace file
     if backup_file.exists():
         if not overwrite:
-            logger.info(f"Aborting backup as overwrite backup is False")
+            logger.info(f"Aborting backup as overwrite backup is {overwrite}")
             return True
 
         logger.info(f"Unlinking/Removing {backup_file}")
@@ -110,31 +116,23 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
                 shutil.copy2(file_path, backup_file)
             except Exception as e:
                 logger.error(e)
+    else:
+        # Now copy the file and set the name
+        if OS.MACOS:
+            # For MacOS, .app is a directory
+            try:
+                logger.info(f"Copying {file_path} to {backup_file}")
+                shutil.copytree(file_path, backup_file)
+            except Exception as e:
+                logger.error(e)
+        else:
+            try:
+                logger.info(f"Copying {file_path} -> {backup_file}")
+                shutil.copy2(file_path, backup_file)
+            except Exception as e:
+                logger.error(e)
 
     return True
-
-def macos_dotapp_to_folder(dotapp_file_path: Path) -> Path:
-    converted_folder = None
-    macos_app_folder = dotapp_file_path
-
-    if OS.MACOS:
-        # Change the .app to a folder
-        converted_folder = macos_app_folder.rename(str(macos_app_folder)[:-4])  # Removes.app from file path
-        logger.info(f"Temporarily removing .app: {converted_folder}")
-
-    return converted_folder
-
-def macos_folder_to_dotapp(folder_path: Path) -> Path:
-    converted_app_folder = None
-    macos_app_folder = folder_path
-
-    # Restore .app folder
-    if OS.MACOS:
-        # Change the .app to a folder
-        converted_app_folder = macos_app_folder.rename(str(macos_app_folder) + ".app")  # Adds.app to path name
-        logger.info(f"Restoring .app: {converted_app_folder}")
-
-    return converted_app_folder
 
 def patch(file_path: Path, duplicate_to: Path = None, both=False):
     if not file_path.exists():
@@ -168,7 +166,7 @@ def patch(file_path: Path, duplicate_to: Path = None, both=False):
             # Replace '85' with '31' before '85DB'
             patched_line = matched_line[:hex_index] + '31' + matched_line[hex_index+2:]
 
-            logger.info(f"Patched line (hex): {patched_line}")
+            logger.info(f"Patched line (hex):  {patched_line}")
 
             # Replace the matched line in the binary hex with the patched line
             binary_hex_patched = binary_hex[:match.start()] + patched_line + binary_hex[match.end():]

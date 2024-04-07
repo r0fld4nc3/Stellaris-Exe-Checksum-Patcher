@@ -168,11 +168,9 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
             # Append the postpend filepath to inside the .app
             macos_app_folder = None
             if OS.MACOS:
-                macos_app_folder = stellaris_patch.macos_dotapp_to_folder(game_executable)
-
-                # Get the POSIX executable inside
-                logger.info("System is MacOS. Appending proper path to Contents inside .app")
+                macos_app_folder = game_executable
                 game_executable = macos_app_folder / stellaris_patch.EXE_PATH_POSTPEND
+                logger.info("System is MacOS. Appending proper path to Contents inside .app")
                 logger.info(f"Game Executable: {game_executable}")
 
             # Check if it is patched
@@ -182,7 +180,10 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
                 logger.info("File is already patched")
             else:
                 # Create a backup
-                stellaris_patch.create_backup(game_executable)
+                if OS.MACOS:
+                    stellaris_patch.create_backup(macos_app_folder)
+                else:
+                    stellaris_patch.create_backup(game_executable)
 
                 logger.info("Applying Patch...")
 
@@ -192,9 +193,6 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
 
                 if not patched:
                     logger.error(f"Unable to replace original game file.\n")
-
-            # Restore MacOS folder to .app if system is MacOS
-            stellaris_patch.macos_folder_to_dotapp(macos_app_folder)
 
         self.terminal_display_log(' ')
         logger.info("Operations finished.")
