@@ -6,23 +6,37 @@ import binascii
 import shutil
 from typing import Union
 
-from utils.global_defines import OS, logger, steam
+from utils.global_defines import OS, logger, steam, settings
 
 Path = pathlib.Path
 
 if OS.WINDOWS:
     # Windows and Proton Linux
     EXE_DEFAULT_FILENAME = "stellaris.exe"  # Game executable name plus extension
+    hex_find = "85C0"
+    hex_replace = "33C0"
+    patch_pattern = re.compile(r"488B1248.{20,26}%s" % hex_find, re.IGNORECASE)
 elif OS.LINUX:
     # Native Linux
     EXE_DEFAULT_FILENAME = "stellaris"
+    hex_find = "85DB"
+    hex_replace = "31DB"
+    # TODO: Check if it actually patches the right place
+    patch_pattern = re.compile(r"488B3.{20,50}%s" % hex_find, re.IGNORECASE)
 elif OS.MACOS:
     # .app IS NOT A FILE, IT'S A DIRECTORY
     # The actual executable is inside the .app -> /.../stellaris.app/Contents/MacOS/stellaris
     EXE_DEFAULT_FILENAME = "stellaris.app"
     EXE_PATH_POSTPEND = "Contents/MacOS/stellaris"
+    hex_find = "85DB"
+    hex_replace = "31DB"
+    # TODO: Check if it actually patches the right place
+    patch_pattern = re.compile(r"488B3.{20,38}%s" % hex_find, re.IGNORECASE)
 else:
     EXE_DEFAULT_FILENAME = "stellaris.wtf"
+    hex_find = "85C0"
+    hex_replace = "33C0"
+    patch_pattern = re.compile(r"488B1248.{20,26}%s" % hex_find, re.IGNORECASE)
 
 TITLE_NAME = "Stellaris"  # Steam title name
 
@@ -52,11 +66,12 @@ def locate_game_executable() -> Union[Path, None]:
     return None
 
 def is_patched(file_path: Path) -> bool:
-    # TODO: This is say it's patched even though it isn't. Fix
     logger.info(f"Checking if patched: {file_path}")
+    patched_pattern = settings.get_patched_block()
+    logger.info(f"Patched pattern (settings): {patched_pattern}")
 
-    logger.warning("is_patched: Returning False due to to-do implementation reasons")
-    return False
+    if not patched_pattern:
+        return False
 
     with open(file_path, 'rb') as file:
         binary_data = file.read()
@@ -64,10 +79,12 @@ def is_patched(file_path: Path) -> bool:
     binary_hex = binascii.hexlify(binary_data).decode()
 
     # Define regex pattern to find 31DB (ignoring casing) at the end of the line
-    regex_pattern = re.compile(r'488B3.{20,50}31DB', re.IGNORECASE)
+    regex_pattern = re.compile(patched_pattern, re.IGNORECASE)
 
     match = regex_pattern.search(binary_hex)
     if match:
+        matched_line = binary_hex[match.start():match.end()].upper()
+        logger.info(f"Matched line (hex): {matched_line}")
         return True
 
     return False
@@ -151,7 +168,7 @@ def patch(file_path: Path, duplicate_to: Path = None, both=False):
     binary_hex = binascii.hexlify(binary_data).decode()
 
     # Define regex pattern to find 85DB (ignoring casing) at the end of the line
-    regex_pattern = re.compile(r'488B3.{20,50}85DB', re.IGNORECASE)
+    regex_pattern = patch_pattern
 
     patch_success = False
     match = regex_pattern.search(binary_hex)
@@ -160,13 +177,13 @@ def patch(file_path: Path, duplicate_to: Path = None, both=False):
         logger.info(f"Matched line (hex): {matched_line}")
 
         # Locate the index of the last occurrence of '85DB' in the matched line
-        hex_index = matched_line.upper().rfind('85DB')
+        hex_index = matched_line.upper().rfind(hex_find)
 
         if hex_index != -1:
-            # Replace '85' with '31' before '85DB'
-            patched_line = matched_line[:hex_index] + '31' + matched_line[hex_index+2:]
+            # Replace 'hex_find' with 'hex_replace' before 'hex_find'
+            patched_line = matched_line[:hex_index] + hex_replace
 
-            logger.info(f"Patched line (hex):  {patched_line}")
+            logger.info(f"Patched line (hex): {patched_line}")
 
             # Replace the matched line in the binary hex with the patched line
             binary_hex_patched = binary_hex[:match.start()] + patched_line + binary_hex[match.end():]
@@ -186,10 +203,12 @@ def patch(file_path: Path, duplicate_to: Path = None, both=False):
                 with open(duplicate_to_fp, 'wb') as duplicate_file:
                     duplicate_file.write(binary_data_patched)
 
+            # Save patched block for comparison
+            settings.set_patched_block(str(patched_line).upper())
             logger.info("Patch applied successfully")
             patch_success = True
         else:
-            logger.error("Pattern found but unable to locate '85DB' in the matched line")
+            logger.error(f"Pattern found but unable to locate '{hex_find}' in the matched line")
     else:
         logger.info("Pattern not found")
 

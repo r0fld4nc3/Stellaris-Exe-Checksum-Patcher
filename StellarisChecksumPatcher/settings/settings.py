@@ -12,6 +12,7 @@ class Settings:
                 "app-version": "",
                 "install-dir": "",
                 "save-games-dir": "",
+                "patched-block": "",
         }
         self._config_file_name = "stellaris-checksum-patcher-settings.json"
         self.config_dir = pathlib.Path(config_folder)
@@ -52,6 +53,15 @@ class Settings:
 
     def set_save_games_dir(self, save_games_dir: str):
         self.patcher_settings["save-games-dir"] = str(save_games_dir)
+        self.save_config()
+
+    def get_patched_block(self) -> str:
+        self.load_config()
+        s = self.patcher_settings.get("patched-block")
+        return s
+
+    def set_patched_block(self, str_to_set: str):
+        self.patcher_settings["patched-block"] = str(str_to_set)
         self.save_config()
 
     def clean_save_file(self):

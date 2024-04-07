@@ -187,7 +187,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
 
                 logger.info("Applying Patch...")
 
-                patched = stellaris_patch.patch(game_executable, duplicate_to=Path("/Users/ralph/Applications"), both=True)
+                patched = stellaris_patch.patch(game_executable)
 
                 self.is_patching = False
 
