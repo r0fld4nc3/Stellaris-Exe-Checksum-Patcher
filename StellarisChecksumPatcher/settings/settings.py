@@ -13,6 +13,7 @@ class Settings:
                 "install-dir": "",
                 "save-games-dir": "",
                 "patched-block": "",
+                "exe-name": ""
         }
         self._config_file_name = "stellaris-checksum-patcher-settings.json"
         self.config_dir = pathlib.Path(config_folder)
