@@ -1,6 +1,9 @@
 # Executable files
 *.exe
 
+# Files
+.env
+
 # Folders
 __pycache__
 _bin

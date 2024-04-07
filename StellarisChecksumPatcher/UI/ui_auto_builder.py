@@ -1,7 +1,7 @@
 # Install PySide6 and/or PySide
 # Navigate to Python installation, Lib\site-packages\PySide6
 # Open cmd in that folder and run
-# uic -g python "D:\PATH\src\ui\SuikoAssetCreatorUI.ui" -o "D:\PATH\src\ui\SuikoAssetCreatorUI.py"
+# uic -g python "D:\PATH\src\ui\StellarisChecksumPatcherUI.ui" -o "D:\PATH\src\ui\StellarisChecksumPatcherUI.py"
 
 import os
 import sys
