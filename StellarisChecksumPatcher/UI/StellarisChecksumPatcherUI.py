@@ -20,18 +20,18 @@ from PySide6.QtWidgets import (QAbstractScrollArea, QApplication, QFrame, QGridL
     QPushButton, QSizePolicy, QSpacerItem, QTextBrowser,
     QVBoxLayout, QWidget)
 
-class Ui_StellarisChecksumPatcherWIndow(object):
-    def setupUi(self, StellarisChecksumPatcherWIndow):
-        if not StellarisChecksumPatcherWIndow.objectName():
-            StellarisChecksumPatcherWIndow.setObjectName(u"StellarisChecksumPatcherWIndow")
-        StellarisChecksumPatcherWIndow.resize(966, 821)
+class Ui_StellarisChecksumPatcherWindow(object):
+    def setupUi(self, StellarisChecksumPatcherWindow):
+        if not StellarisChecksumPatcherWindow.objectName():
+            StellarisChecksumPatcherWindow.setObjectName(u"StellarisChecksumPatcherWindow")
+        StellarisChecksumPatcherWindow.resize(966, 821)
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(StellarisChecksumPatcherWIndow.sizePolicy().hasHeightForWidth())
-        StellarisChecksumPatcherWIndow.setSizePolicy(sizePolicy)
-        StellarisChecksumPatcherWIndow.setStyleSheet(u"")
-        self.central_widget = QWidget(StellarisChecksumPatcherWIndow)
+        sizePolicy.setHeightForWidth(StellarisChecksumPatcherWindow.sizePolicy().hasHeightForWidth())
+        StellarisChecksumPatcherWindow.setSizePolicy(sizePolicy)
+        StellarisChecksumPatcherWindow.setStyleSheet(u"")
+        self.central_widget = QWidget(StellarisChecksumPatcherWindow)
         self.central_widget.setObjectName(u"central_widget")
         sizePolicy.setHeightForWidth(self.central_widget.sizePolicy().hasHeightForWidth())
         self.central_widget.setSizePolicy(sizePolicy)
@@ -246,36 +246,42 @@ class Ui_StellarisChecksumPatcherWIndow(object):
 
         self.gridLayout.addWidget(self.main_frame, 0, 1, 1, 1)
 
-        StellarisChecksumPatcherWIndow.setCentralWidget(self.central_widget)
+        StellarisChecksumPatcherWindow.setCentralWidget(self.central_widget)
 
-        self.retranslateUi(StellarisChecksumPatcherWIndow)
+        self.retranslateUi(StellarisChecksumPatcherWindow)
 
         self.btn_patch_from_install.setDefault(False)
 
 
-        QMetaObject.connectSlotsByName(StellarisChecksumPatcherWIndow)
+        QMetaObject.connectSlotsByName(StellarisChecksumPatcherWindow)
     # setupUi
 
-    def retranslateUi(self, StellarisChecksumPatcherWIndow):
-        StellarisChecksumPatcherWIndow.setWindowTitle(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"MainWindow", None))
-        self.btn_themed_exit_application.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"X", None))
-        self.lbl_title.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Stellaris Checksum Patcher", None))
-        self.lbl_app_version.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"App Version", None))
-        self.terminal_display.setHtml(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+    def retranslateUi(self, StellarisChecksumPatcherWindow):
+        StellarisChecksumPatcherWindow.setWindowTitle(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"MainWindow", None))
+        self.btn_themed_exit_application.setText(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"X", None))
+        self.lbl_title.setText(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"Stellaris Checksum Patcher", None))
+        self.lbl_app_version.setText(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"App Version", None))
+        self.terminal_display.setHtml(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
+"hr { height: 1px; border-width: 0; }\n"
+"li.unchecked::marker { content: \"\\2610\"; }\n"
+"li.checked::marker { content: \"\\2612\"; }\n"
 "</style></head><body style=\" font-family:'Century Gothic'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Orbitron';\">[INFO] Loading file Hex.</span></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Orbitron';\">[INFO] Streaming File Hex Info...</span></p>\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Orbitron';\">[INFO] Read finished.</span></p>\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-"
-                        "right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Orbitron';\">[INFO] Acquiring Checksum Block...</span></p></body></html>", None))
-        self.txt_browser_project_link.setHtml(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; tex"
+                        "t-indent:0px;\"><span style=\" font-family:'Orbitron';\">[INFO] Read finished.</span></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Orbitron';\">[INFO] Acquiring Checksum Block...</span></p></body></html>", None))
+        self.txt_browser_project_link.setHtml(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:'Century Gothic'; font-size:10pt; font-weight:600; font-style:normal;\">\n"
+"hr { height: 1px; border-width: 0; }\n"
+"li.unchecked::marker { content: \"\\2610\"; }\n"
+"li.checked::marker { content: \"\\2612\"; }\n"
+"</style></head><body style=\" font-family:'Century Gothic'; font-size:10pt; font-weight:700; font-style:normal;\">\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Project link: </span><a href=\"https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher\"><span style=\" font-weight:400; text-decoration: underline; color:#2a90d8;\">https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher</span></a></p></body></html>", None))
-        self.btn_fix_save_file.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Fix Save Achievements", None))
-        self.btn_patch_from_install.setText(QCoreApplication.translate("StellarisChecksumPatcherWIndow", u"Patch Executable", None))
+        self.btn_fix_save_file.setText(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"Fix Save Achievements", None))
+        self.btn_patch_from_install.setText(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"Patch Executable", None))
     # retranslateUi
 

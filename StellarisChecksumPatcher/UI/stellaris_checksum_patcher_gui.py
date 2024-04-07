@@ -5,13 +5,13 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from .ui_utils import Threader
 from utils.global_defines import logger, updater, settings, APP_VERSION, OS
-from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWIndow
+from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWindow
 from patchers import stellaris_patch
 from patchers.save_patcher import repair_save, get_user_save_folder
 
 Path = pathlib.Path
 
-class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
+class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     _app_version = (".".join([str(v) for v in APP_VERSION]))
     ui_icons_folder = str(Path(__file__).parent / "ui_icons")
 
@@ -21,7 +21,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWIndow):
         # Required constructor definitions
         self.app = QtWidgets.QApplication(sys.argv)
         self.main_window = QtWidgets.QMainWindow()
-        Ui_StellarisChecksumPatcherWIndow.setupUi(self, self.main_window)
+        Ui_StellarisChecksumPatcherWindow.setupUi(self, self.main_window)
 
         self.patch_icon = QtGui.QIcon(str(Path(self.ui_icons_folder) / "patch_icon.png"))
         self.save_patch_icon = QtGui.QIcon(str(Path(self.ui_icons_folder) / "save_patch_icon.png"))
