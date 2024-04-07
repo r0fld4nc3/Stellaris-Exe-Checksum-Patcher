@@ -5,7 +5,11 @@
 
 ## 📣 Summary
 
-❗ Currently only supported on Windows.
+❗ Patching currently only supported on Windows.
+
+❗ Patching testing on MacOS and Linux.
+
+❗ Save fixing not yet done for Windows, MacOS and Linux.
 
 An easy and painless way to patch the game's executable so that mods are compatible with Ironman mode therefore also enabling the pursuit of Achievements with a modded game.
 
