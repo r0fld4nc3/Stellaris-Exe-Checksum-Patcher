@@ -10,6 +10,11 @@ APP_VERSION = ['r', 1, 1, 0]
 system = platform.system()
 debug_commands = ("-debug", "-d")
 
+Path = pathlib.Path
+HOST: str = "r0fld4nc3"
+APP_FOLDER: str = "Apps"
+APP_NAME: str = "ChecksumPatcher"
+
 class SingletonMetaClass(type):
     """
         Thread-safe Singleton class
@@ -61,20 +66,18 @@ def is_macos():
 if is_windows():
     print("Target System Windows")
     program_data_path = os.getenv("LOCALAPPDATA")
-    config_folder = pathlib.Path(program_data_path + "\\r0fld4nc3\\Apps\\Stellaris\\ChecksumPatcher")
 elif is_linux():
     print("Target System Linux/Unix")
     program_data_path = pathlib.Path("/usr/local/var/")
-    config_folder = pathlib.Path(program_data_path) / "r0fld4nc3" / "Apps" / "Stellaris" / "ChecksumPatcher"
 elif is_macos():
     # Write to user-writable locations, like ~/Applications
     program_data_path = pathlib.Path(pathlib.Path.home() / "Applications")
-    config_folder = pathlib.Path(program_data_path) / "r0fld4nc3" / "Apps" / "Stellaris" / "ChecksumPatcher"
 else:
     print("Target System Other")
     print(system)
     program_data_path = pathlib.Path.cwd()
-    config_folder = pathlib.Path(program_data_path) / r"\r0fld4nc3" / "Apps" / "Stellaris" / "ChecksumPatcher"
+
+config_folder = Path(program_data_path) / HOST / APP_FOLDER / "Stellaris" / APP_NAME
 
 if len(sys.argv) > 1 and str(sys.argv[1]).lower() in debug_commands:
     is_debug = True
