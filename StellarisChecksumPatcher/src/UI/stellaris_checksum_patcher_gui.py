@@ -54,6 +54,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         self.btn_fix_save_file.setIcon(self.save_patch_icon)
         self.btn_fix_save_file.setIconSize(QtCore.QSize(64, 64))
         self.btn_fix_save_file.setFlat(False)
+        self.btn_fix_save_file.setDisabled(True) # TODO: Uncomment when it is time
 
         # =========== Patch Executable Button ===========
         self.btn_patch_from_install.setIcon(self.patch_icon)
@@ -203,7 +204,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         
     def enable_ui_elements(self):
         self.btn_patch_from_install.setDisabled(False)
-        self.btn_fix_save_file.setDisabled(False)
+        # self.btn_fix_save_file.setDisabled(False) # TODO: Uncomment when it is time
     
     def disable_ui_elements(self):
         self.btn_patch_from_install.setDisabled(True)
