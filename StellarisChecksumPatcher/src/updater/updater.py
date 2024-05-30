@@ -49,8 +49,6 @@ class Updater:
         return is_new_version
 
     def compare_release_versions(self, pulled, existing) -> bool:
-        logger.info(f"{pulled=}")
-        logger.info(f"{existing=}")
         _pulled_special_tag = ""
         _existing_special_tag = ""
 
@@ -74,9 +72,6 @@ class Updater:
             if not item.isnumeric():
                 _existing_special_tag = _existing_split[index]
                 break
-
-        logger.info(f"{pulled=}")
-        logger.info(f"{existing=}")
 
         _pulled_version = str(pulled).lower().split('-')[0].split('v')[1].split('.')
         _pulled_major = self._to_int(_pulled_version[0])
