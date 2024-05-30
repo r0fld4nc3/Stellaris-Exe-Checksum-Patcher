@@ -23,8 +23,10 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         self.main_window = QtWidgets.QMainWindow()
         Ui_StellarisChecksumPatcherWindow.setupUi(self, self.main_window)
 
+        self.window_icon = QtGui.QIcon(str(Path(self.ui_icons_folder) / "stellaris_checksum_patcher_icon.ico"))
         self.patch_icon = QtGui.QIcon(str(Path(self.ui_icons_folder) / "patch_icon.png"))
         self.save_patch_icon = QtGui.QIcon(str(Path(self.ui_icons_folder) / "save_patch_icon.png"))
+        self.app.setWindowIcon(self.window_icon)
 
         # Add additional main_window stuff here
         self.main_window.setWindowTitle(f"Stellaris Checksum Patcher v{self._app_version}")
