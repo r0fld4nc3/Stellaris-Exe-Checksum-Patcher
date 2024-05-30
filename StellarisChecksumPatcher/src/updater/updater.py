@@ -53,18 +53,10 @@ class Updater:
         _existing_special_tag = ""
 
         # Get pulled special tag
-        icount = 0
-        if not pulled[0].lower() == "v":
-            for c in pulled:
-                if c == '.':
-                    pulled = 'v' + pulled[icount:]
-                    break
-
-                if not c.isnumeric():
-                    _pulled_special_tag += c
-                    icount += 1
-
-                _pulled_special_tag = _pulled_special_tag.strip()
+        pulled_split = pulled.split('-')
+        pulled = pulled_split[0]
+        if len(pulled_split) > 1:
+            _pulled_special_tag = pulled_split[1]
 
         # Get existing special tag
         _existing_split = existing.split('.')
@@ -120,7 +112,7 @@ class Updater:
             _pulled_micro >= _existing_micro and \
             _existing_special_tag and _existing_special_tag != _pulled_special_tag:
                 logger.info(
-                    f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {_existing_special_tag} {'.'.join(_existing_version)}")
+                    f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
                 return True
 
         if logger.log_level == logger.DEBUG:
