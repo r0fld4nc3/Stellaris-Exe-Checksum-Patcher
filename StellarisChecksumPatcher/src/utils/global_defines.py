@@ -5,7 +5,7 @@ import platform
 from threading import Lock
 
 # To add more arguments after the rX.Y.Z, always have the '-' suffix before. Example ['r', 0, 0, 1, "-dev", "-nightly"]
-APP_VERSION = ['pre-release', 1, 1, 0]
+APP_VERSION = [1, 1, 0, "pre-release"]
 
 system = platform.system()
 debug_commands = ("-debug", "-d")

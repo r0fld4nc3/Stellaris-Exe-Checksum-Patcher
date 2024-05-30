@@ -12,7 +12,7 @@ from src.patchers.save_patcher import repair_save, get_user_save_folder
 Path = pathlib.Path
 
 class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
-    _app_version = (".".join([str(v) for v in APP_VERSION]))
+    _app_version = [".".join([str(v) for v in APP_VERSION])]
     ui_icons_folder = str(Path(__file__).parent / "ui_icons")
 
     def __init__(self) -> None:
@@ -237,7 +237,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         self.install_dir = settings.get_install_location()
         self.game_executable_name = settings.get_executable_name()
         settings.set_app_version(f"{self._app_version[2:]}")
-        updater.local_version = str(self._app_version)[2:]
+        updater.local_version = str(self._app_version)[2:].replace(']', '').replace('\'', '')
         self.check_update()
 
     def reset_caches(self):

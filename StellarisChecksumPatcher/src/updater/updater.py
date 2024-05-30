@@ -1,5 +1,6 @@
 import requests
 import json
+from string import punctuation
 
 from src.utils.global_defines import logger
 class Updater:
@@ -48,6 +49,35 @@ class Updater:
         return is_new_version
 
     def compare_release_versions(self, pulled, existing) -> bool:
+        logger.info(f"{pulled=}")
+        logger.info(f"{existing=}")
+        _pulled_special_tag = ""
+        _existing_special_tag = ""
+
+        # Get pulled special tag
+        icount = 0
+        if not pulled[0].lower() == "v":
+            for c in pulled:
+                if c == '.':
+                    pulled = 'v' + pulled[icount:]
+                    break
+
+                if not c.isnumeric():
+                    _pulled_special_tag += c
+                    icount += 1
+
+                _pulled_special_tag = _pulled_special_tag.strip()
+
+        # Get existing special tag
+        _existing_split = existing.split('.')
+        for index, item in enumerate(_existing_split):
+            if not item.isnumeric():
+                _existing_special_tag = _existing_split[index]
+                break
+
+        logger.info(f"{pulled=}")
+        logger.info(f"{existing=}")
+
         _pulled_version = str(pulled).lower().split('-')[0].split('v')[1].split('.')
         _pulled_major = self._to_int(_pulled_version[0])
         _pulled_minor = self._to_int(_pulled_version[1])
@@ -77,21 +107,29 @@ class Updater:
 
         if _pulled_major > _existing_major:
             logger.info(
-                f"There is a new version available: {'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
+                f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
             return True
 
         if _pulled_minor > _existing_minor:
             if _existing_major <= _pulled_major:
-                logger.info(f"There is a new version available: {'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
+                logger.info(f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
                 return True
 
         if _pulled_micro > _existing_micro:
             if _existing_major <= _pulled_major and _existing_minor <= _pulled_minor:
-                logger.info(f"There is a new version available: {'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
+                logger.info(f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
+                return True
+
+        if _pulled_major >= _existing_major and \
+            _pulled_minor >= _existing_minor and \
+            _pulled_micro >= _existing_micro and \
+            _existing_special_tag and _existing_special_tag != _pulled_special_tag:
+                logger.info(
+                    f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {_existing_special_tag} {'.'.join(_existing_version)}")
                 return True
 
         if logger.log_level == logger.DEBUG:
-            logger.info(f"No updates found: {'.'.join(_pulled_version)} (repo) ==> {'.'.join(_existing_version)} (current)")
+            logger.info(f"No updates found: {_pulled_special_tag}{'.'.join(_pulled_version)} (repo) ==> {'.'.join(_existing_version)} (current)")
         else:
             logger.info("No updates found.")
         return False
