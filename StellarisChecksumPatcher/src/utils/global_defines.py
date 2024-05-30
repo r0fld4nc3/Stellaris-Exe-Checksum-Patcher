@@ -5,7 +5,7 @@ import platform
 from threading import Lock
 
 # To add more arguments after the rX.Y.Z, always have the '-' suffix before. Example ['r', 0, 0, 1, "-dev", "-nightly"]
-APP_VERSION = ['r', 1, 1, 0]
+APP_VERSION = ['pre-release', 1, 1, 0]
 
 system = platform.system()
 debug_commands = ("-debug", "-d")
@@ -87,16 +87,17 @@ else:
 
 # Because we're using the config folder defined here, in the logger class and import
 # We have to import the logger after
-from logger.Logger import Logger
+from src.logger.Logger import Logger
 logger = Logger(is_debug=is_debug, logger_name="StellarisChecksumPatcherLogger")
 
-from updater.updater import Updater
+from src.updater.updater import Updater
 updater = Updater()
 
-from settings.settings import Settings
+from src.settings.settings import Settings
 settings = Settings()
 
-from utils import steam_helper
+from src.utils import steam_helper
+
 steam = steam_helper.SteamHelper()
 
 # Worker Signals hook not initialised here yet, so won't print to GUI console

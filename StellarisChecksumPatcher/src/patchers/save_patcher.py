@@ -8,7 +8,7 @@ import zipfile
 import tempfile
 
 # 3rd Party
-from utils.global_defines import logger, settings, OS
+from src.utils.global_defines import logger, settings, OS
 
 Path = pathlib.Path
 

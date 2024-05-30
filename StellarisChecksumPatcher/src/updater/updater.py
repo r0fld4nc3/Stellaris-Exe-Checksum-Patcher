@@ -1,7 +1,7 @@
 import requests
 import json
 
-from utils.global_defines import logger
+from src.utils.global_defines import logger
 class Updater:
     def __init__(self):
         self.owner = "r0fld4nc3"
@@ -57,6 +57,17 @@ class Updater:
             _existing_version = str(existing).lower().split('-')[0].split('v')[1].split('.')
         except IndexError:
             _existing_version = list(str(existing).lower().split("."))
+            _existing_version.reverse()
+            for index, item in enumerate(_existing_version):
+                logger.debug(index)
+                if not item.isalnum():
+                    _existing_version.pop(index)
+                    logger.debug(f"Popping {index} {item}")
+                elif not item:
+                    _existing_version.pop(index)
+                    logger.debug(f"Popping {index} {item}")
+            _existing_version.reverse()
+            logger.debug(f"Existing: {_existing_version}")
         _existing_major = self._to_int(_existing_version[0])
         _existing_minor = self._to_int(_existing_version[1])
         _existing_micro = self._to_int(_existing_version[2])

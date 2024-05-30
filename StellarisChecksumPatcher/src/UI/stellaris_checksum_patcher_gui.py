@@ -3,11 +3,11 @@ import pathlib
 import sys
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from .ui_utils import Threader
-from utils.global_defines import logger, updater, settings, APP_VERSION, OS
-from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWindow
-from patchers import stellaris_patch
-from patchers.save_patcher import repair_save, get_user_save_folder
+from src.UI.ui_utils import Threader
+from src.utils.global_defines import logger, updater, settings, APP_VERSION, OS
+from src.UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWindow
+from src.patchers import stellaris_patch
+from src.patchers.save_patcher import repair_save, get_user_save_folder
 
 Path = pathlib.Path
 

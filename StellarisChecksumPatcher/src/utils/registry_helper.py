@@ -1,4 +1,4 @@
-from utils.global_defines import OS, logger
+from src.utils.global_defines import OS, logger
 
 if OS.WINDOWS:
     import winreg

@@ -1,10 +1,10 @@
 # built-ins
 import os
 import pathlib
-from utils import registry_helper
+from src.utils import registry_helper
 from typing import Union
 
-from utils.global_defines import OS, logger
+from src.utils.global_defines import OS, logger
 import vdf
 
 Path = pathlib.Path
