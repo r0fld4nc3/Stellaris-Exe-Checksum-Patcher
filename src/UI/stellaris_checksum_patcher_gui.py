@@ -3,7 +3,7 @@ import pathlib
 import sys
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from UI.ui_utils import Threader
+from UI.ui_utils import Threader, get_screen_info
 from utils.global_defines import logger, updater, settings, APP_VERSION, OS
 from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWindow
 from patchers import stellaris_patch
@@ -31,9 +31,9 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         # Add additional main_window stuff here
         self.main_window.setWindowTitle(f"Stellaris Checksum Patcher v{self._app_version}")
         self.main_window.setWindowIcon(self.patch_icon)
-        # Needs implementation of event filters and draggable events.
         self.main_window.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowMaximizeButtonHint |
                                         QtCore.Qt.WindowMinimizeButtonHint)
+
 
         self.main_window.setWindowOpacity(0.95)
 
@@ -56,7 +56,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         self.btn_fix_save_file.setIcon(self.save_patch_icon)
         self.btn_fix_save_file.setIconSize(QtCore.QSize(64, 64))
         self.btn_fix_save_file.setFlat(False)
-        self.btn_fix_save_file.setDisabled(True) # TODO: Uncomment when it is time
+        self.btn_fix_save_file.setDisabled(True) # TODO: Delete line when it is time
 
         # =========== Patch Executable Button ===========
         self.btn_patch_from_install.setIcon(self.patch_icon)
@@ -316,6 +316,17 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         self.active_threads.append(thread_repair_save)
         thread_repair_save.start()
 
+    def adjust_app_size(self):
+        screen_info = get_screen_info(self.app)
+
+        logger.debug(screen_info)
+
+        if not self.main_window:
+            return
+
+        if screen_info[0] <= 2000 or screen_info[1] <= 1200 or screen_info[2] <= 0.7:
+            self.main_window.resize(QtCore.QSize(650, 500))
+
     def check_update(self):
         thread_update = Threader(target=updater.check_for_update)
         thread_id = thread_update.currentThread()
@@ -326,6 +337,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     
     def show(self):
         self.main_window.show()
+        self.adjust_app_size()
         sys.exit(self.app.exec_())
 
 

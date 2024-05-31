@@ -1,6 +1,7 @@
 import sys
 from io import StringIO
 
+from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QObject, QRunnable, QThread, Slot, Signal
 
 
@@ -66,3 +67,18 @@ class Threader(QThread):
     def stop(self):
         self.signals.sig_quit.emit()
         self.exit(0)
+
+
+def get_screen_info(app: QApplication) -> tuple:
+    # Get the primary screen
+    screen = app.primaryScreen()
+
+    # Screen resolution
+    size = screen.size()
+    width = size.width()
+    height = size.height()
+
+    # Scaling factor
+    scale_f = screen.devicePixelRatio()
+
+    return width, height, scale_f
