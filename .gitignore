@@ -17,4 +17,4 @@ saves_backup
 
 # Specific files
 BEFORE_COMPILE_CHECKLIST.txt
-StellarisChecksumPatcher/src/UI/.env
+src/UI/.env

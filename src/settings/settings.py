@@ -3,7 +3,7 @@ import os
 import pathlib
 import sys
 
-from src.utils.global_defines import logger, config_folder
+from utils.global_defines import logger, config_folder
 
 class Settings:
     def __init__(self):

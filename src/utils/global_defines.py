@@ -87,16 +87,16 @@ else:
 
 # Because we're using the config folder defined here, in the logger class and import
 # We have to import the logger after
-from src.logger.Logger import Logger
+from logger.Logger import Logger
 logger = Logger(is_debug=is_debug, logger_name="StellarisChecksumPatcherLogger")
 
-from src.updater.updater import Updater
+from updater.updater import Updater
 updater = Updater()
 
-from src.settings.settings import Settings
+from settings.settings import Settings
 settings = Settings()
 
-from src.utils import steam_helper
+from utils import steam_helper
 
 steam = steam_helper.SteamHelper()
 

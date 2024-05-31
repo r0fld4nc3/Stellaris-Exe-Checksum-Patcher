@@ -6,7 +6,7 @@ import binascii
 import shutil
 from typing import Union
 
-from src.utils.global_defines import OS, logger, steam, settings
+from utils.global_defines import OS, logger, steam, settings
 
 Path = pathlib.Path
 

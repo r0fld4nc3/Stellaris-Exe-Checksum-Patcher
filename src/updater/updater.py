@@ -1,8 +1,7 @@
 import requests
 import json
-from string import punctuation
 
-from src.utils.global_defines import logger
+from utils.global_defines import logger
 class Updater:
     def __init__(self):
         self.owner = "r0fld4nc3"

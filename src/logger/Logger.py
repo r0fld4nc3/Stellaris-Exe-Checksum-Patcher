@@ -3,8 +3,8 @@ import pathlib
 import logging
 from time import localtime, strftime
 
-from src.UI.ui_utils import WorkerSignals
-from src.utils.global_defines import config_folder
+from UI.ui_utils import WorkerSignals
+from utils.global_defines import config_folder
 
 LOG_FOLDER = config_folder
 LOG_FILE = "StellarisChecksumPatcherLog.txt"
