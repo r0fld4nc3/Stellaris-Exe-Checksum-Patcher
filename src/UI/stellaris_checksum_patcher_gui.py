@@ -12,7 +12,7 @@ from patchers.save_patcher import repair_save, get_user_save_folder
 Path = pathlib.Path
 
 class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
-    _app_version = [".".join([str(v) for v in APP_VERSION])]
+    _app_version = ".".join([str(v) for v in APP_VERSION])
     ui_icons_folder = str(Path(__file__).parent / "ui_icons")
 
     def __init__(self) -> None:
@@ -236,8 +236,8 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     def load_configs(self):
         self.install_dir = settings.get_install_location()
         self.game_executable_name = settings.get_executable_name()
-        settings.set_app_version(f"{self._app_version[2:]}")
-        updater.local_version = str(self._app_version)[2:].replace(']', '').replace('\'', '')
+        settings.set_app_version(f"{self._app_version}")
+        updater.local_version = str(self._app_version)
         self.check_update()
 
     def reset_caches(self):
@@ -252,8 +252,6 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     def patch_game_executable_thread(self):
         if self.is_patching:
             return
-        
-        logger.restart_log_file()
         
         self.terminal_display.clear()
 
@@ -283,8 +281,6 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     def fix_save_achievements_thread(self):
         if self.is_patching:
             return
-
-        logger.restart_log_file()
 
         self.terminal_display.clear()
 
@@ -323,7 +319,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     def check_update(self):
         thread_update = Threader(target=updater.check_for_update)
         thread_id = thread_update.currentThread()
-        thread_update.signals.finished.connect(lambda: self.remove_thread(thread_id))
+        # thread_update.signals.finished.connect(lambda: self.remove_thread(thread_id))
         self.active_threads.append(thread_update)
         thread_update.start()
         # self.thread_pool.start(self.worker)

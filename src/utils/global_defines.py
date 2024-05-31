@@ -100,6 +100,7 @@ from utils import steam_helper
 
 steam = steam_helper.SteamHelper()
 
+logger.restart_log_file()
 # Worker Signals hook not initialised here yet, so won't print to GUI console
 logger.info(f"Debug:             {is_debug}")
 logger.info(f"App Version:       {APP_VERSION}")

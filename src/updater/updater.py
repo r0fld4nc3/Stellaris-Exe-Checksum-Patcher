@@ -70,7 +70,7 @@ class Updater:
         _pulled_micro = self._to_int(_pulled_version[2])
 
         try:
-            _existing_version = str(existing).lower().split('-')[0].split('v')[1].split('.')
+            _existing_version = str(existing).lower().split('.')[:3]
         except IndexError:
             _existing_version = list(str(existing).lower().split("."))
             _existing_version.reverse()
@@ -84,34 +84,36 @@ class Updater:
                     logger.debug(f"Popping {index} {item}")
             _existing_version.reverse()
             logger.debug(f"Existing: {_existing_version}")
+
         _existing_major = self._to_int(_existing_version[0])
         _existing_minor = self._to_int(_existing_version[1])
         _existing_micro = self._to_int(_existing_version[2])
 
-        logger.debug(f"Pulled:   {_pulled_version}, [{_pulled_major}, {_pulled_minor}, {_pulled_micro}]")
-        logger.debug(f"Existing: {_existing_version}, [{_existing_major}, {_existing_minor}, {_existing_micro}]")
+        logger.debug(f"Pulled:   {_pulled_version}, [{_pulled_major}, {_pulled_minor}, {_pulled_micro}] ({_pulled_special_tag})")
+        logger.debug(f"Existing: {_existing_version}, [{_existing_major}, {_existing_minor}, {_existing_micro}] ({_existing_special_tag})")
 
         if _pulled_major > _existing_major:
             logger.info(
-                f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
+                f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {_existing_special_tag}{'.'.join(_existing_version)}")
             return True
 
         if _pulled_minor > _existing_minor:
             if _existing_major <= _pulled_major:
-                logger.info(f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
+                logger.info(f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {_existing_special_tag}{'.'.join(_existing_version)}")
                 return True
 
         if _pulled_micro > _existing_micro:
             if _existing_major <= _pulled_major and _existing_minor <= _pulled_minor:
-                logger.info(f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
+                logger.info(f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {_existing_special_tag}{'.'.join(_existing_version)}")
                 return True
 
+        # Versions are the same but special tags are not
         if _pulled_major >= _existing_major and \
             _pulled_minor >= _existing_minor and \
             _pulled_micro >= _existing_micro and \
             _existing_special_tag and _existing_special_tag != _pulled_special_tag:
                 logger.info(
-                    f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {'.'.join(_existing_version)}")
+                    f"There is a new version available: {_pulled_special_tag}{'.'.join(_pulled_version)} > {_existing_special_tag}{'.'.join(_existing_version)}")
                 return True
 
         if logger.log_level == logger.DEBUG:
