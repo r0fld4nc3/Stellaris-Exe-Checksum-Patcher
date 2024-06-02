@@ -13,7 +13,7 @@ Path = pathlib.Path
 
 class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     _app_version = 'v' + ".".join([str(v) for v in APP_VERSION[0:3]])
-    if len(APP_VERSION) >= 3:
+    if len(APP_VERSION) > 3:
         _app_version += "-"
         _app_version += "-".join(str(v) for v in APP_VERSION[3:])
     ui_icons_folder = str(Path(__file__).parent / "ui_icons")
