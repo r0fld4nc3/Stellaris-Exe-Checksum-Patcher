@@ -91,7 +91,7 @@ from logger.Logger import Logger
 logger = Logger(is_debug=is_debug, logger_name="StellarisChecksumPatcherLogger")
 
 from updater.updater import Updater
-updater = Updater()
+updater = Updater("r0fld4nc3", "Stellaris-Exe-Checksum-Patcher")
 
 from settings.settings import Settings
 settings = Settings()
