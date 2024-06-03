@@ -1,0 +1,85 @@
+{
+ "version": "auto-py-to-exe-configuration_v1",
+ "pyinstallerOptions": [
+  {
+   "optionDest": "noconfirm",
+   "value": true
+  },
+  {
+   "optionDest": "filenames",
+   "value": "D:/GitHub/Python/Stellaris-Exe-Checksum-Patcher/src/main.py"
+  },
+  {
+   "optionDest": "onefile",
+   "value": true
+  },
+  {
+   "optionDest": "console",
+   "value": false
+  },
+  {
+   "optionDest": "icon_file",
+   "value": "D:/GitHub/Python/Stellaris-Exe-Checksum-Patcher/_icon/stellaris_checksum_patcher_icon.ico"
+  },
+  {
+   "optionDest": "name",
+   "value": "StellarisChecksumPatcher"
+  },
+  {
+   "optionDest": "contents_directory",
+   "value": "."
+  },
+  {
+   "optionDest": "clean_build",
+   "value": true
+  },
+  {
+   "optionDest": "strip",
+   "value": false
+  },
+  {
+   "optionDest": "noupx",
+   "value": false
+  },
+  {
+   "optionDest": "disable_windowed_traceback",
+   "value": false
+  },
+  {
+   "optionDest": "uac_admin",
+   "value": false
+  },
+  {
+   "optionDest": "uac_uiaccess",
+   "value": false
+  },
+  {
+   "optionDest": "argv_emulation",
+   "value": false
+  },
+  {
+   "optionDest": "bootloader_ignore_signals",
+   "value": false
+  },
+  {
+   "optionDest": "optimize",
+   "value": "2"
+  },
+  {
+   "optionDest": "collect_submodules",
+   "value": "charset_normalizer"
+  },
+  {
+   "optionDest": "datas",
+   "value": "D:/GitHub/Python/Stellaris-Exe-Checksum-Patcher/src/achievements;achievements/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "D:/GitHub/Python/Stellaris-Exe-Checksum-Patcher/src/UI/ui_icons;UI/ui_icons/"
+  }
+ ],
+ "nonPyinstallerOptions": {
+  "increaseRecursionLimit": true,
+  "manualArguments": ""
+ }
+}

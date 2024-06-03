@@ -1,15 +1,24 @@
 import os
-import pathlib
 import sys
+import time
+import pathlib
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from UI.ui_utils import Threader, get_screen_info
-from utils.global_defines import logger, updater, settings, APP_VERSION, OS
+from utils.global_defines import updater, settings, APP_VERSION, OS, LOG_LEVEL
+from logger.app_logger import create_logger
 from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWindow
 from patchers import stellaris_patch
 from patchers.save_patcher import repair_save, get_user_save_folder
 
+# loggers to hook up to signals
+from updater.updater import updlog
+from patchers.stellaris_patch import patcherlog
+from patchers.save_patcher import patchersavelog
+
 Path = pathlib.Path
+
+uilog = create_logger("UI", LOG_LEVEL)
 
 class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     _app_version = 'v' + ".".join([str(v) for v in APP_VERSION[0:3]])
@@ -73,8 +82,13 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         self.btn_fix_save_file.clicked.connect(self.fix_save_achievements_thread)
         self.btn_patch_from_install.clicked.connect(self.patch_game_executable_thread)
         self.btn_themed_exit_application.clicked.connect(self.app_quit)
-        logger.signals.progress.connect(self.terminal_display_log)
-        
+
+        # Hook up Signals
+        uilog.signals.progress.connect(self.terminal_display_log)
+        updlog.signals.progress.connect(self.terminal_display_log) # Could be a bit hacky. Ensure created before assign
+        patcherlog.signals.progress.connect(self.terminal_display_log) # Could be a bit hacky. Ensure created before assign
+        patchersavelog.signals.progress.connect(self.terminal_display_log) # Could be a bit hacky. Ensure created before assign
+
         # Worker
         self.worker = None
 
@@ -83,27 +97,29 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         self.active_threads = []
 
         self.load_configs()
-    
+
+        self.check_update()
+
     # =============================================
     # ============== Class Functions ==============
     # =============================================
 
     def app_quit(self):
         try:
-            logger.info("Quitting Application.")
+            uilog.info("Quitting Application.")
             if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
-                logger.info("Waiting for finish.")
+                uilog.info("Waiting for finish.")
                 self.thread_pool.waitForDone(msecs=2000) # Wait for max 2 seconds.
-                logger.debug("Done waiting.")
+                uilog.debug("Done waiting.")
 
             if self.active_threads:
                 for thread in self.active_threads:
                     try:
                         thread.stop()
                     except Exception as e:
-                        logger.error(f"Error in stopping Thread. {e}")
+                        uilog.error(f"Error in stopping Thread. {e}")
         except Exception as e:
-            logger.error(e)
+            uilog.error(e)
 
         sys.exit(0)
 
@@ -112,11 +128,11 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
             self.terminal_display.setTextInteractionFlags(~QtCore.Qt.LinksAccessibleByMouse) # the ~ negates the flag
         else:
             self.terminal_display.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse)
-        
+
     def refresh_terminal_log(self):
         # Could potentially not be useful anymore. Here to force redraw of elements in the QTextBrowser.
         self.terminal_display.update()
-        
+
     def patch_game_executable(self) -> bool:
         """
         Attempts to find the Steam game installation and performing all the necessary steps to patch the exe.
@@ -130,7 +146,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
 
         self.set_terminal_clickable(False)
 
-        logger.info("Patching from game installation.")
+        uilog.info("Patching from game installation.")
 
         # Test settings for install location
         settings_install_dir = settings.get_install_location()
@@ -147,11 +163,11 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
             self.auto_patch_failed = True
             self.is_patching = False
 
-            logger.error("Game installation not found.")
+            uilog.error("Game installation not found.")
             self.terminal_display_log(" ")
-            logger.info("Patch failed.")
+            uilog.info("Patch failed.")
             self.terminal_display_log(" ")
-            logger.info("Please run again to manually select install directory.")
+            uilog.info("Please run again to manually select install directory.")
             self.set_terminal_clickable(True)
 
             # TODO: Could we not make it run again calling own function? So it doesn't have to be user driven?
@@ -176,14 +192,14 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
             if OS.MACOS:
                 macos_app_folder = game_executable
                 game_executable = macos_app_folder / stellaris_patch.EXE_PATH_POSTPEND
-                logger.info("System is MacOS. Appending proper path to Contents inside .app")
-                logger.info(f"Game Executable: {game_executable}")
+                uilog.info("System is MacOS. Appending proper path to Contents inside .app")
+                uilog.info(f"Game Executable: {game_executable}")
 
             # Check if it is patched
             is_patched = stellaris_patch.is_patched(game_executable)
 
             if is_patched:
-                logger.info("File is already patched")
+                uilog.info("File is already patched")
             else:
                 # Create a backup
                 if OS.MACOS:
@@ -191,47 +207,47 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
                 else:
                     stellaris_patch.create_backup(game_executable)
 
-                logger.info("Applying Patch...")
+                uilog.info("Applying Patch...")
 
                 patched = stellaris_patch.patch(game_executable)
 
                 self.is_patching = False
 
                 if not patched:
-                    logger.error(f"Unable to replace original game file.\n")
+                    uilog.error(f"Unable to replace original game file.\n")
 
         self.terminal_display_log(' ')
-        logger.info("Operations finished.")
+        uilog.info("Operations finished.")
 
         self.set_terminal_clickable(True)
 
         return True
-        
+
     def enable_ui_elements(self):
         self.btn_patch_from_install.setDisabled(False)
         # self.btn_fix_save_file.setDisabled(False) # TODO: Uncomment when it is time
-    
+
     def disable_ui_elements(self):
         self.btn_patch_from_install.setDisabled(True)
         self.btn_fix_save_file.setDisabled(True)
 
     def remove_thread(self, thread_id_remove):
         # Iterates through active threads, checks for ID and stops then removes thread
-        logger.debug(f"Thread Remove: {thread_id_remove}")
+        uilog.debug(f"Thread Remove: {thread_id_remove}")
 
         for iter_thread in self.active_threads:
             iter_id = iter_thread.currentThread()
-            logger.debug(f"Iter Thread: {iter_id}")
+            uilog.debug(f"Iter Thread: {iter_id}")
             if iter_id == thread_id_remove:
-                logger.debug(f"Attempting to remove {iter_thread} ({iter_id})")
+                uilog.debug(f"Attempting to remove {iter_thread} ({iter_id})")
                 try:
                     iter_thread.stop()
                     self.active_threads.remove(iter_thread)
                 except Exception as e:
-                    logger.error(f"Error in attempting to stop and remove Thread: {e}")
+                    uilog.error(f"Error in attempting to stop and remove Thread: {e}")
                 break
 
-        logger.debug(f"Remove thread finished ( {thread_id_remove} )")
+        uilog.debug(f"Remove thread finished ( {thread_id_remove} )")
 
     # ===============================================
     # ============== Regular Functions ==============
@@ -241,21 +257,20 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         self.game_executable_name = settings.get_executable_name()
         settings.set_app_version(f"{self._app_version}")
         updater.set_local_version(str(self._app_version))
-        self.check_update()
 
     def reset_caches(self):
         self.replace_failed_reasons.clear()
         self.is_patching = False
         self.auto_patch_failed = False
-        
+
     def terminal_display_log(self, t_log):
         self.terminal_display.insertPlainText(f"{t_log}\n")
         self.refresh_terminal_log()
-        
+
     def patch_game_executable_thread(self):
         if self.is_patching:
             return
-        
+
         self.terminal_display.clear()
 
         # If install failed, ask for directory and then perform the normal patching operation
@@ -300,13 +315,13 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         )[0]
 
         if save_file_path or save_file_path != '':
-            logger.info(f"Save file: {save_file_path}")
+            uilog.info(f"Save file: {save_file_path}")
 
         if not save_file_path:
             return False
 
         save_games_dir = pathlib.Path(save_file_path).parent.parent
-        logger.info(f"Save games directory: {os.path.normpath(save_games_dir)}")
+        uilog.info(f"Save games directory: {os.path.normpath(save_games_dir)}")
         settings.set_save_games_dir(save_games_dir)
 
         thread_repair_save = Threader(target=lambda save_file=save_file_path: repair_save(save_file))
@@ -322,7 +337,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     def adjust_app_size(self):
         screen_info = get_screen_info(self.app)
 
-        logger.debug(screen_info)
+        uilog.debug(screen_info)
 
         if not self.main_window:
             return
@@ -331,13 +346,41 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
             self.main_window.resize(QtCore.QSize(650, 500))
 
     def check_update(self):
+        last_checked = settings.get_update_last_checked()
+        now = int(time.time())
+
+        if now - last_checked < 60:
+            self.check_update_finished()
+            return
+
         thread_update = Threader(target=updater.check_for_update)
         thread_id = thread_update.currentThread()
-        # thread_update.signals.finished.connect(lambda: self.remove_thread(thread_id))
         self.active_threads.append(thread_update)
         thread_update.start()
-        # self.thread_pool.start(self.worker)
-    
+        thread_update.signals.finished.connect(self.check_update_finished)
+
+    def check_update_finished(self):
+        updater_last_checked = updater.last_checked_timestamp
+
+        # No online check was performed
+        if updater_last_checked <= 1:
+            update_available = settings.get_has_update()
+        else:
+            settings.set_update_last_checked(updater.last_checked_timestamp)
+            if updater.has_new_version:
+                settings.set_has_update(True)
+                update_available = True
+            else:
+                settings.set_has_update(False)
+                update_available = False
+
+        if update_available:
+            html = self.txt_browser_project_link.toHtml().replace("</p>", '').replace("</body>", '').replace("</html>", '')
+            html += "<span style=\" font-weight:700;\"> (UPDATE AVAILABLE)</span></p></body></html>"
+            self.txt_browser_project_link.setHtml(html)
+            self.lbl_title.setText(self.lbl_title.text() + " (UPDATE AVAILABLE)")
+            settings.set_has_update(True)
+
     def show(self):
         self.main_window.show()
         self.adjust_app_size()

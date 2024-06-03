@@ -8,9 +8,12 @@ import zipfile
 import tempfile
 
 # 3rd Party
-from utils.global_defines import logger, settings, OS
+from utils.global_defines import settings, OS, LOG_LEVEL
+from logger.app_logger import create_logger
 
 Path = pathlib.Path
+
+patchersavelog = create_logger("Save Patcher", LOG_LEVEL)
 
 def get_current_dir():
     if getattr(sys, "frozen", False):
@@ -22,12 +25,12 @@ def get_current_dir():
 
 
 def get_user_save_folder():
-    logger.info("Attempting to locate Stellaris save game folder.")
+    patchersavelog.info("Attempting to locate Stellaris save game folder.")
     documents_dir = ''
 
     # Windows
     if OS.WINDOWS or OS.MACOS:
-        logger.info("Locating for Windows system.")
+        patchersavelog.info("Locating for Windows system.")
         documents_dir = Path.home() / "Documents" / "Paradox Interactive" / "Stellaris" / "save games"
     # Unix
     elif OS.LINUX:
@@ -40,10 +43,10 @@ def get_user_save_folder():
 
         home_steam = Path.home() / ".steam"
 
-        logger.info("Locating for Linux\\Unix system.")
+        patchersavelog.info("Locating for Linux\\Unix system.")
         for root, dirs, files in os.walk(home_steam):
-            logger.debug(f"{root}")
-            logger.debug(f"\t{dirs}")
+            patchersavelog.debug(f"{root}")
+            patchersavelog.debug(f"\t{dirs}")
             if Path(root).name == "Paradox Interactive":
                 print(f"Found in {root}")
                 pdx_dir = root
@@ -60,14 +63,14 @@ def get_user_save_folder():
         pass
     # Uh oh
     else:
-        logger.error("Unable to acquire target system.")
+        patchersavelog.error("Unable to acquire target system.")
         pass
 
     if not Path(documents_dir).exists():
-        logger.info(f"Unable to find documents dir. Current try: \"{documents_dir}\"")
+        patchersavelog.info(f"Unable to find documents dir. Current try: \"{documents_dir}\"")
         documents_dir = os.path.dirname(sys.executable)
     else:
-        logger.info(f"Found {documents_dir}")
+        patchersavelog.info(f"Found {documents_dir}")
 
     return documents_dir
 
@@ -78,13 +81,13 @@ def repair_save(save_file):
     save_file_name = Path(save_file).name
     save_file_times = (os.stat(save_file).st_atime, os.stat(save_file).st_mtime)
 
-    logger.info(f"Save Directory: {save_dir}")
-    logger.info(f"Save Name: {save_file_name}")
+    patchersavelog.info(f"Save Directory: {save_dir}")
+    patchersavelog.info(f"Save Name: {save_file_name}")
 
     # Repair directory
     repair_dir = save_dir / "save_repair"
     Path(repair_dir).mkdir(parents=True, exist_ok=True)
-    logger.debug(f"Repair Directory: {repair_dir}")
+    patchersavelog.debug(f"Repair Directory: {repair_dir}")
 
     # Backup directory
     # backup_dir = Path(get_current_dir()) / "saves_backup" / save_dir.name
@@ -94,18 +97,18 @@ def repair_save(save_file):
 
     # Create Backup of the save
     try:
-        logger.info(f"Backup Directory: {backup_dir}")
+        patchersavelog.info(f"Backup Directory: {backup_dir}")
         shutil.copy2(save_file, backup_save_file)
-        logger.info(f"Backed up {save_file_name} to {backup_save_file}")
+        patchersavelog.info(f"Backed up {save_file_name} to {backup_save_file}")
     except Exception as e:
-        logger.error(e)
+        patchersavelog.error(e)
 
     # Try to unzip the save file
     try:
         with zipfile.ZipFile(save_file, 'r') as zip_file:
             zip_file.extractall(repair_dir)
     except Exception as e:
-        logger.error(e)
+        patchersavelog.error(e)
 
     # Store files and their access times
     files_access_times = {}
@@ -131,7 +134,7 @@ def repair_save(save_file):
     achievements = pull_latest_achivements_file()
 
     if not achievements or achievements == '':
-        logger.error("Unable to fix save as achievements could not be retrieved.")
+        patchersavelog.error("Unable to fix save as achievements could not be retrieved.")
         return False
 
     # ==========================================================
@@ -151,18 +154,18 @@ def repair_save(save_file):
         if achievements_line_start == -1 and "achievement={" in line:
             existing_achievements = True
             achievements_line_start = i
-            logger.debug(f"Achievements line found: {i}")
+            patchersavelog.debug(f"Achievements line found: {i}")
 
         # If existing achievements line, the next } will be the closing bracket
         if existing_achievements and achievements_line_end == -1:
             if "}" in line:
                 achievements_line_end = i
-                logger.debug(f"Achievements line close found: {i}")
+                patchersavelog.debug(f"Achievements line close found: {i}")
                 break
 
         # Deal with new contents directly.
         if not existing_achievements and "clusters={" in line:
-            logger.debug(f"clusters in line {i}.")
+            patchersavelog.debug(f"clusters in line {i}.")
             clusters_found = True
             new_file_contents.insert(i, achievements)
             break
@@ -184,13 +187,13 @@ def repair_save(save_file):
     if not has_ironman_flag:
         for i, line in enumerate(file_contents):
             if "galaxy={" in line:
-                logger.debug("Passed galaxy={")
+                patchersavelog.debug("Passed galaxy={")
                 _has_passed_galaxy_line = True
 
             if _has_passed_galaxy_line:
                 if "name=" in line:
-                    logger.debug("Found name= in galaxy={")
-                    logger.info("Setting ironman flag to yes.")
+                    patchersavelog.debug("Found name= in galaxy={")
+                    patchersavelog.info("Setting ironman flag to yes.")
                     new_file_contents.insert(i+1, "\tironman=yes") # Must be a tabbed insert
                     break
 
@@ -199,21 +202,21 @@ def repair_save(save_file):
         is_proper_file = True
 
     if not is_proper_file:
-        logger.error(f"The file {save_file_name} is not a proper file.")
+        patchersavelog.error(f"The file {save_file_name} is not a proper file.")
         return False
 
     # Overwrite achievements line with updated contents
     if existing_achievements:
         offset = achievements_line_end - achievements_line_start
-        logger.debug(f"Line Offset: {offset}")
+        patchersavelog.debug(f"Line Offset: {offset}")
         if offset > 1:
             for i in range(offset+1): # offset +1 to include the ending line
                 # Popping achievement line start means that once the line is popped,
                 # the remaining lines will fill that spot, therefore the index is the same
-                logger.debug(f"Pop {new_file_contents[achievements_line_start]}")
+                patchersavelog.debug(f"Pop {new_file_contents[achievements_line_start]}")
                 new_file_contents.pop(achievements_line_start)
 
-            logger.debug(f"Inserting achievements at {new_file_contents[achievements_line_start]}")
+            patchersavelog.debug(f"Inserting achievements at {new_file_contents[achievements_line_start]}")
             new_file_contents.insert(achievements_line_start, achievements)
         else:
             new_file_contents[achievements_line_start] = achievements
@@ -232,7 +235,7 @@ def repair_save(save_file):
     # ==================================================
     # =================== META BLOCK ===================
     # ==================================================
-    logger.debug("Repairing meta")
+    patchersavelog.debug("Repairing meta")
     with open(meta_file, 'r', encoding="utf-8") as f:
         file = f.read()
 
@@ -240,10 +243,10 @@ def repair_save(save_file):
     new_file_contents = file_contents.copy()
 
     if "ironman=yes" not in new_file_contents:
-        logger.debug(f"\n{new_file_contents}")
-        logger.debug("ironman=yes not found in meta file.")
+        patchersavelog.debug(f"\n{new_file_contents}")
+        patchersavelog.debug("ironman=yes not found in meta file.")
         new_file_contents.append("ironman=yes")
-        logger.debug(f"\n{new_file_contents}")
+        patchersavelog.debug(f"\n{new_file_contents}")
 
     temp_file = Path(tempfile.gettempdir()) / "meta"
     with open(temp_file, 'w', encoding="utf-8") as new_file:
@@ -267,11 +270,11 @@ def repair_save(save_file):
 
     shutil.rmtree(repair_dir)
 
-    logger.info("Finished repairing save.")
+    patchersavelog.info("Finished repairing save.")
     return True
 
 def pull_latest_achivements_file():
-    logger.info("Pulling latest Achievements file from GitHub repository.")
+    patchersavelog.info("Pulling latest Achievements file from GitHub repository.")
 
     owner = "r0fld4nc3"
     repo_name = "Stellaris-Exe-Checksum-Patcher"
@@ -279,41 +282,41 @@ def pull_latest_achivements_file():
 
     repo = f"{owner}/{repo_name}"
     url = f"https://api.github.com/repos/{repo}/contents/StellarisChecksumPatcher/achievements/achievements.txt"
-    logger.debug(url)
+    patchersavelog.debug(url)
 
     try:
         response = requests.get(url, timeout=60)
     except requests.ConnectionError as con_err:
-        logger.error(f"Unable to establish connection to update repo.")
-        logger.debug_error(con_err)
+        patchersavelog.error(f"Unable to establish connection to update repo.")
+        patchersavelog.debug_error(con_err)
         return False
 
     if not response.status_code == 200:
-        logger.error("Not a valid repository.")
+        patchersavelog.error("Not a valid repository.")
 
     achievements_file = Path(os.path.dirname(__file__)).parent / "achievements" / "achievements.txt"
     try:
         pulled_release = response.json()["content"]
         achievements = base64.b64decode(pulled_release).decode("utf-8")
-        logger.debug(f"Decoded: {achievements}")
+        patchersavelog.debug(f"Decoded: {achievements}")
         # Update local achievements file
-        logger.info("Updating achievements file with repo content.")
+        patchersavelog.info("Updating achievements file with repo content.")
         try:
             with open(achievements_file, 'w', encoding="utf-8") as ach_f:
                 ach_f.write(achievements)
         except Exception as e:
-            logger.error(f"Error writing to achievements file.\nError: {e}")
+            patchersavelog.error(f"Error writing to achievements file.\nError: {e}")
     except Exception as e:
-        logger.info(f"Error in pulling achievements from repo. Falling back to physical file.\nError: {e}")
-        logger.debug(response.json())
+        patchersavelog.info(f"Error in pulling achievements from repo. Falling back to physical file.\nError: {e}")
+        patchersavelog.debug(response.json())
         # Fallback to physical file
-        logger.debug(f"Achievements file: {achievements_file}")
+        patchersavelog.debug(f"Achievements file: {achievements_file}")
 
         try:
             with open(achievements_file, 'r', encoding="utf-8") as ach_f:
                 achievements = ach_f.read()
         except Exception as e:
-            logger.error(f"Error in accessing achievements file.\nError: {e}")
+            patchersavelog.error(f"Error in accessing achievements file.\nError: {e}")
             achievements = ''
 
     return achievements
