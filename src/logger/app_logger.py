@@ -32,8 +32,12 @@ def create_logger(logger_name: str, level: int) -> logging.Logger:
     handler_stream.setFormatter(formatter)
     handler_file.setFormatter(formatter)
 
-    logger.addHandler(handler_stream)
-    logger.addHandler(handler_file)
+    # Add the handlers if not present already
+    if not any(isinstance(handler, logging.StreamHandler) for handler in logger.handlers):
+        logger.addHandler(handler_stream)
+
+    if not any(isinstance(handler, logging.FileHandler) and handler.baseFilename == LOG_FILE for handler in logger.handlers):
+        logger.addHandler(handler_file)
 
     logger.signals = WorkerSignals()
 
