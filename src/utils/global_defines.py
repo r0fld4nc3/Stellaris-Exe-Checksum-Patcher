@@ -89,14 +89,14 @@ else:
 
 # Because we're using the config folder defined here, in the logger class and import
 # We have to import the logger after
-from logger.app_logger import create_logger, reset_log_file
+from logger import create_logger, reset_log_file
 reset_log_file()
 gdeflog = create_logger("Globals", LOG_LEVEL)
 
-from updater.updater import Updater
+from updater import Updater
 updater = Updater("r0fld4nc3", "Stellaris-Exe-Checksum-Patcher")
 
-from settings.settings import Settings
+from settings import Settings
 settings = Settings()
 settings.load_config()
 

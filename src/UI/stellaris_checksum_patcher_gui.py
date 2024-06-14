@@ -6,7 +6,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from UI.ui_utils import Threader, get_screen_info
 from utils.global_defines import updater, settings, APP_VERSION, OS, LOG_LEVEL
-from logger.app_logger import create_logger
+from logger import create_logger
 from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWindow
 from patchers import stellaris_patch
 from patchers.save_patcher import repair_save, get_user_save_folder

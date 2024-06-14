@@ -7,7 +7,7 @@ import shutil
 from typing import Union
 
 from utils.global_defines import OS, steam, settings, LOG_LEVEL
-from logger.app_logger import create_logger
+from logger import create_logger
 
 Path = pathlib.Path
 

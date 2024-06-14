@@ -2,7 +2,7 @@ import requests
 import time
 
 from utils.global_defines import LOG_LEVEL
-from logger.app_logger import create_logger
+from logger import create_logger
 
 updlog = create_logger("Updater", LOG_LEVEL)
 

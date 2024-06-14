@@ -5,7 +5,7 @@ from utils import registry_helper
 from typing import Union
 
 from utils.global_defines import OS, LOG_LEVEL
-from logger.app_logger import create_logger
+from logger import create_logger
 import vdf
 
 Path = pathlib.Path

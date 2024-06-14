@@ -4,7 +4,7 @@ import pathlib
 import sys
 
 from utils.global_defines import config_folder, LOG_LEVEL
-from logger.app_logger import create_logger
+from logger import create_logger
 
 slogger = create_logger("Settings", LOG_LEVEL)
 

@@ -9,7 +9,7 @@ import tempfile
 
 # 3rd Party
 from utils.global_defines import settings, OS, LOG_LEVEL
-from logger.app_logger import create_logger
+from logger import create_logger
 
 Path = pathlib.Path
 

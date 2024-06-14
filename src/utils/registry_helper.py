@@ -1,5 +1,5 @@
 from utils.global_defines import OS, LOG_LEVEL
-from logger.app_logger import create_logger
+from logger import create_logger
 
 reghelplog = create_logger("Registry Helper", LOG_LEVEL)
 
