@@ -68,7 +68,7 @@ if is_windows():
     program_data_path = os.getenv("LOCALAPPDATA")
 elif is_linux():
     print("Target System Linux/Unix")
-    program_data_path = pathlib.Path("/usr/local/var/")
+    program_data_path = Path(os.path.expanduser('~')) / "/.local/share/"
 elif is_macos():
     # Write to user-writable locations, like ~/Applications
     program_data_path = pathlib.Path(pathlib.Path.home() / "Applications")
