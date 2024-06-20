@@ -71,7 +71,7 @@ elif is_linux():
     program_data_path = Path(os.path.expanduser('~')) / "/.local/share/"
 elif is_macos():
     # Write to user-writable locations, like ~/Applications
-    program_data_path = pathlib.Path(pathlib.Path.home() / "Applications")
+    program_data_path = Path(os.path.expanduser('~')) / "/.local/share/"
 else:
     print("Target System Other")
     print(system)
