@@ -5,7 +5,7 @@ import platform
 from threading import Lock
 
 # To add more arguments after the rX.Y.Z, always have the '-' suffix before. Example ['r', 0, 0, 1, "-dev", "-nightly"]
-APP_VERSION = [1, 1, 0, "pre"]
+APP_VERSION = [1, 1, 1, "pre"]
 
 system = platform.system()
 debug_commands = ("-debug", "-d")
@@ -14,6 +14,7 @@ Path = pathlib.Path
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "ChecksumPatcher"
+
 
 class SingletonMetaClass(type):
     """
@@ -36,6 +37,7 @@ class OS(metaclass=SingletonMetaClass):
     LINUX = False
     MACOS = False
 
+
 def is_windows():
     if system == "Windows":
         OS.WINDOWS = True
@@ -44,6 +46,7 @@ def is_windows():
         return True
     OS.WINDOWS = False
     return False
+
 
 def is_linux():
     if system in ["Linux", "Unix"]:
@@ -54,6 +57,7 @@ def is_linux():
     OS.LINUX = False
     return False
 
+
 def is_macos():
     if system == "Darwin":
         OS.WINDOWS = False
@@ -62,6 +66,7 @@ def is_macos():
         return True
     OS.MACOS = False
     return False
+
 
 if is_windows():
     print("Target System Windows")

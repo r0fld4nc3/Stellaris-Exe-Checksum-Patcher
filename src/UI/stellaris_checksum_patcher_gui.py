@@ -20,6 +20,7 @@ Path = pathlib.Path
 
 uilog = create_logger("UI", LOG_LEVEL)
 
+
 class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     _app_version = 'v' + ".".join([str(v) for v in APP_VERSION[0:3]])
     if len(APP_VERSION) > 3:
@@ -45,7 +46,6 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         self.main_window.setWindowIcon(self.patch_icon)
         self.main_window.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowMaximizeButtonHint |
                                         QtCore.Qt.WindowMinimizeButtonHint)
-
 
         self.main_window.setWindowOpacity(0.95)
 
@@ -76,18 +76,22 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         self.btn_patch_from_install.setFlat(False)
 
         # =========== QTextBrowser Terminal Display ===========
-        self.terminal_display.clear() # Clear as we have preview text as default
+        self.terminal_display.clear()  # Clear as we have preview text as default
         
         # Handle initial connects
         self.btn_fix_save_file.clicked.connect(self.fix_save_achievements_thread)
-        self.btn_patch_from_install.clicked.connect(self.patch_game_executable_thread)
+        if OS.LINUX:
+            # TOOD: Hacky way becase on Linux we're getting segfault after operations
+            self.btn_patch_from_install.clicked.connect(self.patch_game_executable)
+        else:
+            self.btn_patch_from_install.clicked.connect(self.patch_game_executable_thread)
         self.btn_themed_exit_application.clicked.connect(self.app_quit)
 
         # Hook up Signals
         uilog.signals.progress.connect(self.terminal_display_log)
-        updlog.signals.progress.connect(self.terminal_display_log) # Could be a bit hacky. Ensure created before assign
-        patcherlog.signals.progress.connect(self.terminal_display_log) # Could be a bit hacky. Ensure created before assign
-        patchersavelog.signals.progress.connect(self.terminal_display_log) # Could be a bit hacky. Ensure created before assign
+        updlog.signals.progress.connect(self.terminal_display_log)  # Could be a bit hacky. Ensure created before assign
+        patcherlog.signals.progress.connect(self.terminal_display_log)  # Could be a bit hacky. Ensure created before assign
+        patchersavelog.signals.progress.connect(self.terminal_display_log)  # Could be a bit hacky. Ensure created before assign
 
         # Worker
         self.worker = None
@@ -125,7 +129,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
 
     def set_terminal_clickable(self, is_clickable: bool):
         if is_clickable:
-            self.terminal_display.setTextInteractionFlags(~QtCore.Qt.LinksAccessibleByMouse) # the ~ negates the flag
+            self.terminal_display.setTextInteractionFlags(~QtCore.Qt.LinksAccessibleByMouse)  # the ~ negates the flag
         else:
             self.terminal_display.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse)
 

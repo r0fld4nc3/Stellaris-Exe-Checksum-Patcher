@@ -23,9 +23,9 @@ elif OS.LINUX:
     # Native Linux
     EXE_DEFAULT_FILENAME = "stellaris"
     hex_find = "85DB"
-    hex_replace = "31DB"
+    hex_replace = "33DB"
     # TODO: Check if it actually patches the right place
-    patch_pattern = re.compile(r"488B3.{20,50}%s" % hex_find, re.IGNORECASE)
+    patch_pattern = re.compile(r"488B30.{20,50}%s" % hex_find, re.IGNORECASE)
 elif OS.MACOS:
     # .app IS NOT A FILE, IT'S A DIRECTORY
     # The actual executable is inside the .app -> /.../stellaris.app/Contents/MacOS/stellaris
@@ -70,6 +70,7 @@ def locate_game_executable() -> Union[Path, None]:
 
     return None
 
+
 def is_patched(file_path: Path) -> bool:
     _fwd_slashed_path = str(file_path).replace('\\', '/').replace('\\\\', '/')
     patcherlog.info(f"Checking if patched: {_fwd_slashed_path}")
@@ -95,6 +96,7 @@ def is_patched(file_path: Path) -> bool:
 
     return False
 
+
 def create_backup(file_path: Path, overwrite=False) -> bool:
     backup_file = Path(str(file_path) + ".orig")
 
@@ -111,7 +113,7 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
 
         # Remove the file
         if OS.MACOS:
-            # For MacOS the .app is a directory
+            # For macOS the .app is a directory
             try:
                 shutil.rmtree(backup_file)
                 patcherlog.info(f"Removed directory {backup_file}")
@@ -128,7 +130,7 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
 
         # Now copy the file and set the name
         if OS.MACOS:
-            # For MacOS, .app is a directory
+            # For macOS, .app is a directory
             try:
                 patcherlog.info(f"Copying {file_path} to {backup_file}")
                 shutil.copytree(file_path, backup_file)
@@ -143,7 +145,7 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
     else:
         # Now copy the file and set the name
         if OS.MACOS:
-            # For MacOS, .app is a directory
+            # For macOS, .app is a directory
             try:
                 patcherlog.info(f"Copying {file_path} to {backup_file}")
                 shutil.copytree(file_path, backup_file)
@@ -157,6 +159,7 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
                 patcherlog.error(e)
 
     return True
+
 
 def patch(file_path: Path, duplicate_to: Path = None, both=False):
     if not file_path.exists():
