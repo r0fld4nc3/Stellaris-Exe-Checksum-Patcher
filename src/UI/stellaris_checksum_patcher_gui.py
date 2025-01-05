@@ -2,23 +2,24 @@ import os
 import sys
 import time
 import pathlib
+import subprocess
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from UI.ui_utils import Threader, get_screen_info
 from utils.global_defines import updater, settings, APP_VERSION, OS, LOG_LEVEL
-from logger import create_logger
+from logger import create_logger, reset_log_file
 from UI.StellarisChecksumPatcherUI import Ui_StellarisChecksumPatcherWindow
 from patchers import stellaris_patch
 from patchers.save_patcher import repair_save, get_user_save_folder
 
 # loggers to hook up to signals
-from updater.updater import updlog
-from patchers.stellaris_patch import patcherlog
-from patchers.save_patcher import patchersavelog
+from updater.updater import log as updlog
+from patchers.stellaris_patch import log as patcherlog
+from patchers.save_patcher import log as patchersavelog
 
 Path = pathlib.Path
 
-uilog = create_logger("UI", LOG_LEVEL)
+log = create_logger("UI", LOG_LEVEL)
 
 
 class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
@@ -78,7 +79,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         # =========== QTextBrowser Terminal Display ===========
         self.terminal_display.clear()  # Clear as we have preview text as default
         
-        # Handle initial connects
+        # Hook Up Patch Button
         self.btn_fix_save_file.clicked.connect(self.fix_save_achievements_thread)
         if OS.LINUX:
             # TOOD: Hacky way becase on Linux we're getting segfault after operations
@@ -87,8 +88,11 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
             self.btn_patch_from_install.clicked.connect(self.patch_game_executable_thread)
         self.btn_themed_exit_application.clicked.connect(self.app_quit)
 
+        # Hook up Show Game Folder Button
+        self.btn_show_game_folder.clicked.connect(self.show_game_folder)
+
         # Hook up Signals
-        uilog.signals.progress.connect(self.terminal_display_log)
+        log.signals.progress.connect(self.terminal_display_log)
         updlog.signals.progress.connect(self.terminal_display_log)  # Could be a bit hacky. Ensure created before assign
         patcherlog.signals.progress.connect(self.terminal_display_log)  # Could be a bit hacky. Ensure created before assign
         patchersavelog.signals.progress.connect(self.terminal_display_log)  # Could be a bit hacky. Ensure created before assign
@@ -110,20 +114,20 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
 
     def app_quit(self):
         try:
-            uilog.info("Quitting Application.")
+            log.info("Quitting Application.")
             if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
-                uilog.info("Waiting for finish.")
+                log.info("Waiting for finish.")
                 self.thread_pool.waitForDone(msecs=2000) # Wait for max 2 seconds.
-                uilog.debug("Done waiting.")
+                log.debug("Done waiting.")
 
             if self.active_threads:
                 for thread in self.active_threads:
                     try:
                         thread.stop()
                     except Exception as e:
-                        uilog.error(f"Error in stopping Thread. {e}")
+                        log.error(f"Error in stopping Thread. {e}")
         except Exception as e:
-            uilog.error(e)
+            log.error(e)
 
         sys.exit(0)
 
@@ -150,7 +154,7 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
 
         self.set_terminal_clickable(False)
 
-        uilog.info("Patching from game installation.")
+        log.info("Patching from game installation.")
 
         # Test settings for install location
         settings_install_dir = settings.get_install_location()
@@ -167,11 +171,11 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
             self.auto_patch_failed = True
             self.is_patching = False
 
-            uilog.error("Game installation not found.")
+            log.error("Game installation not found.")
             self.terminal_display_log(" ")
-            uilog.info("Patch failed.")
+            log.info("Patch failed.")
             self.terminal_display_log(" ")
-            uilog.info("Please run again to manually select install directory.")
+            log.info("Please run again to manually select install directory.")
             self.set_terminal_clickable(True)
 
             # TODO: Could we not make it run again calling own function? So it doesn't have to be user driven?
@@ -196,14 +200,14 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
             if OS.MACOS:
                 macos_app_folder = game_executable
                 game_executable = macos_app_folder / stellaris_patch.EXE_PATH_POSTPEND
-                uilog.info("System is MacOS. Appending proper path to Contents inside .app")
-                uilog.info(f"Game Executable: {game_executable}")
+                log.info("System is MacOS. Appending proper path to Contents inside .app")
+                log.info(f"Game Executable: {game_executable}")
 
             # Check if it is patched
             is_patched = stellaris_patch.is_patched(game_executable)
 
             if is_patched:
-                uilog.info("File is already patched")
+                log.info("File is already patched")
             else:
                 # Create a backup
                 if OS.MACOS:
@@ -211,17 +215,17 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
                 else:
                     stellaris_patch.create_backup(game_executable)
 
-                uilog.info("Applying Patch...")
+                log.info("Applying Patch...")
 
                 patched = stellaris_patch.patch(game_executable)
 
                 self.is_patching = False
 
                 if not patched:
-                    uilog.error(f"Unable to replace original game file.\n")
+                    log.error(f"Unable to replace original game file.\n")
 
         self.terminal_display_log(' ')
-        uilog.info("Operations finished.")
+        log.info("Operations finished.")
 
         self.set_terminal_clickable(True)
 
@@ -237,21 +241,21 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
 
     def remove_thread(self, thread_id_remove):
         # Iterates through active threads, checks for ID and stops then removes thread
-        uilog.debug(f"Thread Remove: {thread_id_remove}")
+        log.debug(f"Thread Remove: {thread_id_remove}")
 
         for iter_thread in self.active_threads:
             iter_id = iter_thread.currentThread()
-            uilog.debug(f"Iter Thread: {iter_id}")
+            log.debug(f"Iter Thread: {iter_id}")
             if iter_id == thread_id_remove:
-                uilog.debug(f"Attempting to remove {iter_thread} ({iter_id})")
+                log.debug(f"Attempting to remove {iter_thread} ({iter_id})")
                 try:
                     iter_thread.stop()
                     self.active_threads.remove(iter_thread)
                 except Exception as e:
-                    uilog.error(f"Error in attempting to stop and remove Thread: {e}")
+                    log.error(f"Error in attempting to stop and remove Thread: {e}")
                 break
 
-        uilog.debug(f"Remove thread finished ( {thread_id_remove} )")
+        log.debug(f"Remove thread finished ( {thread_id_remove} )")
 
     # ===============================================
     # ============== Regular Functions ==============
@@ -270,6 +274,22 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     def terminal_display_log(self, t_log):
         self.terminal_display.insertPlainText(f"{t_log}\n")
         self.refresh_terminal_log()
+
+    def show_game_folder(self):
+        game_folder = settings.get_install_location()
+        if not game_folder:
+            log.info("No game folder defined.")
+            return
+
+        log.info(f"Game Folder: {game_folder}")
+        if OS.WINDOWS:
+            subprocess.run(["explorer.exe", "/select", os.path.normpath(game_folder)])
+        elif OS.LINUX:
+            subprocess.run(["xdg-open", game_folder])
+        elif OS.MACOS:
+            subprocess.run(["open", "-R", game_folder])
+        else:
+            log.warning("No known Operating System")
 
     def patch_game_executable_thread(self):
         if self.is_patching:
@@ -319,13 +339,13 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
         )[0]
 
         if save_file_path or save_file_path != '':
-            uilog.info(f"Save file: {save_file_path}")
+            log.info(f"Save file: {save_file_path}")
 
         if not save_file_path:
             return False
 
         save_games_dir = pathlib.Path(save_file_path).parent.parent
-        uilog.info(f"Save games directory: {os.path.normpath(save_games_dir)}")
+        log.info(f"Save games directory: {os.path.normpath(save_games_dir)}")
         settings.set_save_games_dir(save_games_dir)
 
         thread_repair_save = Threader(target=lambda save_file=save_file_path: repair_save(save_file))
@@ -341,12 +361,12 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
     def adjust_app_size(self):
         screen_info = get_screen_info(self.app)
 
-        uilog.debug(screen_info)
+        log.debug(screen_info)
 
         if not self.main_window:
             return
 
-        if screen_info[0] <= 2000 or screen_info[1] <= 1200 or screen_info[2] <= 0.7:
+        if screen_info[0] <= 1500 or screen_info[1] <= 1000 or screen_info[2] <= 0.7:
             self.main_window.resize(QtCore.QSize(650, 500))
 
     def check_update(self):
@@ -386,8 +406,10 @@ class StellarisChecksumPatcherGUI(Ui_StellarisChecksumPatcherWindow):
             settings.set_has_update(True)
 
     def show(self):
+        reset_log_file()
         self.main_window.show()
         self.adjust_app_size()
+        self.terminal_display.clear()
         sys.exit(self.app.exec_())
 
 

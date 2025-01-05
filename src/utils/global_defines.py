@@ -4,8 +4,7 @@ import pathlib
 import platform
 from threading import Lock
 
-# To add more arguments after the rX.Y.Z, always have the '-' suffix before. Example ['r', 0, 0, 1, "-dev", "-nightly"]
-APP_VERSION = [1, 1, 1, "pre"]
+APP_VERSION = [1, 1, 0, "pre"]
 
 system = platform.system()
 debug_commands = ("-debug", "-d")
@@ -84,7 +83,7 @@ else:
 
 config_folder = Path(program_data_path) / HOST / APP_FOLDER / "Stellaris" / APP_NAME
 
-LOG_LEVEL = 1
+LOG_LEVEL = 0
 if len(sys.argv) > 1 and str(sys.argv[1]).lower() in debug_commands:
     is_debug = True
     LOG_LEVEL = 0
@@ -95,8 +94,8 @@ else:
 # Because we're using the config folder defined here, in the logger class and import
 # We have to import the logger after
 from logger import create_logger, reset_log_file
-reset_log_file()
-gdeflog = create_logger("Globals", LOG_LEVEL)
+
+log = create_logger("Globals", LOG_LEVEL)
 
 from updater import Updater
 updater = Updater("r0fld4nc3", "Stellaris-Exe-Checksum-Patcher")
@@ -110,8 +109,8 @@ from utils import steam_helper
 steam = steam_helper.SteamHelper()
 
 # Worker Signals hook not initialised here yet, so won't print to GUI console
-gdeflog.info(f"Debug:             {is_debug}")
-gdeflog.info(f"App Version:       {APP_VERSION}")
-gdeflog.info(f"Target System:     {system}")
-gdeflog.info(f"Program Data Path: {program_data_path}")
-gdeflog.info(f"Config Folder:     {config_folder}")
+log.info(f"Debug:             {is_debug}")
+log.info(f"App Version:       {APP_VERSION}")
+log.info(f"Target System:     {system}")
+log.info(f"Program Data Path: {program_data_path}")
+log.info(f"Config Folder:     {config_folder}")

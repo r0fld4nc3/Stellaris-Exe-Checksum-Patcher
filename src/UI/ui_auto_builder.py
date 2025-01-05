@@ -19,8 +19,12 @@ if not env_file:
 
 dotenv.load_dotenv(env_file)
 
+is_mac = True
 python_path = os.getenv("CONVERTER_PATH")
-
+if is_mac:
+    uic = os.getenv("UIC")
+else:
+    uic = "uic"
 
 def main():
     converter_path = python_path
@@ -35,7 +39,7 @@ def main():
     for conv in outputs:
         _fp = conv[0]
         _o = conv[1]
-        command = f"uic -g python \"{_fp}\" -o \"{_o}\""
+        command = f"{uic} -g python \"{_fp}\" -o \"{_o}\""
         print(F"Command: {command}")
         subprocess.call(command, shell=True, cwd=converter_path)
 

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'StellarisChecksumPatcherUI.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.5.0
+## Created by: Qt User Interface Compiler version 6.6.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -30,6 +30,10 @@ class Ui_StellarisChecksumPatcherWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(StellarisChecksumPatcherWindow.sizePolicy().hasHeightForWidth())
         StellarisChecksumPatcherWindow.setSizePolicy(sizePolicy)
+        font = QFont()
+        font.setFamilies([u"Orbitron"])
+        font.setBold(True)
+        StellarisChecksumPatcherWindow.setFont(font)
         StellarisChecksumPatcherWindow.setStyleSheet(u"")
         self.central_widget = QWidget(StellarisChecksumPatcherWindow)
         self.central_widget.setObjectName(u"central_widget")
@@ -62,11 +66,11 @@ class Ui_StellarisChecksumPatcherWindow(object):
         self.btn_themed_exit_application.setMinimumSize(QSize(32, 24))
         self.btn_themed_exit_application.setMaximumSize(QSize(32, 32))
         self.btn_themed_exit_application.setBaseSize(QSize(32, 32))
-        font = QFont()
-        font.setFamilies([u"Orbitron"])
-        font.setPointSize(18)
-        font.setBold(False)
-        self.btn_themed_exit_application.setFont(font)
+        font1 = QFont()
+        font1.setFamilies([u"Orbitron"])
+        font1.setPointSize(18)
+        font1.setBold(False)
+        self.btn_themed_exit_application.setFont(font1)
         self.btn_themed_exit_application.setStyleSheet(u"QPushButton#btn_themed_exit_application {\n"
 "color: rgb(25, 255, 236);\n"
 "background-color: rgba(22, 59, 56, 100);\n"
@@ -94,11 +98,11 @@ class Ui_StellarisChecksumPatcherWindow(object):
         sizePolicy2.setHeightForWidth(self.lbl_title.sizePolicy().hasHeightForWidth())
         self.lbl_title.setSizePolicy(sizePolicy2)
         self.lbl_title.setBaseSize(QSize(0, 0))
-        font1 = QFont()
-        font1.setFamilies([u"Century Gothic"])
-        font1.setPointSize(26)
-        font1.setBold(False)
-        self.lbl_title.setFont(font1)
+        font2 = QFont()
+        font2.setFamilies([u"Century Gothic"])
+        font2.setPointSize(26)
+        font2.setBold(False)
+        self.lbl_title.setFont(font2)
         self.lbl_title.setStyleSheet(u"color: rgb(255, 255, 255);\n"
 "background-color: rgb(35, 75, 70);\n"
 "border-radius: 5px;")
@@ -115,10 +119,10 @@ class Ui_StellarisChecksumPatcherWindow(object):
         self.lbl_app_version.setObjectName(u"lbl_app_version")
         sizePolicy2.setHeightForWidth(self.lbl_app_version.sizePolicy().hasHeightForWidth())
         self.lbl_app_version.setSizePolicy(sizePolicy2)
-        font2 = QFont()
-        font2.setFamilies([u"Orbitron"])
-        font2.setPointSize(10)
-        self.lbl_app_version.setFont(font2)
+        font3 = QFont()
+        font3.setFamilies([u"Orbitron"])
+        font3.setPointSize(10)
+        self.lbl_app_version.setFont(font3)
 
         self.verticalLayout.addWidget(self.lbl_app_version)
 
@@ -133,11 +137,11 @@ class Ui_StellarisChecksumPatcherWindow(object):
         sizePolicy3.setVerticalStretch(0)
         sizePolicy3.setHeightForWidth(self.terminal_display.sizePolicy().hasHeightForWidth())
         self.terminal_display.setSizePolicy(sizePolicy3)
-        font3 = QFont()
-        font3.setFamilies([u"Century Gothic"])
-        font3.setPointSize(10)
-        font3.setBold(False)
-        self.terminal_display.setFont(font3)
+        font4 = QFont()
+        font4.setFamilies([u"Century Gothic"])
+        font4.setPointSize(10)
+        font4.setBold(False)
+        self.terminal_display.setFont(font4)
         self.terminal_display.setStyleSheet(u"color: rgb(255, 255, 255);\n"
 "background-color: rgba(22, 59, 56, 100);\n"
 "border: 4px solid rgb(35, 75, 70);")
@@ -157,11 +161,11 @@ class Ui_StellarisChecksumPatcherWindow(object):
         sizePolicy3.setHeightForWidth(self.txt_browser_project_link.sizePolicy().hasHeightForWidth())
         self.txt_browser_project_link.setSizePolicy(sizePolicy3)
         self.txt_browser_project_link.setMaximumSize(QSize(16777215, 36))
-        font4 = QFont()
-        font4.setFamilies([u"Century Gothic"])
-        font4.setPointSize(10)
-        font4.setBold(True)
-        self.txt_browser_project_link.setFont(font4)
+        font5 = QFont()
+        font5.setFamilies([u"Century Gothic"])
+        font5.setPointSize(10)
+        font5.setBold(True)
+        self.txt_browser_project_link.setFont(font5)
         self.txt_browser_project_link.setStyleSheet(u"border: 4px solid rgb(35, 75, 70);")
         self.txt_browser_project_link.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.txt_browser_project_link.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -188,11 +192,11 @@ class Ui_StellarisChecksumPatcherWindow(object):
         self.btn_fix_save_file.setMinimumSize(QSize(12, 24))
         self.btn_fix_save_file.setMaximumSize(QSize(16777215, 75))
         self.btn_fix_save_file.setBaseSize(QSize(12, 24))
-        font5 = QFont()
-        font5.setFamilies([u"Century Gothic"])
-        font5.setPointSize(14)
-        font5.setBold(True)
-        self.btn_fix_save_file.setFont(font5)
+        font6 = QFont()
+        font6.setFamilies([u"Century Gothic"])
+        font6.setPointSize(14)
+        font6.setBold(True)
+        self.btn_fix_save_file.setFont(font6)
         self.btn_fix_save_file.setLayoutDirection(Qt.RightToLeft)
         self.btn_fix_save_file.setAutoFillBackground(False)
         self.btn_fix_save_file.setStyleSheet(u"QPushButton {\n"
@@ -219,7 +223,7 @@ class Ui_StellarisChecksumPatcherWindow(object):
         self.btn_patch_from_install.setMinimumSize(QSize(12, 24))
         self.btn_patch_from_install.setMaximumSize(QSize(16777215, 75))
         self.btn_patch_from_install.setBaseSize(QSize(12, 24))
-        self.btn_patch_from_install.setFont(font5)
+        self.btn_patch_from_install.setFont(font6)
         self.btn_patch_from_install.setLayoutDirection(Qt.RightToLeft)
         self.btn_patch_from_install.setAutoFillBackground(False)
         self.btn_patch_from_install.setStyleSheet(u"QPushButton {\n"
@@ -243,8 +247,39 @@ class Ui_StellarisChecksumPatcherWindow(object):
 
         self.verticalLayout.addLayout(self.hlayout_patch_buttons)
 
+        self.hlayout_misc_functions = QHBoxLayout()
+        self.hlayout_misc_functions.setObjectName(u"hlayout_misc_functions")
+        self.btn_show_game_folder = QPushButton(self.main_frame)
+        self.btn_show_game_folder.setObjectName(u"btn_show_game_folder")
+        sizePolicy1.setHeightForWidth(self.btn_show_game_folder.sizePolicy().hasHeightForWidth())
+        self.btn_show_game_folder.setSizePolicy(sizePolicy1)
+        self.btn_show_game_folder.setMinimumSize(QSize(12, 24))
+        self.btn_show_game_folder.setMaximumSize(QSize(16777215, 75))
+        self.btn_show_game_folder.setBaseSize(QSize(12, 24))
+        self.btn_show_game_folder.setFont(font6)
+        self.btn_show_game_folder.setMouseTracking(True)
+        self.btn_show_game_folder.setLayoutDirection(Qt.RightToLeft)
+        self.btn_show_game_folder.setStyleSheet(u"QPushButton {\n"
+"color: rgb(255, 255, 255);\n"
+"background-color: rgba(22, 59, 56, 100);\n"
+"border: 4px solid rgb(35, 75, 70);\n"
+"}\n"
+"QPushButton:hover {\n"
+"background-color: rgba(255, 179, 25, 100);\n"
+"border-color: rgba(255, 151, 33, 175);\n"
+"}\n"
+"QPushButton:pressed {\n"
+"background-color: rgba(30, 80, 70, 100);\n"
+"border-color: rgb(67, 144, 134);\n"
+"}")
 
-        self.gridLayout.addWidget(self.main_frame, 0, 1, 1, 1)
+        self.hlayout_misc_functions.addWidget(self.btn_show_game_folder)
+
+
+        self.verticalLayout.addLayout(self.hlayout_misc_functions)
+
+
+        self.gridLayout.addWidget(self.main_frame, 0, 0, 1, 1)
 
         StellarisChecksumPatcherWindow.setCentralWidget(self.central_widget)
 
@@ -283,5 +318,6 @@ class Ui_StellarisChecksumPatcherWindow(object):
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Project link: </span><a href=\"https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher\"><span style=\" font-weight:400; text-decoration: underline; color:#2a90d8;\">https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher</span></a></p></body></html>", None))
         self.btn_fix_save_file.setText(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"Fix Save Achievements", None))
         self.btn_patch_from_install.setText(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"Patch Executable", None))
+        self.btn_show_game_folder.setText(QCoreApplication.translate("StellarisChecksumPatcherWindow", u"Show Game Folder", None))
     # retranslateUi
 

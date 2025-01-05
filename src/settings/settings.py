@@ -6,7 +6,7 @@ import sys
 from utils.global_defines import config_folder, LOG_LEVEL
 from logger import create_logger
 
-slogger = create_logger("Settings", LOG_LEVEL)
+log = create_logger("Settings", LOG_LEVEL)
 
 class Settings:
     def __init__(self):
@@ -86,7 +86,7 @@ class Settings:
         """
 
         if not self.config_dir or not pathlib.Path(self.config_dir).exists():
-            slogger.info("No config folder found.")
+            log.info("No config folder found.")
             return False
 
         with open(self.config_file, 'r', encoding="utf-8") as config_file:
@@ -95,52 +95,52 @@ class Settings:
         for setting in reversed(list(settings.keys())):
             if setting not in self.patcher_settings.keys():
                 settings.pop(setting)
-                slogger.debug(f"Cleared unused settings key: {setting}")
+                log.debug(f"Cleared unused settings key: {setting}")
 
         # Add non existant settings
         for k, v in self.patcher_settings.items():
             if k not in settings:
                 settings[k] = v
-                slogger.info(f"Added {k}: {v}")
+                log.info(f"Added {k}: {v}")
 
         with open(self.config_file, 'w', encoding="utf-8") as config_file:
             config_file.write(json.dumps(settings, indent=2))
-            slogger.debug(f"Saved cleaned config: {self.config_file}")
+            log.debug(f"Saved cleaned config: {self.config_file}")
 
         return True
 
     def save_config(self):
         if self.config_dir == '' or not pathlib.Path(self.config_dir).exists():
             os.makedirs(self.config_dir)
-            slogger.debug(f"Generated config folder {self.config_dir}")
+            log.debug(f"Generated config folder {self.config_dir}")
 
         with open(self.config_file, 'w', encoding="utf-8") as config_file:
             config_file.write(json.dumps(self.patcher_settings, indent=2))
-            slogger.debug(f"Saved config to {self.config_file}")
+            log.debug(f"Saved config to {self.config_file}")
 
     def load_config(self):
         if self.config_dir == '' or not pathlib.Path(self.config_dir).exists()\
                 or not pathlib.Path(self.config_file).exists():
-            slogger.debug(f"Config does not exist.")
+            log.debug(f"Config does not exist.")
             return False
 
         self.clean_save_file()
 
-        slogger.debug(f"Loading config from {self.config_dir}")
+        log.debug(f"Loading config from {self.config_dir}")
         config_error = False
         with open(self.config_file, 'r', encoding="utf-8") as config_file:
             try:
                 self.patcher_settings = json.load(config_file)
             except Exception as e:
-                slogger.error("An error occurred trying to read config file.")
-                slogger.error(e)
+                log.error("An error occurred trying to read config file.")
+                log.error(e)
                 config_error = True
 
         if config_error:
-            slogger.info("Generating new config file.")
+            log.info("Generating new config file.")
             with open(self.config_file, 'w', encoding="utf-8") as config_file:
                 config_file.write(json.dumps(self.patcher_settings, indent=2))
-        slogger.debug(self.patcher_settings)
+        log.debug(self.patcher_settings)
 
     def get_config_dir(self) -> pathlib.Path:
         if not self.config_dir or not pathlib.Path(self.config_dir).exists:
