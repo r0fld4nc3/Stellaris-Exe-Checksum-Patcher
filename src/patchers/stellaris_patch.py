@@ -33,7 +33,7 @@ elif OS.MACOS:
     EXE_PATH_POSTPEND = "Contents/MacOS/stellaris"
     hex_find = "85DB"
     hex_replace = "31DB"
-    # TODO: Check if it actually patches the right place
+    # TODO: Does not patch Ironman mode.
     patch_pattern = re.compile(r"488B3.{20,38}%s" % hex_find, re.IGNORECASE)
 else:
     EXE_DEFAULT_FILENAME = "stellaris.wtf"
