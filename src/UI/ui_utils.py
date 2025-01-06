@@ -2,7 +2,7 @@ import sys
 from io import StringIO
 
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QObject, QRunnable, QThread, Slot, Signal
+from PySide6.QtCore import QObject, QRunnable, QThread, Slot, Signal, QCoreApplication
 
 
 class Capturing(list):  # Deprecated, here for simply backup reasons because it was really cool to figure it out.
@@ -69,7 +69,7 @@ class Threader(QThread):
         self.exit(0)
 
 
-def get_screen_info(app: QApplication) -> tuple:
+def get_screen_info(app: QApplication | QCoreApplication) -> tuple:
     # Get the primary screen
     screen = app.primaryScreen()
 

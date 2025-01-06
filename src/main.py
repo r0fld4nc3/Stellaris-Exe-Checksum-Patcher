@@ -2,5 +2,5 @@
 from UI import StellarisChecksumPatcherGUI
 
 if __name__ == '__main__':
-    w = StellarisChecksumPatcherGUI()
-    w.show()
+    app = StellarisChecksumPatcherGUI()
+    app.show()

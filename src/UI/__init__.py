@@ -1,1 +1,1 @@
-from .stellaris_checksum_patcher_gui import StellarisChecksumPatcherGUI
+from .ui_main import StellarisChecksumPatcherGUI
