@@ -1,3 +1,4 @@
+from string import punctuation
 import requests
 import time
 
@@ -70,6 +71,21 @@ class Updater:
             log.info(f"This release {current} is up to date with remote {remote.get(self._release_name)} ({remote.get(self._release_tag)})")
 
         return False
+
+    def construct_version_list_from_str(self, version: str):
+        # Collect the digits between dots
+        digit = ''
+        constructed_version = []
+
+        for c in version:
+            if c.isdigit():
+                digit += c
+            else:
+                if c in punctuation:
+                    if digit:
+                        constructed_version.append(int(digit))
+
+        return constructed_version
 
     @staticmethod
     def set_github_repo(user: str, repo: str) -> tuple:
