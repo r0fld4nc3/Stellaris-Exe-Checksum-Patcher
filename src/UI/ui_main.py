@@ -11,8 +11,8 @@ from PySide6.QtCore import Qt, QSize, QThreadPool, QObject, QEvent
 from PySide6.QtGui import QIcon, QFont, QFontDatabase
 
 from .Styles import STYLES
+from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL, IS_DEBUG
 from .ui_utils import Threader, get_screen_info, set_icon_gray
-from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL
 from logger import create_logger, reset_log_file
 from patchers import stellaris_patch
 from patchers.save_patcher import repair_save, get_user_save_folder
@@ -58,7 +58,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.game_executable_name = ''
         self.replace_failed_reasons = []
 
-        self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION})"
+        self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
 
         # Icons and Fonts
         window_icon = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.ico"))
@@ -126,7 +126,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.lbl_title.setMaximumSize(QSize(16777215, 36))
         self.lbl_title.setContentsMargins(5, 2, 5, 2)
 
-        self.lbl_app_version = QLabel(self._APP_VERSION)
+        self.lbl_app_version = QLabel(f"{self._APP_VERSION}{'-debug' if IS_DEBUG else ''}")
         self.lbl_app_version.setSizePolicy(size_policy_app_version_label)
 
         # Themed Exit Application
