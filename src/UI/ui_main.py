@@ -251,7 +251,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.check_update()
 
     def load_configs(self):
-        self.install_dir = settings.get_install_location()
+        self.install_dir = settings.get_stellaris_install_path()
         self.game_executable_name = settings.get_executable_name()
         settings.set_app_version(f"{self._APP_VERSION}")
         updater.set_local_version(str(self._APP_VERSION))
@@ -317,7 +317,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         log.info("Patching from game installation.")
 
         # Test settings for install location
-        settings_install_dir = settings.get_install_location()
+        settings_install_dir = settings.get_stellaris_install_path()
 
         if self.install_dir or settings_install_dir:
             game_executable = Path(self.install_dir) / stellaris_patch.EXE_DEFAULT_FILENAME
@@ -352,7 +352,7 @@ class StellarisChecksumPatcherGUI(QWidget):
 
         if game_executable:
             # Patch can proceed, therefore save game install location
-            settings.set_install_location(str(game_executable))
+            settings.set_stellaris_install_path(str(game_executable))
 
             # MacOS exception, as it will return a .app, and is a dir
             # Append the postpend filepath to inside the .app
@@ -412,7 +412,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         # self.thread_pool.start(self.worker)
 
     def show_game_folder(self):
-        game_folder = settings.get_install_location()
+        game_folder = settings.get_stellaris_install_path()
         if not game_folder:
             log.info("No game folder defined.")
             return

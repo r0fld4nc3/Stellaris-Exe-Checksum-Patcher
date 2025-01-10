@@ -4,7 +4,7 @@ import pathlib
 from utils import registry_helper
 from typing import Union
 
-from conf_globals import OS, LOG_LEVEL
+from conf_globals import settings, OS, LOG_LEVEL
 from logger import create_logger
 import vdf
 
@@ -208,6 +208,13 @@ class SteamHelper:
     def get_steam_install_path(self) -> pathlib.Path:
         log.info("Acquiring Steam installation...")
 
+        saved_path = settings.get_steam_install_path()
+        if saved_path:
+            if Path(saved_path).exists():
+                self.steam_install = saved_path
+                log.info(f"Got Steam install path from Settings")
+                return self.steam_install
+
         if OS.WINDOWS:
             # Try 64-bit first
             steam = registry_helper.read_key(STEAM_REGISTRY_PATH_64, STEAM_INSTALL_LOCATION_KEY)
@@ -233,6 +240,7 @@ class SteamHelper:
 
         if steam:
             self.steam_install = steam
+            settings.set_steam_install_path(str(self.steam_install))
         else:
             log.error("Unable to acquire Steam installation.")
         

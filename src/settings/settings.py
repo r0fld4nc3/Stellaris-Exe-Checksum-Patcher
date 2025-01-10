@@ -14,8 +14,9 @@ class Settings:
             "app-version": "",
             "update-last-checked": 0,
             "update-available": False,
-            "install-dir": "",
-            "save-games-dir": "",
+            "stellaris-install-path": "",
+            "steam-install-path": "",
+            "save-games-path": "",
             "patched-block": "",
             "exe-name": ""
         }
@@ -32,14 +33,23 @@ class Settings:
         # self.load_config()
         return self.patcher_settings.get("app-version")
 
-    def set_install_location(self, install_path) -> None:
-        self.patcher_settings["install-dir"] = install_path.replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving install location: {self.patcher_settings.get("isntall-dir")}")
+    def set_stellaris_install_path(self, install_path) -> None:
+        self.patcher_settings["stellaris-install-path"] = install_path.replace('\\', '/').replace('\\\\', '/')
+        log.info(f"Saving Stellaris install location: {self.patcher_settings.get("stellaris-install-path")}")
         self.save_config()
 
-    def get_install_location(self) -> str:
+    def get_stellaris_install_path(self) -> str:
         # self.load_config()
-        return self.patcher_settings.get("install-dir")
+        return self.patcher_settings.get("stellaris-install-path")
+
+    def set_steam_install_path(self, install_path) -> None:
+        self.patcher_settings["steam-install-path"] = install_path.replace('\\', '/').replace('\\\\', '/')
+        log.info(f"Saving Steam install path: {self.patcher_settings.get("steam-install-path")}")
+        self.save_config()
+
+    def get_steam_install_path(self) -> str:
+        # self.load_config()
+        return self.patcher_settings.get("steam-install-path")
 
     def set_executable_name(self, executable_name: str):
         self.patcher_settings["exe-name"] = executable_name
@@ -52,11 +62,11 @@ class Settings:
 
     def get_save_games_dir(self) -> str:
         # self.load_config()
-        return self.patcher_settings.get("save-games-dir")
+        return self.patcher_settings.get("save-games-path")
 
     def set_save_games_dir(self, save_games_dir: str):
-        self.patcher_settings["save-games-dir"] = str(save_games_dir).replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving games directory: {self.patcher_settings.get("save-games-dir")}")
+        self.patcher_settings["save-games-path"] = str(save_games_dir).replace('\\', '/').replace('\\\\', '/')
+        log.info(f"Saving games directory: {self.patcher_settings.get("save-games-path")}")
         self.save_config()
 
     def get_patched_block(self) -> str:
