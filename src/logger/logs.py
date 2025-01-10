@@ -1,13 +1,13 @@
+import os
 import logging
-import pathlib
-from os import makedirs
+from pathlib import Path
 
-Path = pathlib.Path
-
+from .path_helpers import get_os_env_config_folder, ensure_paths
+from conf_globals import HOST, APP_NAME
 from UI.ui_utils import WorkerSignals
-from utils.global_defines import config_folder
 
-LOG_FILE =  config_folder / "StellarisChecksumPatcherLog.txt"
+LOG_FILE = get_os_env_config_folder() / HOST / APP_NAME / f"{APP_NAME}.log"
+print(f"{LOG_FILE=}")
 
 LEVELS = {
     0: logging.DEBUG,
@@ -18,8 +18,14 @@ LEVELS = {
 
 def create_logger(logger_name: str, level: int) -> logging.Logger:
     # Create needed folder if it doesn't exist
-    if not config_folder.exists():
-        makedirs(config_folder, exist_ok=True)
+    if not get_os_env_config_folder().exists():
+        os.makedirs(get_os_env_config_folder(), exist_ok=True)
+
+    ensure_paths(LOG_FILE.parent)
+
+    if not LOG_FILE.exists():
+        with open(LOG_FILE, 'w', encoding="utf-8") as f:
+            f.write('')
 
     logger = logging.getLogger(logger_name)
 
@@ -28,7 +34,8 @@ def create_logger(logger_name: str, level: int) -> logging.Logger:
     handler_stream = logging.StreamHandler()
     handler_file = logging.FileHandler(LOG_FILE)
 
-    formatter = logging.Formatter("[%(name)s] [%(asctime)s] [%(levelname)s] %(message)s", datefmt="%d-%m-%Y %H:%M:%S")
+    formatter = logging.Formatter(f"[%(asctime)s] [%(levelname)s] [%(name)s] [%(funcName)s] %(message)s",
+                                  datefmt="%d-%m-%Y %H:%M:%S")
     handler_stream.setFormatter(formatter)
     handler_file.setFormatter(formatter)
 
@@ -47,31 +54,39 @@ def create_logger(logger_name: str, level: int) -> logging.Logger:
     # Add custom attributes to the logger
     # Info
     _original_info = logger.info
+
     def new_info(msg, *args, **kwargs):
         _original_info(msg, *args, **kwargs)
         logger.signals.progress.emit("[INFO] " + str(msg))
+
     logger.info = new_info
 
     # Warning
     _original_warning = logger.warning
+
     def new_warning(msg, *args, **kwargs):
         _original_warning(msg, *args, **kwargs)
         logger.signals.progress.emit("[WARN] " + str(msg))
+
     logger.warning = new_warning
 
     # Debug
     _original_debug = logger.debug
+
     def new_debug(msg, *args, **kwargs):
         _original_debug(msg, *args, **kwargs)
         if level <= tuple(LEVELS.keys())[0]:
             logger.signals.progress.emit("[DEBUG] " + str(msg))
+
     logger.debug = new_debug
 
     # Error
     _original_error = logger.error
+
     def new_error(msg, *args, **kwargs):
         _original_error(msg, *args, **kwargs)
         logger.signals.progress.emit("[ERROR] " + str(msg))
+
     logger.error = new_error
     # ================================
 

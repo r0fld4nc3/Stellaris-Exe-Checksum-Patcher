@@ -1,4 +1,4 @@
-from utils.global_defines import OS, LOG_LEVEL
+from conf_globals import OS, LOG_LEVEL
 from logger import create_logger
 
 log = create_logger("Registry Helper", LOG_LEVEL)

@@ -93,3 +93,8 @@ class STYLES:
             color: rgb(67, 144, 134);
             background-color: rgb(35, 55, 50);  
             """
+
+    GRAYED_OUT = """
+            background-color: rgb(80, 80, 80);
+            color: rgb(60, 60, 60);
+            """

@@ -1,5 +1,4 @@
 import sys
-import os
 import pathlib
 import platform
 from threading import Lock
@@ -12,7 +11,7 @@ debug_commands = ("-debug", "-d")
 Path = pathlib.Path
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
-APP_NAME: str = "ChecksumPatcher"
+APP_NAME: str = "StellarisChecksumPatcher"
 
 
 class SingletonMetaClass(type):
@@ -66,22 +65,8 @@ def is_macos():
     OS.MACOS = False
     return False
 
-
-if is_windows():
-    print("Target System Windows")
-    program_data_path = os.getenv("LOCALAPPDATA")
-elif is_linux():
-    print("Target System Linux/Unix")
-    program_data_path = Path(os.path.expanduser('~')) / ".local/share/"
-elif is_macos():
-    # Write to user-writable locations, like ~/.local/share
-    program_data_path = Path(os.path.expanduser('~')) / ".local/share/"
-else:
-    print("Target System Other")
-    print(system)
-    program_data_path = pathlib.Path.cwd()
-
-config_folder = Path(program_data_path) / HOST / APP_FOLDER / "Stellaris" / APP_NAME
+from logger.path_helpers import win_get_localappdata
+config_folder = win_get_localappdata() / HOST / APP_NAME
 
 LOG_LEVEL = 0
 if len(sys.argv) > 1 and str(sys.argv[1]).lower() in debug_commands:
@@ -112,5 +97,4 @@ steam = steam_helper.SteamHelper()
 log.info(f"Debug:             {is_debug}")
 log.info(f"App Version:       {APP_VERSION}")
 log.info(f"Target System:     {system}")
-log.info(f"Program Data Path: {program_data_path}")
 log.info(f"Config Folder:     {config_folder}")

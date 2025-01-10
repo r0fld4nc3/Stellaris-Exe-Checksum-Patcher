@@ -8,7 +8,7 @@ import zipfile
 import tempfile
 
 # 3rd Party
-from utils.global_defines import settings, OS, LOG_LEVEL
+from conf_globals import settings, OS, LOG_LEVEL
 from logger import create_logger
 
 Path = pathlib.Path

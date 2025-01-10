@@ -1,21 +1,9 @@
 import sys
 from io import StringIO
 
+from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QObject, QRunnable, QThread, Slot, Signal, QCoreApplication
-
-
-class Capturing(list):  # Deprecated, here for simply backup reasons because it was really cool to figure it out.
-    def __enter__(self):
-        self._stdout = sys.stdout
-        sys.stdout = self._stringio = StringIO()
-        return self
-
-    def __exit__(self, *args):
-        self.extend(self._stringio.getvalue().splitlines())
-        del self._stringio  # free up some memory
-        sys.stdout = self._stdout
-
 
 class WorkerSignals(QObject):
     started = Signal()
@@ -67,6 +55,30 @@ class Threader(QThread):
     def stop(self):
         self.signals.sig_quit.emit()
         self.exit(0)
+
+
+def set_icon_gray(icon: QIcon, size=(32, 32)):
+    """
+    Converts a QIcon to a grayed out version by applying a grayscale filter.
+
+    :param icon: QIcon to be grayed out.
+    :param size: Tuple (width, height) for the size of the QPixmap
+    :return: QIcon with a grayscale effect
+    """
+
+    pixmap = icon.pixmap(size[0], size[1])
+
+    gray_pixmap = QPixmap(pixmap.size())
+    gray_pixmap.fill(QColor("transparent")) # Background is transparent
+
+    # QPainter to apply the filter
+    painter = QPainter(gray_pixmap)
+    painter.drawPixmap(0, 0, pixmap) # Draw original
+    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+    painter.fillRect(gray_pixmap.rect(), QColor("gray")) # Apply the colour filter
+    painter.end()
+
+    return QIcon(gray_pixmap)
 
 
 def get_screen_info(app: QApplication | QCoreApplication) -> tuple:

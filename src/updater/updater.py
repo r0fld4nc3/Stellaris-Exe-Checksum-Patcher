@@ -2,7 +2,7 @@ from string import punctuation
 import requests
 import time
 
-from utils.global_defines import LOG_LEVEL
+from conf_globals import LOG_LEVEL
 from logger import create_logger
 
 log = create_logger("Updater", LOG_LEVEL)

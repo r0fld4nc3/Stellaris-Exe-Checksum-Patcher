@@ -4,7 +4,7 @@ import pathlib
 from utils import registry_helper
 from typing import Union
 
-from utils.global_defines import OS, LOG_LEVEL
+from conf_globals import OS, LOG_LEVEL
 from logger import create_logger
 import vdf
 

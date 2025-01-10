@@ -3,7 +3,7 @@ import os
 import pathlib
 import sys
 
-from utils.global_defines import config_folder, LOG_LEVEL
+from conf_globals import config_folder, LOG_LEVEL
 from logger import create_logger
 
 log = create_logger("Settings", LOG_LEVEL)
@@ -25,58 +25,65 @@ class Settings:
 
     def set_app_version(self, version: str):
         self.patcher_settings["app-version"] = version
+        log.info(f"Saving app version: {self.patcher_settings.get("app-version")}")
         self.save_config()
 
     def get_app_version(self):
-        self.load_config()
+        # self.load_config()
         return self.patcher_settings.get("app-version")
 
     def set_install_location(self, install_path) -> None:
         self.patcher_settings["install-dir"] = install_path.replace('\\', '/').replace('\\\\', '/')
+        log.info(f"Saving install location: {self.patcher_settings.get("isntall-dir")}")
         self.save_config()
 
     def get_install_location(self) -> str:
-        self.load_config()
+        # self.load_config()
         return self.patcher_settings.get("install-dir")
 
     def set_executable_name(self, executable_name: str):
         self.patcher_settings["exe-name"] = executable_name
+        log.info(f"Saving executable name: {self.patcher_settings.get("exe-name")}")
         self.save_config()
 
     def get_executable_name(self) -> str:
-        self.load_config()
+        # self.load_config()
         return self.patcher_settings.get("exe-name")
 
     def get_save_games_dir(self) -> str:
-        self.load_config()
+        # self.load_config()
         return self.patcher_settings.get("save-games-dir")
 
     def set_save_games_dir(self, save_games_dir: str):
         self.patcher_settings["save-games-dir"] = str(save_games_dir).replace('\\', '/').replace('\\\\', '/')
+        log.info(f"Saving games directory: {self.patcher_settings.get("save-games-dir")}")
         self.save_config()
 
     def get_patched_block(self) -> str:
-        self.load_config()
+        # self.load_config()
         return self.patcher_settings.get("patched-block")
 
     def set_patched_block(self, str_to_set: str):
         self.patcher_settings["patched-block"] = str(str_to_set)
+        log.info(f"Saving patched block: {self.patcher_settings.get("patched-block")}")
         self.save_config()
 
     def get_update_last_checked(self) -> int:
-        self.load_config()
+        # self.load_config()
         return self.patcher_settings.get("update-last-checked")
 
     def set_update_last_checked(self, timestamp: int):
         self.patcher_settings["update-last-checked"] = int(timestamp)
+        log.info(f"Saving update last checked: {self.patcher_settings.get("update-last-checked")}")
         self.save_config()
 
     def get_has_update(self) -> bool:
-        self.load_config()
+        # self.load_config()
         return self.patcher_settings.get("update-available")
 
     def set_has_update(self, bool_to_set: bool):
         self.patcher_settings["update-available"] = bool(bool_to_set)
+        log.info(f"Saving is update available: {self.patcher_settings.get("update-available")}")
         self.save_config()
 
     def clean_save_file(self):

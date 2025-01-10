@@ -5,23 +5,22 @@ import pathlib
 import subprocess
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QLabel, QSizePolicy, QInputDialog, QDialog, QFileDialog, QTextBrowser,
-    QFrame, QAbstractScrollArea
+    QLabel, QSizePolicy, QFileDialog, QTextBrowser, QFrame, QAbstractScrollArea
 )
-from PySide6.QtCore import QSize, QDateTime, QRunnable, Qt, QThreadPool, QObject, QEvent
+from PySide6.QtCore import Qt, QSize, QThreadPool, QObject, QEvent
 from PySide6.QtGui import QIcon, QFont, QFontDatabase
 
 from .Styles import STYLES
-from .ui_utils import Threader, get_screen_info
-from utils.global_defines import updater, settings, APP_VERSION, OS, LOG_LEVEL
+from .ui_utils import Threader, get_screen_info, set_icon_gray
+from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL
 from logger import create_logger, reset_log_file
 from patchers import stellaris_patch
 from patchers.save_patcher import repair_save, get_user_save_folder
 
 # loggers to hook up to signals
-from updater.updater import log as updlog
-from patchers.stellaris_patch import log as patcherlog
-from patchers.save_patcher import log as patchersavelog
+from updater.updater import log as updater_log
+from patchers.stellaris_patch import log as patcher_log
+from patchers.save_patcher import log as patcher_save_log
 
 Path = pathlib.Path
 
@@ -62,11 +61,13 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION})"
 
         # Icons and Fonts
+        window_icon = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.ico"))
+        patch_icon = QIcon(str(self.icons / "patch_icon.png"))
+        save_patch_icon = QIcon(str(self.icons / "save_patch_icon.png"))
         orbitron_bold_font_id = QFontDatabase.addApplicationFont(str(self.fonts / "Orbitron-Bold.ttf"))
         self.orbitron_bold_font = QFontDatabase.applicationFontFamilies(orbitron_bold_font_id)[0]
-        window_icon = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.ico"))
-        self.stellaris_patch_icon = QIcon(str(self.icons / "patch_icon.png"))
-        self.stellaris_save_patch_icon = QIcon(str(self.icons / "save_patch_icon.png"))
+        self.stellaris_patch_icon = patch_icon
+        self.stellaris_save_patch_icon = set_icon_gray(save_patch_icon)
 
         # Set app constraints
         self.setWindowTitle(self.window_title_with_app_version)
@@ -169,7 +170,7 @@ class StellarisChecksumPatcherGUI(QWidget):
 
         # Fix Save Button
         self.btn_fix_save_file = QPushButton("Fix Save Achievements")
-        self.btn_fix_save_file.setStyleSheet(self.style.BUTTONS)
+        self.btn_fix_save_file.setStyleSheet(STYLES.GRAYED_OUT)
         self.btn_fix_save_file.setIcon(self.stellaris_save_patch_icon)
         self.btn_fix_save_file.setIconSize(QSize(64, 64))
         self.btn_fix_save_file.setFont(QFont(self.orbitron_bold_font, 14))
@@ -232,16 +233,17 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.main_frame.setLayout(self.frame_layout)
 
         # Hook up Signals
+        # Could be a bit hacky. Ensure created before assign
         log.signals.progress.connect(self.terminal_display_log)
-        updlog.signals.progress.connect(self.terminal_display_log)  # Could be a bit hacky. Ensure created before assign
-        patcherlog.signals.progress.connect(self.terminal_display_log)  # Could be a bit hacky. Ensure created before assign
-        patchersavelog.signals.progress.connect(self.terminal_display_log)  # Could be a bit hacky. Ensure created before assign
+        updater_log.signals.progress.connect(self.terminal_display_log)
+        patcher_log.signals.progress.connect(self.terminal_display_log)
+        patcher_save_log.signals.progress.connect(self.terminal_display_log)
 
         # Worker
-        self.worker = None
+        self.worker = None  # Currently unusued, possibly to deprecate
 
-        # ThreadPool
-        self.thread_pool = QThreadPool()
+        # Threads
+        self.thread_pool = QThreadPool()  # Currently unusued, possibly to deprecate
         self.active_threads = []
 
         self.load_configs()
@@ -476,7 +478,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         last_checked = settings.get_update_last_checked()
         now = int(time.time())
 
-        if now - last_checked < 60:
+        if now - last_checked < 60: # seconds
             self.check_update_finished()
             return
 
@@ -509,8 +511,10 @@ class StellarisChecksumPatcherGUI(QWidget):
             settings.set_has_update(True)
 
     def show(self):
+        reset_log_file()
         super().show()
         self._adjust_app_size()
+        self.terminal_display.clear()
         sys.exit(self.app.exec())
 
     def closeEvent(self, event):
@@ -521,7 +525,21 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.app_quit()
 
     def app_quit(self):
-        log.info("Application is closing. Shutting down procedure")
+        log.info("Quitting Application. Performing graceful shutdown procedure.")
+        try:
+            if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
+                log.info("Waiting for thread pool finish.")
+                self.thread_pool.waitForDone(msecs=2000)  # Wait for max 2 seconds.
+                log.debug("Done waiting.")
+
+            if self.active_threads:
+                for thread in self.active_threads:
+                    try:
+                        thread.stop()
+                    except Exception as e:
+                        log.error(f"Error in stopping Thread. {e}")
+        except Exception as e:
+            log.error(e)
 
         sys.exit(0)
 
