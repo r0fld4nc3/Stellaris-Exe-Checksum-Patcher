@@ -17,29 +17,25 @@ LEVELS = {
 }
 
 class LoggerWithSignals(logging.Logger):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.signals = WorkerSignals()
+
     def debug(self, msg, *args, **kwargs):
         super().debug(msg, *args, **kwargs)
-
-        if hasattr(self, "signals") and hasattr(self.signals, "progress"):
-            self.signals.progress.emit("[DEBUG] " + str(msg))
+        self.signals.progress.emit("[DEBUG] " + str(msg))
 
     def info(self, msg, *args, **kwargs):
         super().info(msg, *args, **kwargs)
-
-        if hasattr(self, "signals") and hasattr(self.signals, "progress"):
-            self.signals.progress.emit("[INFO] " + str(msg))
+        self.signals.progress.emit("[INFO] " + str(msg))
 
     def warning(self, msg, *args, **kwargs):
         super().info(msg, *args, **kwargs)
-
-        if hasattr(self, "signals") and hasattr(self.signals, "progress"):
-            self.signals.progress.emit("[WARN] " + str(msg))
+        self.signals.progress.emit("[WARN] " + str(msg))
 
     def error(self, msg, *args, **kwargs):
         super().info(msg, *args, **kwargs)
-
-        if hasattr(self, "signals") and hasattr(self.signals, "progress"):
-            self.signals.progress.emit("[ERROR] " + str(msg))
+        self.signals.progress.emit("[ERROR] " + str(msg))
 
 # Replace logging.Logger Class with custom Class
 print(f"Replaced Class {logging.Logger} with {LoggerWithSignals}")
@@ -63,7 +59,7 @@ def create_logger(logger_name: str, level: int) -> logging.Logger:
     handler_stream = logging.StreamHandler()
     handler_file = logging.FileHandler(LOG_FILE)
 
-    formatter = logging.Formatter(f"[%(asctime)s] [%(levelname)s] [%(name)s] [%(funcName)s] %(message)s",
+    formatter = logging.Formatter(f"[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
                                   datefmt="%d-%m-%Y %H:%M:%S")
     handler_stream.setFormatter(formatter)
     handler_file.setFormatter(formatter)
@@ -74,8 +70,6 @@ def create_logger(logger_name: str, level: int) -> logging.Logger:
 
     if not any(isinstance(handler, logging.FileHandler) and handler.baseFilename == LOG_FILE for handler in logger.handlers):
         logger.addHandler(handler_file)
-
-    logger.signals = WorkerSignals()
 
     return logger
 
