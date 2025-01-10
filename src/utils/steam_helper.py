@@ -102,7 +102,6 @@ class SteamHelper:
                     }
 
         log.error(f"Unable to determine installation information for {game_name}")
-        log.info('3')
         return {}
 
     def recursive_dict_find_value(self, dict_to_find, key_to_find, stop_on_find=False):
