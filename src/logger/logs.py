@@ -55,39 +55,39 @@ def create_logger(logger_name: str, level: int) -> logging.Logger:
     # Info
     _original_info = logger.info
 
-    def new_info(msg, *args, **kwargs):
+    def _info(msg, *args, **kwargs):
         _original_info(msg, *args, **kwargs)
         logger.signals.progress.emit("[INFO] " + str(msg))
 
-    logger.info = new_info
+    logger.info = _info
 
     # Warning
     _original_warning = logger.warning
 
-    def new_warning(msg, *args, **kwargs):
+    def _warning(msg, *args, **kwargs):
         _original_warning(msg, *args, **kwargs)
         logger.signals.progress.emit("[WARN] " + str(msg))
 
-    logger.warning = new_warning
+    logger.warning = _warning
 
     # Debug
     _original_debug = logger.debug
 
-    def new_debug(msg, *args, **kwargs):
+    def _debug(msg, *args, **kwargs):
         _original_debug(msg, *args, **kwargs)
         if level <= tuple(LEVELS.keys())[0]:
             logger.signals.progress.emit("[DEBUG] " + str(msg))
 
-    logger.debug = new_debug
+    logger.debug = _debug
 
     # Error
     _original_error = logger.error
 
-    def new_error(msg, *args, **kwargs):
+    def _error(msg, *args, **kwargs):
         _original_error(msg, *args, **kwargs)
         logger.signals.progress.emit("[ERROR] " + str(msg))
 
-    logger.error = new_error
+    logger.error = _error
     # ================================
 
     return logger
