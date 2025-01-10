@@ -16,6 +16,35 @@ LEVELS = {
     3: logging.ERROR
 }
 
+class LoggerWithSignals(logging.Logger):
+    def debug(self, msg, *args, **kwargs):
+        super().debug(msg, *args, **kwargs)
+
+        if hasattr(self, "signals") and hasattr(self.signals, "progress"):
+            self.signals.progress.emit("[DEBUG] " + str(msg))
+
+    def info(self, msg, *args, **kwargs):
+        super().info(msg, *args, **kwargs)
+
+        if hasattr(self, "signals") and hasattr(self.signals, "progress"):
+            self.signals.progress.emit("[INFO] " + str(msg))
+
+    def warning(self, msg, *args, **kwargs):
+        super().info(msg, *args, **kwargs)
+
+        if hasattr(self, "signals") and hasattr(self.signals, "progress"):
+            self.signals.progress.emit("[WARN] " + str(msg))
+
+    def error(self, msg, *args, **kwargs):
+        super().info(msg, *args, **kwargs)
+
+        if hasattr(self, "signals") and hasattr(self.signals, "progress"):
+            self.signals.progress.emit("[ERROR] " + str(msg))
+
+# Replace logging.Logger Class with custom Class
+print(f"Replaced Class {logging.Logger} with {LoggerWithSignals}")
+logging.setLoggerClass(LoggerWithSignals)
+
 def create_logger(logger_name: str, level: int) -> logging.Logger:
     # Create needed folder if it doesn't exist
     if not get_os_env_config_folder().exists():
@@ -47,48 +76,6 @@ def create_logger(logger_name: str, level: int) -> logging.Logger:
         logger.addHandler(handler_file)
 
     logger.signals = WorkerSignals()
-
-    # ================================
-    # Modified original methods
-    # ================================
-    # Add custom attributes to the logger
-    # Info
-    _original_info = logger.info
-
-    def _info(msg, *args, **kwargs):
-        _original_info(msg, *args, **kwargs)
-        logger.signals.progress.emit("[INFO] " + str(msg))
-
-    logger.info = _info
-
-    # Warning
-    _original_warning = logger.warning
-
-    def _warning(msg, *args, **kwargs):
-        _original_warning(msg, *args, **kwargs)
-        logger.signals.progress.emit("[WARN] " + str(msg))
-
-    logger.warning = _warning
-
-    # Debug
-    _original_debug = logger.debug
-
-    def _debug(msg, *args, **kwargs):
-        _original_debug(msg, *args, **kwargs)
-        if level <= tuple(LEVELS.keys())[0]:
-            logger.signals.progress.emit("[DEBUG] " + str(msg))
-
-    logger.debug = _debug
-
-    # Error
-    _original_error = logger.error
-
-    def _error(msg, *args, **kwargs):
-        _original_error(msg, *args, **kwargs)
-        logger.signals.progress.emit("[ERROR] " + str(msg))
-
-    logger.error = _error
-    # ================================
 
     return logger
 
