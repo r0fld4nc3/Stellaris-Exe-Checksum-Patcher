@@ -78,7 +78,7 @@ class SteamHelper:
                 file = os.path.join(lib, fname)
 
                 if not os.path.isfile(file):
-                    log.debug(f"{file} is not a file.")
+                    log.debug(f"Not a file: {file}")
                     continue
 
                 if STEAM_APP_MANIFEST_FILE_PREFIX not in fname:
@@ -133,7 +133,7 @@ class SteamHelper:
         :return: A list of matching parameters.
         """
 
-        log.debug(f"From {pathlib.Path(vdf_file).name} getting values of {key}")
+        log.debug(f"From {pathlib.Path(vdf_file).name} getting values of key \"{key}\"")
 
         vdf_fh = vdf.load(open(vdf_file))
         values_out = self.recursive_dict_find_value(vdf_fh, key, stop_on_find)
@@ -152,7 +152,7 @@ class SteamHelper:
         #         for v in value:
         #             values_out.append(v)
 
-        log.info(f"Out values: {values_out}")
+        log.info(f"Gathered: {values_out}")
         return values_out
 
     def get_steam_libraries(self) -> Union[list, bool]:
@@ -194,7 +194,7 @@ class SteamHelper:
         return self.steam_library_paths
 
     def get_game_install_path(self, game_name) -> Union[pathlib.Path, bool]:
-        log.info("Acquiring Stellaris installation...")
+        log.info(f"Acquiring {game_name} installation...")
 
         install_details = self.get_game_install_info_from_name(game_name)
 
@@ -219,13 +219,13 @@ class SteamHelper:
         elif OS.LINUX:
             steam = None
             for distro_path in LINUX_DISTRO_PATHS:
-                log.info(f"Checking path: {distro_path}")
                 if Path(distro_path).exists():
                     steam = distro_path
                     break
         elif OS.MACOS:
             steam = None
             for distro_path in MACOS_DISTRO_PATHS:
+                log.info(f"Path exists: {distro_path.exists()} \"{distro_path}\"")
                 if Path(distro_path).exists():
                     steam = distro_path
                     break
