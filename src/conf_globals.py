@@ -1,7 +1,6 @@
 import sys
 import pathlib
 import platform
-from threading import Lock
 
 APP_VERSION = [1, 1, 0, "pre"]
 
@@ -14,56 +13,10 @@ APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
 
 
-class SingletonMetaClass(type):
-    """
-        Thread-safe Singleton class
-        """
-    _instances = {}
-    _lock = Lock()
-
-    def __call__(cls, *args, **kwargs):
-        with cls._lock:
-            if cls not in cls._instances:
-                instance = super().__call__(*args, **kwargs)
-                cls._instances[cls] = instance
-            return cls._instances[cls]
-
-# Probably overengineered way to have this display as a persistent thingy
-# We don't actually call/initialise this class, but have it as a singleton just in case
-class OS(metaclass=SingletonMetaClass):
-    WINDOWS = False
-    LINUX = False
-    MACOS = False
-
-
-def is_windows():
-    if system == "Windows":
-        OS.WINDOWS = True
-        OS.LINUX = False
-        OS.MACOS = False
-        return True
-    OS.WINDOWS = False
-    return False
-
-
-def is_linux():
-    if system in ["Linux", "Unix"]:
-        OS.WINDOWS = False
-        OS.LINUX = True
-        OS.MACOS = False
-        return True
-    OS.LINUX = False
-    return False
-
-
-def is_macos():
-    if system == "Darwin":
-        OS.WINDOWS = False
-        OS.LINUX = False
-        OS.MACOS = True
-        return True
-    OS.MACOS = False
-    return False
+class OS:
+    WINDOWS = system.lower() == "windows"
+    LINUX = system.lower() in ["linux", "unix"]
+    MACOS = system.lower() in ["darwin", "mac"]
 
 from logger.path_helpers import win_get_localappdata
 config_folder = win_get_localappdata() / HOST / APP_NAME
@@ -78,7 +31,7 @@ else:
 
 # Because we're using the config folder defined here, in the logger class and import
 # We have to import the logger after
-from logger import create_logger, reset_log_file
+from logger import create_logger
 
 log = create_logger("Globals", LOG_LEVEL)
 
