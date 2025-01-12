@@ -59,7 +59,6 @@ class StellarisChecksumPatcherGUI(QWidget):
 
         self.install_dir = ''
         self.game_executable_name = ''
-        self.replace_failed_reasons = []
 
         self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
 
@@ -105,15 +104,15 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.hlayout_misc_functions.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         # ========== Size Policies ==========
-        btn_size_policy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
+        btn_size_policy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum)
         btn_size_policy.setHorizontalStretch(0)
         btn_size_policy.setVerticalStretch(0)
 
-        size_policy_project_browser_link = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
+        size_policy_project_browser_link = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
         size_policy_project_browser_link.setHorizontalStretch(0)
         size_policy_project_browser_link.setVerticalStretch(0)
 
-        size_policy_app_version_label = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        size_policy_app_version_label = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         size_policy_app_version_label.setHorizontalStretch(0)
         size_policy_app_version_label.setVerticalStretch(0)
 
@@ -143,9 +142,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.btn_themed_exit_app.setStyleSheet(self.style.EXIT_APP)
         self.btn_themed_exit_app.setFont(self.orbitron_bold_font)
         self.btn_themed_exit_app.setSizePolicy(btn_size_policy)
-        self.btn_themed_exit_app.setMinimumSize(QSize(32, 24))
-        self.btn_themed_exit_app.setMaximumSize(QSize(32, 32))
-        self.btn_themed_exit_app.setBaseSize(QSize(32, 32))
+        self.btn_themed_exit_app.setMinimumSize(QSize(32, 32))
         self.btn_themed_exit_app.clicked.connect(self.app_quit)
 
         # Terminal Display
@@ -264,7 +261,6 @@ class StellarisChecksumPatcherGUI(QWidget):
         updater.set_local_version(str(self._APP_VERSION))
 
     def reset_caches(self):
-        self.replace_failed_reasons.clear()
         self.is_patching = False
         self.auto_patch_failed = False
 
