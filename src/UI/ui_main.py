@@ -43,6 +43,9 @@ class StellarisChecksumPatcherGUI(QWidget):
 
         super().__init__()
 
+        # Base Size
+        self.resize(966, 821)
+
         self.style = STYLES.Stellaris # Default pick
 
         if self.style == STYLES.Stellaris:
@@ -86,14 +89,20 @@ class StellarisChecksumPatcherGUI(QWidget):
         # Frame Layout
         self.frame_layout = QVBoxLayout()
 
+        # Window Functions Container
+        self.window_functions_container = QWidget(self)
+        self.window_functions_container.setStyleSheet(STYLES.Stellaris.TITLE)
+        self.window_functions_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
         # Window Functions Layout
-        self.hlayout_window_functions = QHBoxLayout()
+        self.hlayout_window_functions = QHBoxLayout(self.window_functions_container)
 
         self.hlayout_after_terminal_display = QHBoxLayout()
 
         self.hlayout_patch_buttons = QHBoxLayout()
 
         self.hlayout_misc_functions = QHBoxLayout()
+        self.hlayout_misc_functions.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         # ========== Size Policies ==========
         btn_size_policy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
@@ -192,20 +201,19 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.btn_patch_executable.setFlat(False)
 
         # Show Game Folder Button
-        self.btn_show_game_folder = QPushButton("Show Game Folder")
+        self.btn_show_game_folder = QPushButton("Game Folder")
         self.btn_show_game_folder.setStyleSheet(self.style.BUTTONS)
         self.btn_show_game_folder.setFlat(False)
         self.btn_show_game_folder.setSizePolicy(btn_size_policy)
-        self.btn_show_game_folder.setMinimumSize(QSize(12, 24))
-        self.btn_show_game_folder.setMaximumSize(QSize(16777215, 75))
-        self.btn_show_game_folder.setBaseSize(QSize(12, 24))
-        self.btn_show_game_folder.setFont(QFont(self.orbitron_bold_font, 14))
-        self.btn_show_game_folder.setMouseTracking(True)
+        self.btn_show_game_folder.setMinimumSize(QSize(100, 48))
+        self.btn_show_game_folder.setMaximumSize(QSize(124, 16777215))
+        self.btn_show_game_folder.setFont(QFont(self.orbitron_bold_font, 12))
         self.btn_show_game_folder.clicked.connect(self.show_game_folder)
 
-        # Add Widgets to Layouts
+        # ============ Add Widgets to Layouts ============
         # Window Functions
-        self.hlayout_window_functions.addWidget(self.btn_themed_exit_app, 0, Qt.AlignRight)
+        self.hlayout_window_functions.addWidget(self.lbl_title, 0, Qt.AlignmentFlag.AlignLeft)
+        self.hlayout_window_functions.addWidget(self.btn_themed_exit_app, 0, Qt.AlignmentFlag.AlignRight)
 
         # After Terminal Layout
         self.hlayout_after_terminal_display.addWidget(self.txt_browser_project_link)
@@ -221,13 +229,12 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.main_layout.addWidget(self.main_frame)
 
         # Main Frame Layout
-        self.frame_layout.addLayout(self.hlayout_window_functions)
-        self.frame_layout.addWidget(self.lbl_title)
+        self.frame_layout.addWidget(self.window_functions_container)
         self.frame_layout.addWidget(self.lbl_app_version)
         self.frame_layout.addWidget(self.terminal_display)
         self.frame_layout.addLayout(self.hlayout_after_terminal_display)
-        self.frame_layout.addLayout(self.hlayout_patch_buttons)
         self.frame_layout.addLayout(self.hlayout_misc_functions)
+        self.frame_layout.addLayout(self.hlayout_patch_buttons)
 
         self.setLayout(self.main_layout)
         self.main_frame.setLayout(self.frame_layout)
@@ -246,11 +253,11 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.thread_pool = QThreadPool()  # Currently unusued, possibly to deprecate
         self.active_threads = []
 
-        self.load_configs()
+        self.load_settings()
 
         self.check_update()
 
-    def load_configs(self):
+    def load_settings(self):
         self.install_dir = settings.get_stellaris_install_path()
         self.game_executable_name = settings.get_executable_name()
         settings.set_app_version(f"{self._APP_VERSION}")
@@ -418,6 +425,7 @@ class StellarisChecksumPatcherGUI(QWidget):
             return
 
         log.info(f"Game Folder: {game_folder}")
+
         if OS.WINDOWS:
             subprocess.run(["explorer.exe", "/select", os.path.normpath(game_folder)])
         elif OS.LINUX:
@@ -555,8 +563,6 @@ class StellarisChecksumPatcherGUI(QWidget):
         if screen_info[0] <= 1500 or screen_info[1] <= 1000 or screen_info[2] <= 0.7:
             log.info("Resizing application")
             self.resize(QSize(650, 500))
-        else:
-            self.resize(966, 821)
 
 
 class EventFilterOvr(QObject):
