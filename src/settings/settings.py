@@ -1,6 +1,6 @@
 import json
 import os
-import pathlib
+from pathlib import Path
 import sys
 
 from conf_globals import config_folder, LOG_LEVEL
@@ -21,8 +21,8 @@ class Settings:
             "exe-name": ""
         }
         self._config_file_name = "stellaris-checksum-patcher-settings.json"
-        self.config_dir = pathlib.Path(config_folder)
-        self.config_file = pathlib.Path(config_folder) / self._config_file_name
+        self.config_dir = Path(config_folder)
+        self.config_file = Path(config_folder) / self._config_file_name
 
     def set_app_version(self, version: str):
         self.patcher_settings["app-version"] = version
@@ -102,7 +102,7 @@ class Settings:
         :return: `bool`
         """
 
-        if not self.config_dir or not pathlib.Path(self.config_dir).exists():
+        if not self.config_dir or not Path(self.config_dir).exists():
             log.info("No config folder found.")
             return False
 
@@ -127,7 +127,7 @@ class Settings:
         return True
 
     def save_config(self):
-        if self.config_dir == '' or not pathlib.Path(self.config_dir).exists():
+        if self.config_dir == '' or not Path(self.config_dir).exists():
             os.makedirs(self.config_dir)
             log.debug(f"Generated config folder {self.config_dir}")
 
@@ -136,8 +136,8 @@ class Settings:
             log.debug(f"Saved config to {self.config_file}")
 
     def load_config(self):
-        if self.config_dir == '' or not pathlib.Path(self.config_dir).exists()\
-                or not pathlib.Path(self.config_file).exists():
+        if self.config_dir == '' or not Path(self.config_dir).exists()\
+                or not Path(self.config_file).exists():
             log.debug(f"Config does not exist.")
             return False
 
@@ -159,8 +159,8 @@ class Settings:
                 config_file.write(json.dumps(self.patcher_settings, indent=2))
         log.debug(self.patcher_settings)
 
-    def get_config_dir(self) -> pathlib.Path:
-        if not self.config_dir or not pathlib.Path(self.config_dir).exists:
-            return pathlib.Path(os.path.dirname(sys.executable))
+    def get_config_dir(self) -> Path:
+        if not self.config_dir or not Path(self.config_dir).exists:
+            return Path(os.path.dirname(sys.executable))
 
         return self.config_dir

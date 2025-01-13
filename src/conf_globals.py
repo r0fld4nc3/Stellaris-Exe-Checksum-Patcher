@@ -1,9 +1,6 @@
-import sys
-import pathlib
 import platform
 import argparse
 
-Path = pathlib.Path
 system = platform.system()
 debug_commands = ("-debug", "-d")
 

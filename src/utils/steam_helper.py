@@ -1,14 +1,12 @@
 # built-ins
 import os
-import pathlib
+from pathlib import Path
 from utils import registry_helper
 from typing import Union
 
 from conf_globals import settings, OS, LOG_LEVEL
 from logger import create_logger
 import vdf
-
-Path = pathlib.Path
 
 log = create_logger("Steam Helper", LOG_LEVEL)
 
@@ -25,13 +23,13 @@ LIBRARY_FOLDERS_VDF_FILE = "libraryfolders.vdf"
 STEAM_LIBRARY_FOLDERS_FILE_TRAIL = Path("config") / LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
 
 LINUX_DISTRO_PATHS = [
-    pathlib.Path.home() / ".local" / "share" / "Steam",
-    pathlib.Path.home() / ".var" / "app" / "com.valvesoftware.Steam" / ".local" / "share" / "Steam",
-    # pathlib.Path.home() / ".steam"
+    Path.home() / ".local" / "share" / "Steam",
+    Path.home() / ".var" / "app" / "com.valvesoftware.Steam" / ".local" / "share" / "Steam",
+    # Path.home() / ".steam"
 ]
 
 MACOS_DISTRO_PATHS = [
-    pathlib.Path.home() / "Library" / "Application Support" / "Steam"
+    Path.home() / "Library" / "Application Support" / "Steam"
 ]
 
 
@@ -93,7 +91,7 @@ class SteamHelper:
                 log.debug(f"{app_id}: {title}")
                 if title == game_name:
                     log.debug(f"Found title match: {title} with App Id {app_id} in {fname} in library {lib}")
-                    _fwd_slashed_path = str(pathlib.Path(os.path.join(lib, f"common/{title}"))).replace('\\', '/').replace('\\\\', '/')
+                    _fwd_slashed_path = str(Path(os.path.join(lib, f"common/{title}"))).replace('\\', '/').replace('\\\\', '/')
                     log.info(f'Found game install in {_fwd_slashed_path}')
                     return {
                         "title": title,
@@ -132,7 +130,7 @@ class SteamHelper:
         :return: A list of matching parameters.
         """
 
-        log.debug(f"From {pathlib.Path(vdf_file).name} getting values of key \"{key}\"")
+        log.debug(f"From {Path(vdf_file).name} getting values of key \"{key}\"")
 
         vdf_fh = vdf.load(open(vdf_file))
         values_out = self.recursive_dict_find_value(vdf_fh, key, stop_on_find)
@@ -192,7 +190,7 @@ class SteamHelper:
 
         return self.steam_library_paths
 
-    def get_game_install_path(self, game_name) -> Union[pathlib.Path, bool]:
+    def get_game_install_path(self, game_name) -> Union[Path, bool]:
         log.info(f"Acquiring {game_name} installation...")
 
         install_details = self.get_game_install_info_from_name(game_name)
@@ -205,7 +203,7 @@ class SteamHelper:
 
         return install_folder
 
-    def get_steam_install_path(self) -> pathlib.Path:
+    def get_steam_install_path(self) -> Path:
         log.info("Acquiring Steam installation...")
 
         saved_path = settings.get_steam_install_path()

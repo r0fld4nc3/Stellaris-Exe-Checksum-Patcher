@@ -1,7 +1,7 @@
 import os
 import sys
 import time
-import pathlib
+from pathlib import Path
 import subprocess
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
@@ -21,8 +21,6 @@ from patchers.save_patcher import repair_save, get_user_save_folder
 from updater.updater import log as updater_log
 from patchers.stellaris_patch import log as patcher_log
 from patchers.save_patcher import log as patcher_save_log
-
-Path = pathlib.Path
 
 log = create_logger("UI", LOG_LEVEL)
 
@@ -464,7 +462,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         if not save_file_path:
             return False
 
-        save_games_dir = pathlib.Path(save_file_path).parent.parent
+        save_games_dir = Path(save_file_path).parent.parent
         log.info(f"Save games directory: {os.path.normpath(save_games_dir)}")
         settings.set_save_games_dir(save_games_dir)
 

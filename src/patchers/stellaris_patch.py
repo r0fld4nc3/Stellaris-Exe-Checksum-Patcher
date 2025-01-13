@@ -1,15 +1,13 @@
 # Regex Pattern Patching Credit: Melechtna Antelecht
 
 import re
-import pathlib
+from pathlib import Path
 import binascii
 import shutil
 from typing import Union
 
 from conf_globals import OS, steam, settings, LOG_LEVEL
 from logger import create_logger
-
-Path = pathlib.Path
 
 log = create_logger("Patcher", LOG_LEVEL)
 

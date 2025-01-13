@@ -3,15 +3,13 @@ import os
 import shutil
 import requests
 import base64
-import pathlib
+from pathlib import Path
 import zipfile
 import tempfile
 
 # 3rd Party
 from conf_globals import settings, OS, LOG_LEVEL
 from logger import create_logger
-
-Path = pathlib.Path
 
 log = create_logger("Save Patcher", LOG_LEVEL)
 
