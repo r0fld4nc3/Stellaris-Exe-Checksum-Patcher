@@ -28,7 +28,7 @@ elif OS.MACOS:
     # .app IS NOT A FILE, IT'S A DIRECTORY
     # The actual executable is inside the .app -> /.../stellaris.app/Contents/MacOS/stellaris
     EXE_DEFAULT_FILENAME = "stellaris.app"
-    EXE_PATH_POSTPEND = "Contents/MacOS/stellaris"
+    BIN_PATH_POSTPEND = "Contents/MacOS/stellaris"
     hex_find = "85DB"
     hex_replace = "31DB"
     patch_pattern = re.compile(r"89C3E851.{8,10}%s" % hex_find, re.IGNORECASE)
@@ -88,7 +88,7 @@ def is_patched(file_path: Path) -> bool:
     match = regex_pattern.search(binary_hex)
     if match:
         matched_line = binary_hex[match.start():match.end()].upper()
-        log.info(f"Matched line (hex): {matched_line}")
+        log.info(f"Matched hex: {matched_line}")
         return True
 
     return False
@@ -103,7 +103,7 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
     # Create or replace file
     if backup_file.exists():
         if not overwrite:
-            log.info(f"Aborting backup as overwrite backup is {overwrite}")
+            log.info(f"Aborting backup as a backup already exits and overwriting is set to {overwrite}")
             return True
 
         log.info(f"Unlinking/Removing {backup_file}")
@@ -181,7 +181,7 @@ def patch(file_path: Path, duplicate_to: Path = None, both=False):
     match = regex_pattern.search(binary_hex)
     if match:
         matched_line = binary_hex[match.start():match.end()]
-        log.info(f"Matched line (hex): {matched_line}")
+        log.info(f"Matched hex: {str(matched_line).upper()}")
 
         # Locate the index of the last occurrence of '85DB' in the matched line
         hex_index = matched_line.upper().rfind(hex_find)
@@ -190,7 +190,7 @@ def patch(file_path: Path, duplicate_to: Path = None, both=False):
             # Replace 'hex_find' with 'hex_replace' before 'hex_find'
             patched_line = matched_line[:hex_index] + hex_replace
 
-            log.info(f"Patched line (hex): {patched_line}")
+            log.info(f"Patched hex: {str(patched_line).upper()}")
 
             # Replace the matched line in the binary hex with the patched line
             binary_hex_patched = binary_hex[:match.start()] + patched_line + binary_hex[match.end():]

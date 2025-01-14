@@ -56,7 +56,6 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.auto_patch_failed = False
 
         self.install_dir = ''
-        self.game_executable_name = ''
 
         self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
 
@@ -254,7 +253,6 @@ class StellarisChecksumPatcherGUI(QWidget):
 
     def load_settings(self):
         self.install_dir = settings.get_stellaris_install_path()
-        self.game_executable_name = settings.get_executable_name()
         settings.set_app_version(f"{self._APP_VERSION}")
         updater.set_local_version(str(self._APP_VERSION))
 
@@ -320,13 +318,25 @@ class StellarisChecksumPatcherGUI(QWidget):
         # Test settings for install location
         settings_install_dir = settings.get_stellaris_install_path()
 
+        update_paths = False
+
         if self.install_dir or settings_install_dir:
-            game_executable = Path(self.install_dir) / stellaris_patch.EXE_DEFAULT_FILENAME
+            if OS.MACOS:
+                game_executable = Path(self.install_dir) / stellaris_patch.BIN_PATH_POSTPEND
+            else:
+                game_executable = Path(self.install_dir) / stellaris_patch.EXE_DEFAULT_FILENAME
+
             # Make sure the file exists
             if not Path(game_executable).exists():
+                log.info(f"Saved Game Executable does not exist: {game_executable}")
                 game_executable = stellaris_patch.locate_game_executable()
+                update_paths = True
+            else:
+                log.info(f"Saved Game Executable exists: {game_executable}")
         else:
             game_executable = stellaris_patch.locate_game_executable()
+            if game_executable:
+                update_paths = True
 
         if not game_executable:
             self.auto_patch_failed = True
@@ -343,26 +353,25 @@ class StellarisChecksumPatcherGUI(QWidget):
             # self.patch_game_executable()
             return False
 
-        self.install_dir = game_executable.parent # executable's directory
-        exe_name = game_executable.name
-
-        # Update game executable name in settings
-        if exe_name != self.game_executable_name:
-            self.game_executable_name = exe_name
-            settings.set_executable_name(self.game_executable_name)
-
         if game_executable:
-            # Patch can proceed, therefore save game install location
-            settings.set_stellaris_install_path(str(game_executable))
+            if update_paths:
+                if OS.MACOS:
+                    self.install_dir = game_executable  # .app container
+                    game_executable = game_executable / stellaris_patch.BIN_PATH_POSTPEND
+                else:
+                    self.install_dir = game_executable.parent  # executable's directory
 
-            # MacOS exception, as it will return a .app, and is a dir
-            # Append the postpend filepath to inside the .app
-            macos_app_folder = None
-            if OS.MACOS:
-                macos_app_folder = game_executable
-                game_executable = macos_app_folder / stellaris_patch.EXE_PATH_POSTPEND
-                log.info("System is MacOS. Appending proper path to Contents inside .app")
-                log.info(f"Game Executable: {game_executable}")
+            game_executable_name = game_executable.name
+
+            # Update game executable name in settings
+            settings.set_executable_name(game_executable_name)
+
+            log.debug(f"self.install_dir = {str(self.install_dir)}")
+            log.debug(f"game_executable = {str(game_executable)}")
+            log.debug(f"{game_executable_name=}")
+
+            # Patch can proceed, therefore save game install location
+            settings.set_stellaris_install_path(str(self.install_dir))
 
             # Check if it is patched
             is_patched = stellaris_patch.is_patched(game_executable)
@@ -372,11 +381,16 @@ class StellarisChecksumPatcherGUI(QWidget):
             else:
                 # Create a backup
                 if OS.MACOS:
-                    stellaris_patch.create_backup(macos_app_folder)
+                    # Because we want to backup the .app container and not the executable itself
+                    # Backing up the executable with this method as it stands would leave it
+                    # inside the .app container. Better to just deal with the .app container.
+                    stellaris_patch.create_backup(self.install_dir)
                 else:
                     stellaris_patch.create_backup(game_executable)
 
                 log.info("Applying Patch...")
+
+                log.debug(f"Patching game executable: {game_executable}")
 
                 patched = stellaris_patch.patch(game_executable)
 
@@ -386,7 +400,7 @@ class StellarisChecksumPatcherGUI(QWidget):
                     log.error(f"Unable to replace original game file.\n")
 
         self.terminal_display_log(' ')
-        log.info("Operations finished.")
+        log.info("Finished. Close the patcher and go play!")
 
         self.set_terminal_clickable(True)
 
