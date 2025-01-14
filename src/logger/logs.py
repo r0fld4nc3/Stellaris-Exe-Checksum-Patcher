@@ -23,7 +23,8 @@ class LoggerWithSignals(logging.Logger):
 
     def debug(self, msg, *args, **kwargs):
         super().debug(msg, *args, **kwargs)
-        self.signals.progress.emit("[DEBUG] " + str(msg))
+        if self.level < logging.INFO:
+            self.signals.progress.emit("[DEBUG] " + str(msg))
 
     def info(self, msg, *args, **kwargs):
         super().info(msg, *args, **kwargs)
