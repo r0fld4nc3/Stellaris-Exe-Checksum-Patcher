@@ -27,10 +27,12 @@ if LOG_LEVEL == 0 or _args.debug:
     IS_DEBUG = True
     LOG_LEVEL = 0
 
+
 class OS:
     WINDOWS = system.lower() == "windows"
     LINUX = system.lower() in ["linux", "unix"]
     MACOS = system.lower() in ["darwin", "mac"]
+
 
 from logger.path_helpers import win_get_localappdata
 config_folder = win_get_localappdata() / HOST / APP_NAME

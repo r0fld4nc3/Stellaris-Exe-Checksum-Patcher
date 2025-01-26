@@ -8,6 +8,7 @@ from logger import create_logger
 
 log = create_logger("Settings", LOG_LEVEL)
 
+
 class Settings:
     def __init__(self):
         self.patcher_settings = {
