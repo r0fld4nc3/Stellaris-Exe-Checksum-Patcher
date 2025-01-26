@@ -103,7 +103,7 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
     # Create or replace file
     if backup_file.exists():
         if not overwrite:
-            log.info(f"Aborting backup as a backup already exits and overwriting is set to {overwrite}")
+            log.info(f"Aborting backup as a backup already exists and overwriting is set to {overwrite}")
             return True
 
         log.info(f"Unlinking/Removing {backup_file}")
