@@ -172,7 +172,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.txt_browser_project_link.setMaximumSize(QSize(16777215, 36))
 
         # Fix Save Button
-        self.btn_fix_save_file = QPushButton("Fix Save Achievements")
+        self.btn_fix_save_file = QPushButton("Fix Save Achievements\n(Coming soon..)")
         self.btn_fix_save_file.setStyleSheet(STYLES.GRAYED_OUT)
         self.btn_fix_save_file.setIcon(self.stellaris_save_patch_icon)
         self.btn_fix_save_file.setIconSize(QSize(64, 64))
@@ -527,7 +527,8 @@ class StellarisChecksumPatcherGUI(QWidget):
             settings.set_has_update(True)
 
     def show(self):
-        reset_log_file()
+        if not IS_DEBUG:
+            reset_log_file()
         super().show()
         self._adjust_app_size()
         self.terminal_display.clear()
