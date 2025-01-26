@@ -102,7 +102,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.hlayout_misc_functions.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         # ========== Size Policies ==========
-        btn_size_policy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum)
+        btn_size_policy = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Maximum)
         btn_size_policy.setHorizontalStretch(0)
         btn_size_policy.setVerticalStretch(0)
 
@@ -177,7 +177,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.btn_fix_save_file.setStyleSheet(STYLES.GRAYED_OUT)
         self.btn_fix_save_file.setIcon(self.stellaris_save_patch_icon)
         self.btn_fix_save_file.setIconSize(QSize(64, 64))
-        self.btn_fix_save_file.setFont(QFont(self.orbitron_bold_font, 14))
+        self.btn_fix_save_file.setFont(QFont(self.orbitron_bold_font, 12))
         self.btn_fix_save_file.setFlat(False)
         self.btn_fix_save_file.clicked.connect(self.fix_save_achievements_thread)
         self.btn_fix_save_file.setDisabled(True)  # TODO: Delete line when it is time
@@ -196,12 +196,12 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.btn_patch_executable.setFlat(False)
 
         # Show Game Folder Button
-        self.btn_show_game_folder = QPushButton("Game Folder")
+        self.btn_show_game_folder = QPushButton("Show Game Folder")
         self.btn_show_game_folder.setStyleSheet(self.style.BUTTONS)
         self.btn_show_game_folder.setFlat(False)
         self.btn_show_game_folder.setSizePolicy(btn_size_policy)
         self.btn_show_game_folder.setMinimumSize(QSize(100, 48))
-        self.btn_show_game_folder.setMaximumSize(QSize(124, 16777215))
+        self.btn_show_game_folder.setMaximumSize(QSize(16777215, 64))
         self.btn_show_game_folder.setFont(QFont(self.orbitron_bold_font, 12))
         self.btn_show_game_folder.clicked.connect(self.show_game_folder)
 
@@ -228,8 +228,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.frame_layout.addWidget(self.lbl_app_version)
         self.frame_layout.addWidget(self.terminal_display)
         self.frame_layout.addLayout(self.hlayout_after_terminal_display)
-        self.frame_layout.addLayout(self.hlayout_misc_functions)
         self.frame_layout.addLayout(self.hlayout_patch_buttons)
+        self.frame_layout.addLayout(self.hlayout_misc_functions)
 
         self.setLayout(self.main_layout)
         self.main_frame.setLayout(self.frame_layout)
