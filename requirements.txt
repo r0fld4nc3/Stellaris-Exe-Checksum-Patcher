@@ -1,3 +1,0 @@
-PySide6
-requests
-vdf

@@ -1,0 +1,23 @@
+[project]
+name="Stellaris-Exe-Checksum-Patcher"
+version="2025.0.0"
+description = "Patches the Stellaris binary so that playing Ironman mode with mods allows the collection of achievements."
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICEN[CS]E.*"]
+requires-python = ">= 3.8"
+keywords = ["stellaris", "checksum", "patcher", "ironman", "mods", "save", "fix"]
+dependencies = [
+  "PySide6==6.4.0.1",
+  "requests==2.32.3",
+  "vdf==3.4",
+]
+authors = [
+  {name = "Artur Rosário"}
+]
+maintainers = [
+  {name = "Artur Rosário"}
+]
+
+[project.urls]
+Repository = "https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher.git"
