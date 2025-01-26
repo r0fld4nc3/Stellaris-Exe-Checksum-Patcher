@@ -16,31 +16,38 @@ LEVELS = {
     3: logging.ERROR
 }
 
+
 class LoggerWithSignals(logging.Logger):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.signals = WorkerSignals()
 
-    def debug(self, msg, *args, **kwargs):
+    def debug(self, msg, *args, silent=False, **kwargs):
         super().debug(msg, *args, **kwargs)
         if self.level < logging.INFO:
-            self.signals.progress.emit("[DEBUG] " + str(msg))
+            if not silent:
+                self.signals.progress.emit("[DEBUG] " + str(msg))
 
-    def info(self, msg, *args, **kwargs):
+    def info(self, msg, *args, silent=False, **kwargs):
         super().info(msg, *args, **kwargs)
-        self.signals.progress.emit("[INFO] " + str(msg))
+        if not silent:
+            self.signals.progress.emit("[INFO] " + str(msg))
 
-    def warning(self, msg, *args, **kwargs):
+    def warning(self, msg, *args, silent=False, **kwargs):
         super().info(msg, *args, **kwargs)
-        self.signals.progress.emit("[WARN] " + str(msg))
+        if not silent:
+            self.signals.progress.emit("[WARN] " + str(msg))
 
-    def error(self, msg, *args, **kwargs):
+    def error(self, msg, *args, silent=False, **kwargs):
         super().info(msg, *args, **kwargs)
-        self.signals.progress.emit("[ERROR] " + str(msg))
+        if not silent:
+            self.signals.progress.emit("[ERROR] " + str(msg))
+
 
 # Replace logging.Logger Class with custom Class
 print(f"Replaced Class {logging.Logger} with {LoggerWithSignals}")
 logging.setLoggerClass(LoggerWithSignals)
+
 
 def create_logger(logger_name: str, level: int) -> logging.Logger:
     # Create needed folder if it doesn't exist

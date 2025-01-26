@@ -15,12 +15,13 @@ _parser.add_argument(
 
 _args = _parser.parse_args()
 
-APP_VERSION = [1, 1, 0, "pre"]
+APP_VERSION = [2, 0, 0]
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
 LOG_LEVEL = 1
 IS_DEBUG = False
+UPDATE_CHECK_COOLDOWN = 60 # seconds
 
 # Parse debug mode and set flags related to it
 if LOG_LEVEL == 0 or _args.debug:

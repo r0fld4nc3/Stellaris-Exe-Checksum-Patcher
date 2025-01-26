@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt, QSize, QThreadPool, QObject, QEvent
 from PySide6.QtGui import QIcon, QFont, QFontDatabase
 
 from .Styles import STYLES
-from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL, IS_DEBUG
+from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL, UPDATE_CHECK_COOLDOWN, IS_DEBUG
 from .ui_utils import Threader, get_screen_info, set_icon_gray
 from logger import create_logger, reset_log_file
 from patchers import stellaris_patch
@@ -56,6 +56,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.auto_patch_failed = False
 
         self.install_dir = ''
+        self._prev_app_version = ''
 
         self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
 
@@ -253,6 +254,7 @@ class StellarisChecksumPatcherGUI(QWidget):
 
     def load_settings(self):
         self.install_dir = settings.get_stellaris_install_path()
+        self._prev_app_version = settings.get_app_version()
         settings.set_app_version(f"{self._APP_VERSION}")
         updater.set_local_version(str(self._APP_VERSION))
 
@@ -494,9 +496,13 @@ class StellarisChecksumPatcherGUI(QWidget):
         last_checked = settings.get_update_last_checked()
         now = int(time.time())
 
-        if now - last_checked < 60: # seconds
-            self.check_update_finished()
-            return
+        log.debug(f"{self._APP_VERSION} == {self._prev_app_version} = {self._APP_VERSION == self._prev_app_version}", silent=True)
+        log.debug(f"{now} - {last_checked} < {UPDATE_CHECK_COOLDOWN} = {now - last_checked < UPDATE_CHECK_COOLDOWN}", silent=True)
+
+        if self._APP_VERSION == self._prev_app_version:
+            if now - last_checked < UPDATE_CHECK_COOLDOWN:
+                self.check_update_finished()
+                return
 
         thread_update = Threader(target=updater.check_for_update)
         thread_id = thread_update.currentThread()
@@ -523,6 +529,7 @@ class StellarisChecksumPatcherGUI(QWidget):
             html = self.txt_browser_project_link.toHtml().replace("</p>", '').replace("</body>", '').replace("</html>", '')
             html += "<span style=\" font-weight:700;\"> (UPDATE AVAILABLE)</span></p></body></html>"
             self.txt_browser_project_link.setHtml(html)
+            self.lbl_title.setFont(QFont(self.orbitron_bold_font, 20))
             self.lbl_title.setText(self.lbl_title.text() + " (UPDATE AVAILABLE)")
             settings.set_has_update(True)
 
@@ -543,6 +550,9 @@ class StellarisChecksumPatcherGUI(QWidget):
 
     def app_quit(self):
         log.info("Quitting Application. Performing graceful shutdown procedure.")
+
+        settings.set_app_version(f"{self._APP_VERSION}")
+
         try:
             if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
                 log.info("Waiting for thread pool finish.")

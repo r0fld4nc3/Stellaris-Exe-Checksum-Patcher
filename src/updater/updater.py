@@ -1,4 +1,3 @@
-from string import punctuation
 import requests
 import time
 
@@ -7,8 +6,9 @@ from logger import create_logger
 
 log = create_logger("Updater", LOG_LEVEL)
 
+
 class Updater:
-    def __init__(self, user: str="github_username", repo_name:str = "you_repo_url"):
+    def __init__(self, user: str = "github_username", repo_name: str = "you_repo_url"):
         # Sets the repo user, repo path and repo api url
         self.user, self.repo, self.api = self.set_github_repo(user, repo_name)
 
@@ -25,7 +25,7 @@ class Updater:
 
         self.download_location = ""  # Local disk location to save the downloaded file.
 
-        self.local_version = "0.0.1"  # Default version, should be dynamically substituted.
+        self.local_version = [0, 0, 1]  # Default version, should be dynamically substituted.
 
         self.has_new_version = False
 
@@ -63,12 +63,36 @@ class Updater:
 
         return releases
 
-    def has_new_release(self, current: str, remote: dict) -> bool:
-        if current != remote.get(self._release_name) and current != remote.get(self._release_tag):
-            log.info(f"This release {current} is outdated with remote {remote.get(self._release_name)} ({remote.get(self._release_tag)})")
+    def has_new_release(self, current: list[int], remote: dict) -> bool:
+        log.info(f"Local version: {current}", silent=True)
+
+        remote_release_name = self.construct_version_list_from_str(remote.get(self._release_name))
+        remote_release_tag = self.construct_version_list_from_str(remote.get(self._release_tag))
+
+        compare_iters = [remote_release_name, remote_release_tag]
+
+        log.info(f"Remote Name:    {remote_release_name}", silent=True)
+        log.info(f"Remote Tag:     {remote_release_tag}", silent=True)
+
+        has_update = False
+
+        # tuple comparison is lexicographical which is perfect for this case
+        for comp in compare_iters:
+            tuple_current = tuple(current)
+            tuple_comp = tuple(comp)
+            if tuple_current < tuple_comp:
+                log.debug(f"{tuple_current} < {tuple_comp}", silent=True)
+                has_update = True
+                break
+
+        log.debug(f"{has_update=}", silent=True)
+
+        if has_update:
+            log.info(f"This release {current} is outdated with remote {remote_release_name} ({remote_release_tag})")
             return True
         else:
-            log.info(f"This release {current} is up to date with remote {remote.get(self._release_name)} ({remote.get(self._release_tag)})")
+            log.debug(f"This release {current} is up to date with remote {remote_release_name} ({remote_release_tag})", silent=True)
+            log.info("Up to date")
 
         return False
 
@@ -78,12 +102,22 @@ class Updater:
         constructed_version = []
 
         for c in version:
+            log.debug(f"{digit=}", silent=True)
+            log.debug(f"-> '{c}'", silent=True)
             if c.isdigit():
+                log.debug(f"    - '{c}' is a digit.", silent=True)
                 digit += c
             else:
-                if c in punctuation:
-                    if digit:
-                        constructed_version.append(int(digit))
+                log.debug(f"    - '{c}' is not a digit.", silent=True)
+                if digit:
+                    constructed_version.append(int(digit))
+                    digit = ''
+
+        # Handle if last item(s) are digits and weren't appended
+        if digit:
+            constructed_version.append(int(digit))
+
+        log.debug(f"{constructed_version=}", silent=True)
 
         return constructed_version
 
@@ -98,5 +132,5 @@ class Updater:
         return _user, _repo, _api
 
     def set_local_version(self, version: str):
-        self.local_version = version
+        self.local_version = self.construct_version_list_from_str(version)
         log.debug(f"Set local version {version}")
