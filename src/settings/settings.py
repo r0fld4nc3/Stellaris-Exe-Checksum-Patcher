@@ -26,7 +26,7 @@ class Settings:
 
     def set_app_version(self, version: str):
         self.patcher_settings["app-version"] = version
-        log.info(f"Saving app version: {self.patcher_settings.get("app-version")}")
+        log.info(f"Saving app version: {self.patcher_settings.get('app-version')}")
         self.save_config()
 
     def get_app_version(self):
@@ -35,7 +35,7 @@ class Settings:
 
     def set_stellaris_install_path(self, install_path) -> None:
         self.patcher_settings["stellaris-install-path"] = install_path.replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving Stellaris install location: {self.patcher_settings.get("stellaris-install-path")}")
+        log.info(f"Saving Stellaris install location: {self.patcher_settings.get('stellaris-install-path')}")
         self.save_config()
 
     def get_stellaris_install_path(self) -> str:
@@ -44,7 +44,7 @@ class Settings:
 
     def set_steam_install_path(self, install_path) -> None:
         self.patcher_settings["steam-install-path"] = install_path.replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving Steam install path: {self.patcher_settings.get("steam-install-path")}")
+        log.info(f"Saving Steam install path: {self.patcher_settings.get('steam-install-path')}")
         self.save_config()
 
     def get_steam_install_path(self) -> str:
@@ -53,7 +53,7 @@ class Settings:
 
     def set_executable_name(self, executable_name: str):
         self.patcher_settings["exe-name"] = executable_name
-        log.info(f"Saving executable name: {self.patcher_settings.get("exe-name")}")
+        log.info(f"Saving executable name: {self.patcher_settings.get('exe-name')}")
         self.save_config()
 
     def get_executable_name(self) -> str:
@@ -66,7 +66,7 @@ class Settings:
 
     def set_save_games_dir(self, save_games_dir: str):
         self.patcher_settings["save-games-path"] = str(save_games_dir).replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving games directory: {self.patcher_settings.get("save-games-path")}")
+        log.info(f"Saving games directory: {self.patcher_settings.get('save-games-path')}")
         self.save_config()
 
     def get_patched_block(self) -> str:
@@ -75,7 +75,7 @@ class Settings:
 
     def set_patched_block(self, str_to_set: str):
         self.patcher_settings["patched-block"] = str(str_to_set)
-        log.info(f"Saving patched block: {self.patcher_settings.get("patched-block")}")
+        log.info(f"Saving patched block: {self.patcher_settings.get('patched-block')}")
         self.save_config()
 
     def get_update_last_checked(self) -> int:
@@ -84,7 +84,7 @@ class Settings:
 
     def set_update_last_checked(self, timestamp: int):
         self.patcher_settings["update-last-checked"] = int(timestamp)
-        log.info(f"Saving update last checked: {self.patcher_settings.get("update-last-checked")}")
+        log.info(f"Saving update last checked: {self.patcher_settings.get('update-last-checked')}")
         self.save_config()
 
     def get_has_update(self) -> bool:
@@ -93,7 +93,7 @@ class Settings:
 
     def set_has_update(self, bool_to_set: bool):
         self.patcher_settings["update-available"] = bool(bool_to_set)
-        log.info(f"Saving is update available: {self.patcher_settings.get("update-available")}")
+        log.info(f"Saving is update available: {self.patcher_settings.get('update-available')}")
         self.save_config()
 
     def clean_save_file(self):
