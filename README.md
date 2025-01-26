@@ -9,7 +9,11 @@ The cause of the issue where after an update achievements were no longer being t
 
 ## 📣 Summary
 
-❗ Currently only supported on Windows.
+❗ Patching currently only supported on Windows.
+
+❗ Patching testing on MacOS and Linux.
+
+❗ Save fixing not yet done for Windows, MacOS and Linux.
 
 An easy and painless way to patch the game's executable so that mods are compatible with Ironman mode therefore also enabling the pursuit of Achievements with a modded game.
 
@@ -23,18 +27,20 @@ Download the executable by clicking the above **``Downloads``** button or in [Re
 * Check notes at the end of this file on how to verify authenticity of the tool.
 
 <p align="center">
-<img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-05.png" width="762">
+<img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-06.png" width="762">
 </p>
 
-## 🟢 Ways To Patch
-* **From Game Installation**
+## 🟢 Patches
+* **Patch Executable**
   * This method will automatically check for a Steam installation and patch the executable.
   * It will create a backup of the original adding a _.orig_ to the end of the file name.
+  * If it cannot find the installation, will prompt via dialog for the install folder.
+  * Will remember the installation location for next time.
 
-* **From Directory**
-  * This will first attempt to look in the current directory where the Patcher is located for the game's executable and will patch and move it to the installation folder.
-  * If the game's executable isn't in the current directory, it will prompt for the game's install path and acquire the file from there.
-  * It will create a backup of the original adding a _.orig_ to the end of the file name.
+* **Fix Save Achievements**
+  * Will ask for the save file to work on
+  * Attempts to fix achievements not being present.
+  * Sets Ironman flag(s) to "yes".
 
 # 🗒️ Notes
 ## "Windows protected your PC" Warning
