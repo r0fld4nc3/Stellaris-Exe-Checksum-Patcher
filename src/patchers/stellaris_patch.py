@@ -158,7 +158,7 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
     return True
 
 
-def patch(file_path: Path, duplicate_to: Path = None, both=False):
+def patch(file_path: Path, duplicate_to: Path = None):
     if not file_path.exists():
         log.warning(f"{file_path} does not exist")
         return False
@@ -199,13 +199,15 @@ def patch(file_path: Path, duplicate_to: Path = None, both=False):
             binary_data_patched = binascii.unhexlify(binary_hex_patched)
 
             # Write the patched binary data back to the file
-            if not duplicate_to or (duplicate_to and both):
-                log.info(f"Writing file {file_path}")
-                with open(file_path, 'wb') as file:
-                    file.write(binary_data_patched)
+            log.info(f"Writing file {file_path}")
+            with open(file_path, 'wb') as file:
+                file.write(binary_data_patched)
 
             if duplicate_to:
-                duplicate_to_fp = duplicate_to / file_path.name
+                if not duplicate_to.is_file():
+                    duplicate_to_fp = duplicate_to.parent / file_path.name
+                else:
+                    duplicate_to_fp = duplicate_to / file_path.name
                 log.info(f"Writing duplicate to {duplicate_to_fp}")
                 with open(duplicate_to_fp, 'wb') as duplicate_file:
                     duplicate_file.write(binary_data_patched)
