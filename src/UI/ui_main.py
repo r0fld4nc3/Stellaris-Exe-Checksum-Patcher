@@ -202,7 +202,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.btn_show_game_folder.setSizePolicy(btn_size_policy)
         self.btn_show_game_folder.setMinimumSize(QSize(100, 48))
         self.btn_show_game_folder.setMaximumSize(QSize(16777215, 64))
-        self.btn_show_game_folder.setFont(QFont(self.orbitron_bold_font, 12))
+        self.btn_show_game_folder.setFont(QFont(self.orbitron_bold_font, 14))
         self.btn_show_game_folder.clicked.connect(self.show_game_folder)
 
         # ============ Add Widgets to Layouts ============
