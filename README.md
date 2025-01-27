@@ -1,6 +1,7 @@
 # Stellaris Checksum Patcher (Enable Achievements)
 
 [![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/stellaris-exe-checksum-patcher/total?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher.exe)
+[![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/stellaris-exe-checksum-patcher/total?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher-linux)
 [![Release Version Badge](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
 
 # ❗ Note ❗
