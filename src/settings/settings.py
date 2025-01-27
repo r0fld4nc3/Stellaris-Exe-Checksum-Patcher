@@ -16,10 +16,12 @@ class Settings:
             "update-last-checked": 0,
             "update-available": False,
             "stellaris-install-path": "",
+            "stellaris-proton-install-path": "",
             "steam-install-path": "",
             "save-games-path": "",
             "patched-block": "",
-            "exe-name": ""
+            "exe-name": "",
+            "exe-proton-name": "",
         }
         self._config_file_name = "stellaris-checksum-patcher-settings.json"
         self.config_dir = Path(config_folder)
@@ -43,6 +45,15 @@ class Settings:
         # self.load_config()
         return self.patcher_settings.get("stellaris-install-path")
 
+    def set_stellaris_proton_install_path(self, install_path) -> None:
+        self.patcher_settings["stellaris-proton-install-path"] = install_path.replace('\\', '/').replace('\\\\', '/')
+        log.info(f"Saving Stellaris (Proton) install location: {self.patcher_settings.get('stellaris-proton-install-path')}")
+        self.save_config()
+
+    def get_stellaris_proton_install_path(self) -> str:
+        # self.load_config()
+        return self.patcher_settings.get("stellaris-proton-install-path")
+
     def set_steam_install_path(self, install_path) -> None:
         self.patcher_settings["steam-install-path"] = install_path.replace('\\', '/').replace('\\\\', '/')
         log.info(f"Saving Steam install path: {self.patcher_settings.get('steam-install-path')}")
@@ -60,6 +71,15 @@ class Settings:
     def get_executable_name(self) -> str:
         # self.load_config()
         return self.patcher_settings.get("exe-name")
+
+    def set_executable_proton_name(self, executable_name: str):
+        self.patcher_settings["exe-proton-name"] = executable_name
+        log.info(f"Saving executable (Proton) name: {self.patcher_settings.get('exe-proton-name')}")
+        self.save_config()
+
+    def get_executable_proton_name(self) -> str:
+        # self.load_config()
+        return self.patcher_settings.get("exe-proton-name")
 
     def get_save_games_dir(self) -> str:
         # self.load_config()

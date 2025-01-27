@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 import subprocess
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
     QLabel, QSizePolicy, QFileDialog, QTextBrowser, QFrame, QAbstractScrollArea
 )
 from PySide6.QtCore import Qt, QSize, QThreadPool, QObject, QEvent
@@ -14,7 +14,7 @@ from .Styles import STYLES
 from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL, UPDATE_CHECK_COOLDOWN, IS_DEBUG
 from .ui_utils import Threader, get_screen_info, set_icon_gray
 from logger import create_logger, reset_log_file
-from patchers import stellaris_patch
+from patchers import stellaris_patch, update_patcher_globals
 from patchers.save_patcher import repair_save, get_user_save_folder
 
 # loggers to hook up to signals
@@ -23,6 +23,11 @@ from patchers.stellaris_patch import log as patcher_log
 from patchers.save_patcher import log as patcher_save_log
 
 log = create_logger("UI", LOG_LEVEL)
+
+
+class LINUX_VERSIONS:
+    NATIVE = "Native"
+    PROTON = "Proton"
 
 
 class StellarisChecksumPatcherGUI(QWidget):
@@ -102,9 +107,9 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.hlayout_misc_functions.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         # ========== Size Policies ==========
-        btn_size_policy = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Maximum)
-        btn_size_policy.setHorizontalStretch(0)
-        btn_size_policy.setVerticalStretch(0)
+        size_policy_button = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Maximum)
+        size_policy_button.setHorizontalStretch(0)
+        size_policy_button.setVerticalStretch(0)
 
         size_policy_project_browser_link = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
         size_policy_project_browser_link.setHorizontalStretch(0)
@@ -139,7 +144,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.btn_themed_exit_app = QPushButton("X")
         self.btn_themed_exit_app.setStyleSheet(self.style.EXIT_APP)
         self.btn_themed_exit_app.setFont(self.orbitron_bold_font)
-        self.btn_themed_exit_app.setSizePolicy(btn_size_policy)
+        self.btn_themed_exit_app.setSizePolicy(size_policy_button)
         self.btn_themed_exit_app.setMinimumSize(QSize(32, 32))
         self.btn_themed_exit_app.clicked.connect(self.app_quit)
 
@@ -195,11 +200,20 @@ class StellarisChecksumPatcherGUI(QWidget):
             self.btn_patch_executable.clicked.connect(self.patch_game_executable_thread)
         self.btn_patch_executable.setFlat(False)
 
+        # Linux Version Dropdown
+        self.linux_version_picker = QComboBox()
+        self.linux_version_picker.setMinimumSize(QSize(60, 48))
+        self.linux_version_picker.setMaximumSize(QSize(150, 70))
+        self.linux_version_picker.addItems([LINUX_VERSIONS.NATIVE, LINUX_VERSIONS.PROTON])
+        self.linux_version_picker.setStyleSheet(self.style.COMBOBOX)
+        self.linux_version_picker.setFont(QFont(self.orbitron_bold_font, 14))
+        self.linux_version_picker.currentTextChanged.connect(self.on_linux_picker_text_changed)
+
         # Show Game Folder Button
         self.btn_show_game_folder = QPushButton("Show Game Folder")
         self.btn_show_game_folder.setStyleSheet(self.style.BUTTONS)
         self.btn_show_game_folder.setFlat(False)
-        self.btn_show_game_folder.setSizePolicy(btn_size_policy)
+        self.btn_show_game_folder.setSizePolicy(size_policy_button)
         self.btn_show_game_folder.setMinimumSize(QSize(100, 48))
         self.btn_show_game_folder.setMaximumSize(QSize(16777215, 64))
         self.btn_show_game_folder.setFont(QFont(self.orbitron_bold_font, 14))
@@ -216,6 +230,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         # Patch Buttons Layout
         self.hlayout_patch_buttons.addWidget(self.btn_fix_save_file)
         self.hlayout_patch_buttons.addWidget(self.btn_patch_executable)
+        if OS.LINUX:
+            self.hlayout_patch_buttons.addWidget(self.linux_version_picker)
 
         # Misc Layout
         self.hlayout_misc_functions.addWidget(self.btn_show_game_folder)
@@ -279,10 +295,14 @@ class StellarisChecksumPatcherGUI(QWidget):
     def enable_ui_elements(self):
         self.btn_patch_executable.setDisabled(False)
         # self.btn_fix_save_file.setDisabled(False) # TODO: Uncomment when it is time
+        self.linux_version_picker.setDisabled(False)
+        self.btn_show_game_folder.setDisabled(False)
 
     def disable_ui_elements(self):
         self.btn_patch_executable.setDisabled(True)
         self.btn_fix_save_file.setDisabled(True)
+        self.linux_version_picker.setDisabled(True)
+        self.btn_show_game_folder.setDisabled(True)
 
     def remove_thread(self, thread_id_remove):
         # Iterates through active threads, checks for ID and stops then removes thread
@@ -309,6 +329,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         To be called from Worker Thread.
         :return: bool
         """
+        self.terminal_display.clear()
+
         self.reset_caches()
         self.has_run_once = True # Set for the runtime lifetime
         self.is_patching = True # Because this is triggered when the button to patch was clicked
@@ -318,7 +340,19 @@ class StellarisChecksumPatcherGUI(QWidget):
         log.info("Patching from game installation.")
 
         # Test settings for install location
-        settings_install_dir = settings.get_stellaris_install_path()
+        if not OS.LINUX_PROTON:
+            settings_install_dir = settings.get_stellaris_install_path()
+        else:
+            # Ask the user to manually input the path once
+            settings_install_dir = settings.get_stellaris_proton_install_path()
+            if not settings_install_dir:
+                settings_install_dir = self.prompt_install_dir()
+
+                if not settings_install_dir:
+                    # User Cancelled
+                    return False
+
+                self.install_dir = settings_install_dir # Update install dir
 
         update_paths = False
 
@@ -366,14 +400,20 @@ class StellarisChecksumPatcherGUI(QWidget):
             game_executable_name = game_executable.name
 
             # Update game executable name in settings
-            settings.set_executable_name(game_executable_name)
+            if not OS.LINUX_PROTON:
+                settings.set_executable_name(game_executable_name)
+            else:
+                settings.set_executable_proton_name(game_executable_name)
 
             log.debug(f"self.install_dir = {str(self.install_dir)}")
             log.debug(f"game_executable = {str(game_executable)}")
             log.debug(f"{game_executable_name=}")
 
             # Patch can proceed, therefore save game install location
-            settings.set_stellaris_install_path(str(self.install_dir))
+            if not OS.LINUX_PROTON:
+                settings.set_stellaris_install_path(str(self.install_dir))
+            else:
+                settings.set_stellaris_proton_install_path(str(self.install_dir))
 
             # Check if it is patched
             is_patched = stellaris_patch.is_patched(game_executable)
@@ -386,11 +426,9 @@ class StellarisChecksumPatcherGUI(QWidget):
                     # Because we want to backup the .app container and not the executable itself
                     # Backing up the executable with this method as it stands would leave it
                     # inside the .app container. Better to just deal with the .app container.
-                    stellaris_patch.create_backup(self.install_dir)
+                    backup_file = stellaris_patch.create_backup(self.install_dir)
                 else:
-                    stellaris_patch.create_backup(game_executable)
-
-                log.info("Applying Patch...")
+                    backup_file = stellaris_patch.create_backup(game_executable)
 
                 log.debug(f"Patching game executable: {game_executable}")
 
@@ -399,9 +437,12 @@ class StellarisChecksumPatcherGUI(QWidget):
                 self.is_patching = False
 
                 if not patched:
-                    log.error(f"Unable to replace original game file.\n")
+                    log.error(f"Failed to patch game binary.\n")
+                    self.set_terminal_clickable(True)
+                    return False
 
         self.terminal_display_log(' ')
+
         log.info("Finished. Close the patcher and go play!")
 
         self.set_terminal_clickable(True)
@@ -429,7 +470,11 @@ class StellarisChecksumPatcherGUI(QWidget):
         # self.thread_pool.start(self.worker)
 
     def show_game_folder(self):
-        game_folder = settings.get_stellaris_install_path()
+        if not OS.LINUX_PROTON:
+            game_folder = settings.get_stellaris_install_path()
+        else:
+            game_folder = settings.get_stellaris_proton_install_path()
+
         if not game_folder:
             log.info("No game folder defined.")
             return
@@ -532,6 +577,19 @@ class StellarisChecksumPatcherGUI(QWidget):
             self.lbl_title.setFont(QFont(self.orbitron_bold_font, 20))
             self.lbl_title.setText(self.lbl_title.text() + " (UPDATE AVAILABLE)")
             settings.set_has_update(True)
+
+    def on_linux_picker_text_changed(self, text):
+        log.debug(f"Picked: {text}")
+        if text == LINUX_VERSIONS.NATIVE:
+            OS.LINUX_PROTON = False
+            self.install_dir = settings.get_stellaris_install_path()
+        elif text == LINUX_VERSIONS.PROTON:
+            OS.LINUX_PROTON = True
+            self.install_dir = settings.get_stellaris_proton_install_path()
+
+        update_patcher_globals()
+
+        log.info(f"{self.install_dir=}", silent=True)
 
     def show(self):
         if not IS_DEBUG:

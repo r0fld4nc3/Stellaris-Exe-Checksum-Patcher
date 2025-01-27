@@ -11,32 +11,62 @@ from logger import create_logger
 
 log = create_logger("Patcher", LOG_LEVEL)
 
-if OS.WINDOWS:
-    # Windows and Proton Linux
-    EXE_DEFAULT_FILENAME = "stellaris.exe"  # Game executable name plus extension
-    hex_find = "85C0"
-    hex_replace = "33C0"
-    patch_pattern = re.compile(r"488B1248.{20,26}%s" % hex_find, re.IGNORECASE)
-elif OS.LINUX:
-    # Native Linux
-    EXE_DEFAULT_FILENAME = "stellaris"
-    hex_find = "85DB"
-    hex_replace = "33DB"
-    # TODO: Check if it actually patches the right place
-    patch_pattern = re.compile(r"488B30.{20,50}%s" % hex_find, re.IGNORECASE)
-elif OS.MACOS:
-    # .app IS NOT A FILE, IT'S A DIRECTORY
-    # The actual executable is inside the .app -> /.../stellaris.app/Contents/MacOS/stellaris
-    EXE_DEFAULT_FILENAME = "stellaris.app"
-    BIN_PATH_POSTPEND = "Contents/MacOS/stellaris"
-    hex_find = "85DB"
-    hex_replace = "31DB"
-    patch_pattern = re.compile(r"89C3E851.{8,10}%s" % hex_find, re.IGNORECASE)
-else:
-    EXE_DEFAULT_FILENAME = "stellaris.wtf"
-    hex_find = "85C0"
-    hex_replace = "33C0"
-    patch_pattern = re.compile(r"488B1248.{20,26}%s" % hex_find, re.IGNORECASE)
+EXE_DEFAULT_FILENAME = ""
+HEX_FIND = ""
+HEX_REPLACE = ""
+PATCH_PATTERN = None
+BIN_PATH_POSTPEND = ""
+
+
+def update_patcher_globals():
+    log.info("Updating Patcher Globals", silent=True)
+
+    global EXE_DEFAULT_FILENAME, HEX_FIND, HEX_REPLACE, PATCH_PATTERN, BIN_PATH_POSTPEND
+
+    if OS.WINDOWS:
+        log.info("Setting globals to Windows", silent=True)
+        # Windows and Proton Linux
+        EXE_DEFAULT_FILENAME = "stellaris.exe"  # Game executable name plus extension
+        HEX_FIND = "85C0"
+        HEX_REPLACE = "33C0"
+        PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
+    elif OS.LINUX:
+        if not OS.LINUX_PROTON:
+            log.info("Setting globals to Linux Native", silent=True)
+            # Native Linux
+            EXE_DEFAULT_FILENAME = "stellaris"
+            HEX_FIND = "85DB"
+            HEX_REPLACE = "33DB"
+            PATCH_PATTERN = re.compile(r"488B30.{20,50}%s" % HEX_FIND, re.IGNORECASE)
+        else:
+            log.info("Setting globals to Linux Proton", silent=True)
+            # Linux Proton (Windows equivalent?)
+            EXE_DEFAULT_FILENAME = "stellaris.exe"
+            HEX_FIND = "85DB"
+            HEX_REPLACE = "33C0"
+            PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
+    elif OS.MACOS:
+        log.info("Setting globals to Linux macOS", silent=True)
+        # .app IS NOT A FILE, IT'S A DIRECTORY
+        # The actual executable is inside the .app -> /.../stellaris.app/Contents/MacOS/stellaris
+        EXE_DEFAULT_FILENAME = "stellaris.app"
+        BIN_PATH_POSTPEND = "Contents/MacOS/stellaris"
+        HEX_FIND = "85DB"
+        HEX_REPLACE = "31DB"
+        PATCH_PATTERN = re.compile(r"89C3E851.{8,10}%s" % HEX_FIND, re.IGNORECASE)
+    else:
+        log.warning("Setting globals to we shouldn't be here, but here we are...", silent=True)
+        EXE_DEFAULT_FILENAME = "stellaris.wtf"
+        HEX_FIND = "85C0"
+        HEX_REPLACE = "33C0"
+        PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
+
+    log.info(f"{EXE_DEFAULT_FILENAME=}", silent=True)
+    log.info(f"{BIN_PATH_POSTPEND=}", silent=True)
+    log.info(f"{HEX_FIND=}", silent=True)
+    log.info(f"{HEX_REPLACE=}", silent=True)
+    log.info(f"{PATCH_PATTERN=}", silent=True)
+
 
 TITLE_NAME = "Stellaris"  # Steam title name
 
@@ -47,17 +77,21 @@ def locate_game_executable() -> Union[Path, None]:
     """
     log.info("Locating game install...")
 
-    stellaris_install_path = steam.get_game_install_path(TITLE_NAME)
+    if not OS.LINUX_PROTON:
+        stellaris_install_path = steam.get_game_install_path(TITLE_NAME)
+    else:
+        log.warning("Linux Proton Patching is still under construction...")
+        stellaris_install_path = steam.get_game_install_path(TITLE_NAME)
 
-    # Add additional check, because it might be Proton Linux and therefore have a .exe
-    if OS.LINUX and not stellaris_install_path:
-        log.info("System is Linux but unable to locate native game install. Trying as Proton Linux")
-        stellaris_install_path = steam.get_game_install_path(TITLE_NAME + ".exe")
+    log.debug(f"{stellaris_install_path=}")
 
     if stellaris_install_path:
         game_executable = Path(stellaris_install_path) / EXE_DEFAULT_FILENAME
 
+        log.debug(f"{game_executable=} ({game_executable.exists()})")
+
         if not Path(game_executable).exists():
+            log.info(f"Invalid game executable: {str(game_executable)}")
             return None
 
         _fwd_slashed_exec = str(game_executable).replace('\\', '/').replace('\\\\', '/')
@@ -94,7 +128,7 @@ def is_patched(file_path: Path) -> bool:
     return False
 
 
-def create_backup(file_path: Path, overwrite=False) -> bool:
+def create_backup(file_path: Path, overwrite=False) -> Path | None:
     backup_file = Path(str(file_path) + ".orig")
 
     _fwd_slashed_path = str(file_path).replace('\\', '/').replace('\\\\', '/')
@@ -103,8 +137,8 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
     # Create or replace file
     if backup_file.exists():
         if not overwrite:
-            log.info(f"Aborting backup as a backup already exists and overwriting is set to {overwrite}")
-            return True
+            log.info(f"Aborting backup as a backup already exists and overwriting is set to {overwrite}.")
+            return backup_file
 
         log.info(f"Unlinking/Removing {backup_file}")
 
@@ -116,14 +150,14 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
                 log.info(f"Removed directory {backup_file}")
             except Exception as e:
                 log.error(e)
-                return False
+                return None
         else:
             try:
                 backup_file.unlink()
                 log.info(f"Unlinked {backup_file}")
             except Exception as e:
                 log.error(e)
-                return False
+                return None
 
         # Now copy the file and set the name
         if OS.MACOS:
@@ -155,27 +189,28 @@ def create_backup(file_path: Path, overwrite=False) -> bool:
             except Exception as e:
                 log.error(e)
 
-    return True
+    return backup_file
 
 
 def patch(file_path: Path, duplicate_to: Path = None):
     if not file_path.exists():
-        log.warning(f"{file_path} does not exist")
+        log.warning(f"{file_path} does not exist.")
         return False
 
     if not file_path.is_file():
-        log.warning(f"{file_path} is not a file")
+        log.warning(f"{file_path} is not a file.")
         return False
 
-    log.info(f"Processing file: {file_path}")
+    log.info(f"Patching file: {file_path}")
 
     with open(file_path, 'rb') as file:
-        binary_data = file.read()
+        binary_data = file.read() # This stores all in memory. Careful with large files
 
     binary_hex = binascii.hexlify(binary_data).decode()
 
     # Define regex pattern to find 85DB (ignoring casing) at the end of the line
-    regex_pattern = patch_pattern
+    log.debug(f"{PATCH_PATTERN=}")
+    regex_pattern = PATCH_PATTERN
 
     patch_success = False
     match = regex_pattern.search(binary_hex)
@@ -184,11 +219,11 @@ def patch(file_path: Path, duplicate_to: Path = None):
         log.info(f"Matched hex: {str(matched_line).upper()}")
 
         # Locate the index of the last occurrence of '85DB' in the matched line
-        hex_index = matched_line.upper().rfind(hex_find)
+        hex_index = matched_line.upper().rfind(HEX_FIND)
 
         if hex_index != -1:
             # Replace 'hex_find' with 'hex_replace' before 'hex_find'
-            patched_line = matched_line[:hex_index] + hex_replace
+            patched_line = matched_line[:hex_index] + HEX_REPLACE
 
             log.info(f"Patched hex: {str(patched_line).upper()}")
 
@@ -214,11 +249,11 @@ def patch(file_path: Path, duplicate_to: Path = None):
 
             # Save patched block for comparison
             settings.set_patched_block(str(patched_line).upper())
-            log.info("Patch applied successfully")
+            log.info("Patch applied successfully.")
             patch_success = True
         else:
-            log.error(f"Pattern found but unable to locate '{hex_find}' in the matched line")
+            log.error(f"Pattern found but unable to locate '{HEX_FIND}' in the matched line.")
     else:
-        log.info("Pattern not found")
+        log.info("Failed to match to pattern.")
 
     return patch_success

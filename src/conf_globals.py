@@ -32,6 +32,7 @@ if LOG_LEVEL == 0 or _args.debug:
 class OS:
     WINDOWS = system.lower() == "windows"
     LINUX = system.lower() in ["linux", "unix"]
+    LINUX_PROTON = False  # Special Case
     MACOS = system.lower() in ["darwin", "mac"]
 
 
