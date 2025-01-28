@@ -18,7 +18,7 @@ The cause of the issue where after an update achievements were no longer being t
 
 An easy and painless way to patch the game's executable so that mods are compatible with Ironman mode therefore also enabling the pursuit of Achievements with a modded game.
 
-Download the executable by clicking the above **``Downloads``** button or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
+Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
 
 ## ❗ Disclaimer ❗
 * Remember to **not** upload the modified Stellaris executable to download or distribution sites.
