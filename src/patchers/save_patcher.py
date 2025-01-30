@@ -13,6 +13,7 @@ from logger import create_logger
 
 log = create_logger("Save Patcher", LOG_LEVEL)
 
+
 def get_current_dir():
     if getattr(sys, "frozen", False):
         application_path = os.path.dirname(sys.executable)
@@ -286,7 +287,7 @@ def pull_latest_achivements_file():
         response = requests.get(url, timeout=60)
     except requests.ConnectionError as con_err:
         log.error(f"Unable to establish connection to update repo.")
-        log.debug_error(con_err)
+        log.error(con_err)
         return False
 
     if not response.status_code == 200:
