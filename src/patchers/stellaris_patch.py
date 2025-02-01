@@ -42,7 +42,7 @@ def update_patcher_globals():
             log.info("Setting globals to Linux Proton", silent=True)
             # Linux Proton (Windows equivalent?)
             EXE_DEFAULT_FILENAME = "stellaris.exe"
-            HEX_FIND = "85DB"
+            HEX_FIND = "85C0"
             HEX_REPLACE = "33C0"
             PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
     elif OS.MACOS:
