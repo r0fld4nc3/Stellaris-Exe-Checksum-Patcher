@@ -10,111 +10,145 @@ log = create_logger("Settings", LOG_LEVEL)
 
 
 class Settings:
+    class ENUM:
+        APP_VERSION = "app-version"
+        UPDATE_LAST_CHECKED = "update-last-checked"
+        UPDATE_AVAILABLE = "update-available"
+        WINDOW_WIDTH = "window-width"
+        WINDOW_HEIGHT = "window-height"
+        STELLARIS_INSTALL_PATH = "stellaris-install-path"
+        STELLARIS_PROTON_INSTALL_PATH = "stellaris-proton-install-path"
+        STEAM_INSTALL_PATH = "steam-install-path"
+        SAVE_GAMES_PATH = "save-games-path"
+        PATCHED_BLOCK = "patched-block"
+        EXE_NAME = "exe-name"
+        EXE_PROTON_NAME = "exe-proton-name"
+
     def __init__(self):
         self.patcher_settings = {
-            "app-version": "",
-            "update-last-checked": 0,
-            "update-available": False,
-            "stellaris-install-path": "",
-            "stellaris-proton-install-path": "",
-            "steam-install-path": "",
-            "save-games-path": "",
-            "patched-block": "",
-            "exe-name": "",
-            "exe-proton-name": "",
+            self.ENUM.APP_VERSION: "",
+            self.ENUM.UPDATE_LAST_CHECKED: 0,
+            self.ENUM.UPDATE_AVAILABLE: False,
+            self.ENUM.WINDOW_WIDTH: 0,
+            self.ENUM.WINDOW_HEIGHT: 0,
+            self.ENUM.STELLARIS_INSTALL_PATH: "",
+            self.ENUM.STELLARIS_PROTON_INSTALL_PATH: "",
+            self.ENUM.STEAM_INSTALL_PATH: "",
+            self.ENUM.SAVE_GAMES_PATH: "",
+            self.ENUM.PATCHED_BLOCK: "",
+            self.ENUM.EXE_NAME: "",
+            self.ENUM.EXE_PROTON_NAME: "",
         }
         self._config_file_name = "stellaris-checksum-patcher-settings.json"
         self.config_dir = Path(config_folder)
         self.config_file = Path(config_folder) / self._config_file_name
 
     def set_app_version(self, version: str):
-        self.patcher_settings["app-version"] = version
-        log.info(f"Saving app version: {self.patcher_settings.get('app-version')}")
+        self.patcher_settings[self.ENUM.APP_VERSION] = version
+        log.info(f"Saving app version: {version}")
         self.save_config()
 
     def get_app_version(self):
         # self.load_config()
-        return self.patcher_settings.get("app-version")
+        return self.patcher_settings.get(self.ENUM.APP_VERSION)
+
+    def set_window_width(self, num: int):
+        self.patcher_settings[self.ENUM.WINDOW_WIDTH] = num
+        log.info(f"Saving window width: {self.patcher_settings.get(self.ENUM.WINDOW_WIDTH)}")
+        self.save_config()
+
+    def get_window_width(self):
+        # self.load_config()
+        return self.patcher_settings.get(self.ENUM.WINDOW_WIDTH)
+
+    def set_window_height(self, num: int):
+        self.patcher_settings[self.ENUM.WINDOW_HEIGHT] = num
+        log.info(f"Saving window height: {self.patcher_settings.get(self.ENUM.WINDOW_HEIGHT)}")
+        self.save_config()
+
+    def get_window_height(self):
+        # self.load_config()
+        return self.patcher_settings.get(self.ENUM.WINDOW_HEIGHT)
 
     def set_stellaris_install_path(self, install_path) -> None:
-        self.patcher_settings["stellaris-install-path"] = install_path.replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving Stellaris install location: {self.patcher_settings.get('stellaris-install-path')}")
+        self.patcher_settings[self.ENUM.STELLARIS_INSTALL_PATH] = install_path.replace('\\', '/').replace('\\\\', '/')
+        log.info(f"Saving Stellaris install location: {self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)}")
         self.save_config()
 
     def get_stellaris_install_path(self) -> str:
         # self.load_config()
-        return self.patcher_settings.get("stellaris-install-path")
+        return self.patcher_settings.get(self.ENUM.STELLARIS_INSTALL_PATH)
 
     def set_stellaris_proton_install_path(self, install_path) -> None:
-        self.patcher_settings["stellaris-proton-install-path"] = install_path.replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving Stellaris (Proton) install location: {self.patcher_settings.get('stellaris-proton-install-path')}")
+        self.patcher_settings[self.ENUM.STELLARIS_PROTON_INSTALL_PATH] = install_path.replace('\\', '/').replace('\\\\', '/')
+        log.info(f"Saving Stellaris (Proton) install location: {self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)}")
         self.save_config()
 
     def get_stellaris_proton_install_path(self) -> str:
         # self.load_config()
-        return self.patcher_settings.get("stellaris-proton-install-path")
+        return self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)
 
     def set_steam_install_path(self, install_path) -> None:
-        self.patcher_settings["steam-install-path"] = install_path.replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving Steam install path: {self.patcher_settings.get('steam-install-path')}")
+        self.patcher_settings[self.ENUM.STEAM_INSTALL_PATH] = install_path.replace('\\', '/').replace('\\\\', '/')
+        log.info(f"Saving Steam install path: {self.patcher_settings.get(self.ENUM.STEAM_INSTALL_PATH)}")
         self.save_config()
 
     def get_steam_install_path(self) -> str:
         # self.load_config()
-        return self.patcher_settings.get("steam-install-path")
+        return self.patcher_settings.get(self.ENUM.STEAM_INSTALL_PATH)
 
     def set_executable_name(self, executable_name: str):
-        self.patcher_settings["exe-name"] = executable_name
-        log.info(f"Saving executable name: {self.patcher_settings.get('exe-name')}")
+        self.patcher_settings[self.ENUM.EXE_NAME] = executable_name
+        log.info(f"Saving executable name: {self.patcher_settings.get(self.ENUM.EXE_NAME)}")
         self.save_config()
 
     def get_executable_name(self) -> str:
         # self.load_config()
-        return self.patcher_settings.get("exe-name")
+        return self.patcher_settings.get(self.ENUM.EXE_NAME)
 
     def set_executable_proton_name(self, executable_name: str):
-        self.patcher_settings["exe-proton-name"] = executable_name
-        log.info(f"Saving executable (Proton) name: {self.patcher_settings.get('exe-proton-name')}")
+        self.patcher_settings[self.ENUM.EXE_PROTON_NAME] = executable_name
+        log.info(f"Saving executable (Proton) name: {self.patcher_settings.get(self.ENUM.EXE_PROTON_NAME)}")
         self.save_config()
 
     def get_executable_proton_name(self) -> str:
         # self.load_config()
-        return self.patcher_settings.get("exe-proton-name")
+        return self.patcher_settings.get(self.ENUM.EXE_PROTON_NAME)
 
     def get_save_games_dir(self) -> str:
         # self.load_config()
-        return self.patcher_settings.get("save-games-path")
+        return self.patcher_settings.get(self.ENUM.SAVE_GAMES_PATH)
 
     def set_save_games_dir(self, save_games_dir: str):
-        self.patcher_settings["save-games-path"] = str(save_games_dir).replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving games directory: {self.patcher_settings.get('save-games-path')}")
+        self.patcher_settings[self.ENUM.SAVE_GAMES_PATH] = str(save_games_dir).replace('\\', '/').replace('\\\\', '/')
+        log.info(f"Saving games directory: {self.patcher_settings.get(self.ENUM.SAVE_GAMES_PATH)}")
         self.save_config()
 
     def get_patched_block(self) -> str:
         # self.load_config()
-        return self.patcher_settings.get("patched-block")
+        return self.patcher_settings.get(self.ENUM.PATCHED_BLOCK)
 
     def set_patched_block(self, str_to_set: str):
-        self.patcher_settings["patched-block"] = str(str_to_set)
-        log.info(f"Saving patched block: {self.patcher_settings.get('patched-block')}")
+        self.patcher_settings[self.ENUM.PATCHED_BLOCK] = str(str_to_set)
+        log.info(f"Saving patched block: {self.patcher_settings.get(self.ENUM.PATCHED_BLOCK)}")
         self.save_config()
 
     def get_update_last_checked(self) -> int:
         # self.load_config()
-        return self.patcher_settings.get("update-last-checked")
+        return self.patcher_settings.get(self.ENUM.UPDATE_LAST_CHECKED)
 
     def set_update_last_checked(self, timestamp: int):
-        self.patcher_settings["update-last-checked"] = int(timestamp)
-        log.info(f"Saving update last checked: {self.patcher_settings.get('update-last-checked')}")
+        self.patcher_settings[self.ENUM.UPDATE_LAST_CHECKED] = int(timestamp)
+        log.info(f"Saving update last checked: {self.patcher_settings.get(self.ENUM.UPDATE_LAST_CHECKED)}")
         self.save_config()
 
     def get_has_update(self) -> bool:
         # self.load_config()
-        return self.patcher_settings.get("update-available")
+        return self.patcher_settings.get(self.ENUM.UPDATE_AVAILABLE)
 
     def set_has_update(self, bool_to_set: bool):
-        self.patcher_settings["update-available"] = bool(bool_to_set)
-        log.info(f"Saving is update available: {self.patcher_settings.get('update-available')}")
+        self.patcher_settings[self.ENUM.UPDATE_AVAILABLE] = bool(bool_to_set)
+        log.info(f"Saving is update available: {self.patcher_settings.get(self.ENUM.UPDATE_AVAILABLE)}")
         self.save_config()
 
     def clean_save_file(self):

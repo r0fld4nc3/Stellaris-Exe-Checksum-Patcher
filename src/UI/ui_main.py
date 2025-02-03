@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QLabel, QSizePolicy, QFileDialog, QTextBrowser, QFrame, QAbstractScrollArea
 )
 from PySide6.QtCore import Qt, QSize, QThreadPool, QObject, QEvent
-from PySide6.QtGui import QIcon, QFont, QFontDatabase
+from PySide6.QtGui import QIcon, QFont, QFontDatabase, QMouseEvent
 
 from .Styles import STYLES
 from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL, UPDATE_CHECK_COOLDOWN, IS_DEBUG
@@ -25,7 +25,7 @@ from patchers.save_patcher import log as patcher_save_log
 log = create_logger("UI", LOG_LEVEL)
 
 
-class LINUX_VERSIONS:
+class LINUX_VERSIONS_ENUM:
     NATIVE = "Native"
     PROTON = "Proton"
 
@@ -46,10 +46,20 @@ class StellarisChecksumPatcherGUI(QWidget):
 
         super().__init__()
 
-        # Base Size
-        self.resize(966, 821)
+        # Get size settings
+        width = settings.get_window_width()
+        height = settings.get_window_height()
 
-        self.style = STYLES.Stellaris # Default pick
+        # Failsafes
+        if width < 1:
+            width = 966
+        if height < 1:
+            height = 821
+
+        # Base Size
+        self.resize(width, height)
+
+        self.style = STYLES.Stellaris  # Default pick
 
         if self.style == STYLES.Stellaris:
             self.window_title = "Stellaris Checksum Patcher"
@@ -79,8 +89,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.setWindowIcon(window_icon)
         self.setWindowIcon(self.stellaris_patch_icon)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
-        self.grabber_filter = EventFilterGrabber()
-        self.installEventFilter(self.grabber_filter)
+        self.resize_filter = EventFilterMoveResize(self)
+        self.installEventFilter(self.resize_filter)
         self.start_pos = None
         self.setWindowOpacity(0.95)
         self.setStyleSheet(self.style.BACKGROUND)
@@ -204,7 +214,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.linux_version_picker = QComboBox()
         self.linux_version_picker.setMinimumSize(QSize(60, 48))
         self.linux_version_picker.setMaximumSize(QSize(150, 70))
-        self.linux_version_picker.addItems([LINUX_VERSIONS.NATIVE, LINUX_VERSIONS.PROTON])
+        self.linux_version_picker.addItems([LINUX_VERSIONS_ENUM.NATIVE, LINUX_VERSIONS_ENUM.PROTON])
         self.linux_version_picker.setStyleSheet(self.style.COMBOBOX)
         self.linux_version_picker.setFont(QFont(self.orbitron_bold_font, 14))
         self.linux_version_picker.currentTextChanged.connect(self.on_linux_picker_text_changed)
@@ -580,10 +590,10 @@ class StellarisChecksumPatcherGUI(QWidget):
 
     def on_linux_picker_text_changed(self, text):
         log.debug(f"Picked: {text}")
-        if text == LINUX_VERSIONS.NATIVE:
+        if text == LINUX_VERSIONS_ENUM.NATIVE:
             OS.LINUX_PROTON = False
             self.install_dir = settings.get_stellaris_install_path()
-        elif text == LINUX_VERSIONS.PROTON:
+        elif text == LINUX_VERSIONS_ENUM.PROTON:
             OS.LINUX_PROTON = True
             self.install_dir = settings.get_stellaris_proton_install_path()
 
@@ -610,6 +620,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         log.info("Quitting Application. Performing graceful shutdown procedure.")
 
         settings.set_app_version(f"{self._APP_VERSION}")
+        settings.set_window_width(self.width())
+        settings.set_window_height(self.height())
 
         try:
             if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
@@ -647,7 +659,7 @@ class EventFilterOvr(QObject):
         return False
 
 
-class EventFilterGrabber(EventFilterOvr):
+class depr_EventFilterGrabber(EventFilterOvr):
     def eventFilter(self, obj, event):
         if obj.underMouse() and event.type() == QEvent.Type.MouseButtonPress:
             obj.start_pos = event.pos()
@@ -659,3 +671,129 @@ class EventFilterGrabber(EventFilterOvr):
             obj.start_pos = None
             return True
         return False
+
+
+class EventFilterMoveResize(EventFilterOvr):
+    MARGIN = 16
+
+    def __init__(self, window):
+        super().__init__()
+        self.window = window
+        self.resizing = False
+        self.dragging = False
+        self.start_pos = None
+        self.mouse_press_area = None
+
+    def eventFilter(self, obj, event):
+        if isinstance(event, QMouseEvent):
+            if event.type() == QEvent.Type.MouseMove:
+                return self.handle_mouse_move(event)
+            elif event.type() == QEvent.Type.MouseButtonPress:
+                return self.handle_mouse_press(event)
+            elif event.type() == QEvent.Type.MouseButtonRelease:
+                return self.handle_mouse_release()
+            self.update_cursor(event)
+        return False
+
+    def handle_mouse_move(self, event):
+        if self.resizing:
+            self.resize_window(event)
+            return True
+        elif self.dragging:
+            self.window.move(event.globalPosition().toPoint() - self.start_pos)
+            return True
+        else:
+            self.update_cursor(event)
+        return False
+
+    def handle_mouse_press(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.start_pos = event.globalPosition().toPoint() - self.window.pos()
+            self.mouse_press_area = self.get_mouse_area(event)
+
+            if self.mouse_press_area:
+                self.resizing = True
+                self.update_cursor(event)
+                return True
+            elif self.window.rect().contains(event.pos()):  # Click inside window
+                self.dragging = True
+                self.update_cursor(event)
+                return True
+        return False
+
+    def handle_mouse_release(self):
+        self.resizing = False
+        self.dragging = False
+        self.mouse_press_area = None
+        self.restore_cursor()
+        return False
+
+    def get_mouse_area(self, event):
+        """Determine which edge/corner is being pressed for resizing"""
+        rect = self.window.rect()
+        x, y, w, h = rect.x(), rect.y(), rect.width(), rect.height()
+        pos = event.pos()
+
+        left = pos.x() <= self.MARGIN
+        right = pos.x() >= w - self.MARGIN
+        top = pos.y() <= self.MARGIN
+        bottom = pos.y() >= h - self.MARGIN
+
+        if left and top:
+            return "top-left"
+        elif right and top:
+            return "top-right"
+        elif left and bottom:
+            return "bottom-left"
+        elif right and bottom:
+            return "bottom-right"
+        elif left:
+            return "left"
+        elif right:
+            return "right"
+        elif top:
+            return "top"
+        elif bottom:
+            return "bottom"
+        return None
+
+    def update_cursor(self, event):
+        """Change cursor shape when hovering over resizable areas."""
+        area = self.get_mouse_area(event)
+        if area in ["top-left", "bottom-right"]:
+            self.window.setCursor(Qt.SizeFDiagCursor)
+        elif area in ["top-right", "bottom-left"]:
+            self.window.setCursor(Qt.SizeBDiagCursor)
+        elif area == "left" or area == "right":
+            self.window.setCursor(Qt.SizeHorCursor)
+        elif area == "top" or area == "bottom":
+            self.window.setCursor(Qt.SizeVerCursor)
+        else:
+            self.restore_cursor()
+
+    def restore_cursor(self):
+        self.window.setCursor(Qt.ArrowCursor)
+
+    def resize_window(self, event):
+        """Resize window based on mouse movement."""
+        rect = self.window.geometry()
+        delta = event.globalPosition().toPoint() - self.window.pos()
+
+        if self.mouse_press_area == "top-left":
+            rect.setTopLeft(event.globalPosition().toPoint())
+        elif self.mouse_press_area == "top-right":
+            rect.setTopRight(event.globalPosition().toPoint())
+        elif self.mouse_press_area == "bottom-left":
+            rect.setBottomLeft(event.globalPosition().toPoint())
+        elif self.mouse_press_area == "bottom-right":
+            rect.setBottomRight(event.globalPosition().toPoint())
+        elif self.mouse_press_area == "left":
+            rect.setLeft(event.globalPosition().x())
+        elif self.mouse_press_area == "right":
+            rect.setRight(event.globalPosition().x())
+        elif self.mouse_press_area == "top":
+            rect.setTop(event.globalPosition().y())
+        elif self.mouse_press_area == "bottom":
+            rect.setBottom(event.globalPosition().y())
+
+        self.window.setGeometry(rect)
