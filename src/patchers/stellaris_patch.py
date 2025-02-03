@@ -192,7 +192,7 @@ def create_backup(file_path: Path, overwrite=False) -> Path | None:
     return backup_file
 
 
-def patch(file_path: Path, duplicate_to: Path = None):
+def patch(file_path: Path) -> bool:
     if not file_path.exists():
         log.warning(f"{file_path} does not exist.")
         return False
@@ -218,11 +218,11 @@ def patch(file_path: Path, duplicate_to: Path = None):
         matched_line = binary_hex[match.start():match.end()]
         log.info(f"Matched hex: {str(matched_line).upper()}")
 
-        # Locate the index of the last occurrence of '85DB' in the matched line
+        # Locate the index of the last occurrence of 'HEX_FIND' in the matched line
         hex_index = matched_line.upper().rfind(HEX_FIND)
 
         if hex_index != -1:
-            # Replace 'hex_find' with 'hex_replace' before 'hex_find'
+            # Replace 'HEX_FIND' with 'HEX_REPLACE' before 'HEX_FIND'
             patched_line = matched_line[:hex_index] + HEX_REPLACE
 
             log.info(f"Patched hex: {str(patched_line).upper()}")
@@ -237,15 +237,6 @@ def patch(file_path: Path, duplicate_to: Path = None):
             log.info(f"Writing file {file_path}")
             with open(file_path, 'wb') as file:
                 file.write(binary_data_patched)
-
-            if duplicate_to:
-                if not duplicate_to.is_file():
-                    duplicate_to_fp = duplicate_to.parent / file_path.name
-                else:
-                    duplicate_to_fp = duplicate_to / file_path.name
-                log.info(f"Writing duplicate to {duplicate_to_fp}")
-                with open(duplicate_to_fp, 'wb') as duplicate_file:
-                    duplicate_file.write(binary_data_patched)
 
             # Save patched block for comparison
             settings.set_patched_block(str(patched_line).upper())
