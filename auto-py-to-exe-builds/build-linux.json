@@ -64,6 +64,10 @@
   {
    "optionDest": "pathex",
    "value": "~/Documents/Software/Python/VirtualEnvs/venv-stellaris-checksum-patcher/lib/python3.11/site-packages"
+  },
+  {
+   "optionDest": "datas",
+   "value": "~/Documents/GitHub/Python/Stellaris-Exe-Checksum-Patcher/LICENSE:."
   }
  ],
  "nonPyinstallerOptions": {
