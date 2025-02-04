@@ -10,7 +10,7 @@ _parser = argparse.ArgumentParser(description="Application Startup")
 _parser.add_argument(
     "-d", "--debug",
     action="store_true",
-    help="Enable debug mode"
+    help="Enable debug mode and expose more debugging information"
 )
 
 _args = _parser.parse_args()
@@ -45,6 +45,13 @@ config_folder = win_get_localappdata() / HOST / APP_NAME
 from logger import create_logger
 
 log = create_logger("Globals", LOG_LEVEL)
+log.info(f"[INIT] Running Stellaris-Exe-Checksum-Patcher.")
+# Print flags
+for action in _parser._actions:
+    if action.option_strings:
+        if "-h" in action.option_strings or "--help" in action.option_strings:
+            continue
+        log.info(f"[INIT] Run with flag {action.option_strings}: {action.help}")
 
 from updater import Updater
 updater = Updater("r0fld4nc3", "Stellaris-Exe-Checksum-Patcher")
