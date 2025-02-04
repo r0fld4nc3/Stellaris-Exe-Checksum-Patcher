@@ -4,28 +4,55 @@
 [![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher-linux?style=for-the-badge&logo=linux&label=Linux)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher-linux)
 [![Release Version Badge](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
 
-# ❗ Note ❗
+## ❗ Note - I stopped receiving achivements!!11! ❗
 
-The cause of the issue where after an update achievements were no longer being triggered has been identified. The issue is not that anything has changed from Paradox's side or that the Patcher needed adjusting to any potential new changes. The issue is with game updates and save games where sometimes saves can lose their trait of being elligible for achievements across patches. I will be working on a "Fix Save Game" patch option as well to include in the Patcher in the future, to fix this issue.
+If you've stopped receiving achievements on a save where you should or previously have, it is because the save file itself was altered to remove a line that allows that playthrough to be elligible for achievements. I am working on a fix for this as well.
 
 ## 📣 Summary
 
-❗ Patching currently only supported on Windows.
-
-❗ Patching testing on MacOS and Linux.
-
-❗ Save fixing not yet done for Windows, MacOS and Linux.
+❗ Still working on save fixing.
 
 An easy and painless way to patch the game's executable so that mods are compatible with Ironman mode therefore also enabling the pursuit of Achievements with a modded game.
 
-Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
+## ⤵️ Usage
+* Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
+
+|Platform | Version |
+|---------|---------|
+| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v1.1.0-pre/StellarisChecksumPatcher.exe) | v1.1.0-pre |
+| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-linux)   | v2.0.0-pre |
+| macOS                                                                                                                            | Currently none |
+
+Please refer to the below **Build & Run From Source** section if you don't wish to run the binary file.
+
+## ⚙️ Build & Run From Source
+* Go to [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases) and download the appropriate archive file for your system:
+
+|   OS    |  Format |
+----------|----------
+| Windows | .zip    |
+| Linux   | [.tar.xz](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher.tar.xz) |
+| macOS   | .tar.xz |
+
+* Uncompress the archive and inside the extracted folder you will see a build-run script file.
+
+* ### build-run on Windows
+  * To add.
+
+* ### build-run on Linux
+    * #### Method 1 - Non terminal
+      * Right click `build-run.sh` > Properties > Executable as Program (if it isn't already set)
+      * Double-click to launch
+
+    * #### Method 2 - Terminal
+      * Open a terminal on the folder where there script is located or navigate your terminal to there.
+      * Run `chmod +x build-run.sh; ./build-run.sh`
 
 ## ❗ Disclaimer ❗
 * Remember to **not** upload the modified Stellaris executable to download or distribution sites.
-* My stance on this further down.
 * Use at your own risk. I take no responsibility for your actions or what you choose to do with the modified file.
 * The goal of this is to simply offer a faster and more automated way to enable mod compatibility with Ironman and Achievements for a better personal experience.
-* Check notes at the end of this file on how to verify authenticity of the tool.
+* My stance on this further down.
 
 <p align="center">
 <img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-06.png" width="762">
@@ -44,14 +71,18 @@ Download the executable by clicking the above **``Badges``** or in [Releases](ht
   * Sets Ironman flag(s) to "yes".
 
 # 🗒️ Notes
-## "Windows protected your PC" Warning
-This is a common issue with unsigned or newly signed certificates.
-  
-There isn't much I can do about it apart from generating a signature and letting it be evaluated over time. I can assure you this is nothing to be concerned of, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
+* **This tool is currently only hosted on this GitHub project. In doubt, please compare your file and version/date to the SHA1 table. I will try to keep it as up to date as possible with the current release**
 
-**This tool is currently only hosted on this GitHub project. I included the official signing timestamp of each file in each release so check against those if you must.**
-  
-The provided software is completely safe.
+* ### "Windows protected your PC" Warning
+  * This is a common issue with unsigned or newly signed certificates. There isn't much I can do about it unless I generate a signature/certificate, pay and upload it to Microsoft. I can assure you this is nothing to be concerned of, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
+
+
+# 🔐 SHA1
+|                File               |                   SHA1                   |
+|-----------------------------------|------------------------------------------|
+| Stellaris-Checksum-Patcher.tar.xz | 4992224da76b8d31bb4fc3ad52b15d375f6f2322 |
+| Stellaris-Checksum-Patcher-linux  | 4233c08ebbc2f40314e43a82d05cf6ac1272499e |
+
 
 # 🔎 My Stance
 The sole reason for this patch comes mostly for the fact that we are barred from amazing Quality of Life and Visual mods if we wish to hunt for those Achievements, which can only be obtained by playing Ironman. 
