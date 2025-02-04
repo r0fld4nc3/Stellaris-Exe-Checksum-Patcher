@@ -1,3 +1,4 @@
+import json
 import requests
 import time
 
@@ -32,9 +33,12 @@ class Updater:
     def check_for_update(self):
         log.info("Checking for Stellaris Checksum Patcher update...")
 
-        self.pulled_releases = self.list_releases()
+        self.pulled_releases = self.fetch_releases(max_fetch=self._releases_max_fill)
+
+        non_pre_idx = self.get_first_non_pre_release(self.pulled_releases)
+
         if self.pulled_releases:
-            has_new_version = self.has_new_release(self.local_version, self.pulled_releases[0])
+            has_new_version = self.has_new_release(self.local_version, self.pulled_releases[non_pre_idx])
             self.has_new_version = has_new_version
         else:
             log.info("No releases available")
@@ -45,7 +49,9 @@ class Updater:
 
         return has_new_version
 
-    def list_releases(self):
+    def fetch_releases(self, max_fetch: int = -1):
+        log.info("Fetching releases...", silent=True)
+
         releases = []
 
         try:
@@ -59,9 +65,27 @@ class Updater:
         if not response.status_code == 200:
             log.error("Not a valid repository.")
         else:
-            releases = response.json()[:self._releases_max_fill]
+            releases = response.json()[:max_fetch]
 
         return releases
+
+    def get_first_non_pre_release(self, releases: dict) -> int:
+        # Get first non pre-release version index
+        log.info(f"Getting first non pre-release available from list of supplied {len(releases)} releases.", silent=True)
+
+        log.debug(f"{json.dumps(releases, indent=2)}", silent=True)
+
+        for i, release in enumerate(self.pulled_releases):
+            pre_release = release.get("prerelease")
+            name = release.get("name")
+            tag = release.get("tag_name")
+            if not pre_release:
+                log.info(f"Release number {i} {name} ({tag}) is not a pre-release. Comparing against it.", silent=True)
+                return i
+            else:
+                log.debug(f"Release number {i} {name} ({tag}) is set as pre-release. Skipping.", silent=True)
+
+        return 0  # Return first index, I guess
 
     def has_new_release(self, current: list[int], remote: dict) -> bool:
         log.info(f"Local version: {current}", silent=True)
