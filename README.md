@@ -71,17 +71,17 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
   * Sets Ironman flag(s) to "yes".
 
 # 🗒️ Notes
-* **This tool is currently only hosted on this GitHub project. In doubt, please compare your file and version/date to the SHA1 table. I will try to keep it as up to date as possible with the current release**
+* **This tool is currently only hosted on this GitHub project. In doubt, please compare your file and version/date to the SHA256 and MD5 table. I will try to keep it as up to date as possible with the current release**
 
 * ### "Windows protected your PC" Warning
   * This is a common issue with unsigned or newly signed certificates. There isn't much I can do about it unless I generate a signature/certificate, pay and upload it to Microsoft. I can assure you this is nothing to be concerned of, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
 
 
-# 🔐 SHA1
-|                File               |                   SHA1                   |
-|-----------------------------------|------------------------------------------|
-| Stellaris-Checksum-Patcher.tar.xz | 4992224da76b8d31bb4fc3ad52b15d375f6f2322 |
-| Stellaris-Checksum-Patcher-linux  | 4233c08ebbc2f40314e43a82d05cf6ac1272499e |
+# 🔐 SHA256
+|                File               |                   SHA256                   |                   MD5                   |
+|-----------------------------------|--------------------------------------------|                                         |
+| Stellaris-Checksum-Patcher.tar.xz |                                            |                                         |
+| Stellaris-Checksum-Patcher-linux  |                                            |                                         |
 
 
 # 🔎 My Stance
