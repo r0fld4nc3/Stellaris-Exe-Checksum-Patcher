@@ -78,10 +78,10 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 
 
 # 🔐 SHA256
-|                File               |                   SHA256                   |                   MD5                   |
-|-----------------------------------|--------------------------------------------|                                         |
-| Stellaris-Checksum-Patcher.tar.xz |                                            |                                         |
-| Stellaris-Checksum-Patcher-linux  |                                            |                                         |
+|                File               |                   SHA256                   |                   MD5                      |
+|-----------------------------------|--------------------------------------------|--------------------------------------------|
+| Stellaris-Checksum-Patcher.tar.xz |                                            |                                            |
+| Stellaris-Checksum-Patcher-linux  |                                            |                                            |
 
 
 # 🔎 My Stance
