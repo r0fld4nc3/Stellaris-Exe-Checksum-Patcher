@@ -18,12 +18,8 @@
    "value": false
   },
   {
-   "optionDest": "icon_file",
-   "value": "~/Documents/GitHub/Python/Stellaris-Exe-Checksum-Patcher/_icon/stellaris_checksum_patcher_icon.ico"
-  },
-  {
    "optionDest": "name",
-   "value": "Stellaris-Checkum-Patcher-linux"
+   "value": "Stellaris-Checksum-Patcher-linux"
   },
   {
    "optionDest": "clean_build",
