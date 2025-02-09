@@ -21,6 +21,8 @@ from patchers.save_patcher import repair_save, get_user_save_folder
 from updater.updater import log as updater_log
 from patchers.stellaris_patch import log as patcher_log
 from patchers.save_patcher import log as patcher_save_log
+from utils.steam_helper import log as steam_log
+from utils.registry_helper import log as registry_log
 
 log = create_logger("UI", LOG_LEVEL)
 
@@ -266,6 +268,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         updater_log.signals.progress.connect(self.terminal_display_log)
         patcher_log.signals.progress.connect(self.terminal_display_log)
         patcher_save_log.signals.progress.connect(self.terminal_display_log)
+        steam_log.signals.progress.connect(self.terminal_display_log)
+        registry_log.signals.progress.connect(self.terminal_display_log)
 
         # Worker
         self.worker = None  # Currently unusued, possibly to deprecate
