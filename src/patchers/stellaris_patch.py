@@ -80,7 +80,6 @@ def locate_game_executable() -> Union[Path, None]:
     if not OS.LINUX_PROTON:
         stellaris_install_path = steam.get_game_install_path(TITLE_NAME)
     else:
-        log.warning("Linux Proton Patching is still under construction...")
         stellaris_install_path = steam.get_game_install_path(TITLE_NAME)
 
     log.debug(f"{stellaris_install_path=}")
