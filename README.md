@@ -80,8 +80,8 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 # 🔐 SHA256
 |                File               | SHA256                                                            | MD5                               |
 |-----------------------------------|-------------------------------------------------------------------|-----------------------------------|
-| Stellaris-Checksum-Patcher.tar.xz | 263fd7f9735a1010b2eec46bcb566a57b75129c1844401d545101bccc2a257bf  | e6dcf35f58a93262209293feea38d10b  |
-| Stellaris-Checksum-Patcher-linux  | fb7203d3e3d2a675721a88a1782816ee883a9ed77d721aa8634d842de1b714ed  | 5ab4d8ae4559aab252a7e0cbeecafb12  |
+| Stellaris-Checksum-Patcher.tar.xz | 6aeb395cdbc114789502fa2998fdb7b74fa5c442fb7c0d47db615e07016397ba  | 4d5f5cfdb2a55a41ca219ffa25a37f3d  |
+| Stellaris-Checksum-Patcher-linux  | 83cb8f2748f4fd55c6ed6c1fa80fa803622e574c907966303888455d6921b365  | a0f8675061fe3c26b29b9adacc2aac6a  |
 
 
 # 🔎 My Stance
