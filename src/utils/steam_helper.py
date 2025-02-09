@@ -1,8 +1,8 @@
 # built-ins
-import os
 from pathlib import Path
 from utils import registry_helper
 from typing import Union
+import json
 
 from conf_globals import settings, OS, LOG_LEVEL
 from logger import create_logger
@@ -20,7 +20,7 @@ STEAM_INSTALL_LOCATION_KEY = "InstallPath"
 STEAM_STEAMAPPS_FOLDER = "steamapps"
 STEAM_APP_MANIFEST_FILE_PREFIX = "appmanifest"
 LIBRARY_FOLDERS_VDF_FILE = "libraryfolders.vdf"
-STEAM_LIBRARY_FOLDERS_FILE_TRAIL = Path("config") / LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
+STEAM_LIBRARY_FOLDERS_FILE_TRAIL = LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
 
 LINUX_DISTRO_PATHS = [
     Path.home() / ".local" / "share" / "Steam",
@@ -35,14 +35,14 @@ MACOS_DISTRO_PATHS = [
 
 class SteamHelper:
     def __init__(self):
-        self.steam_install = None
+        self.steam_install: Path | None = None
         self.steam_library_paths = []
 
     @staticmethod
     def _vdf_line_contains(vdf_line, argument_to_check) -> list:
         vdf_line = str(vdf_line).lstrip().rstrip()
         log.debug(f"{vdf_line} contains {argument_to_check}")
-        # steamlog.log_debug(f"{str(argument_to_check).upper()} in {vdf_line.upper()} = {str(argument_to_check).upper() in vdf_line.upper()}")
+        log.debug(f"{str(argument_to_check).upper()} in {vdf_line.upper()} = {str(argument_to_check).upper() in vdf_line.upper()}", silent=True)
         if str(argument_to_check).upper() in vdf_line.upper():
             return vdf_line.split('"')
 
@@ -71,19 +71,18 @@ class SteamHelper:
 
         for lib in self.steam_library_paths:
             log.info(f"Checking Library \"{lib}\"")
-            for file in os.listdir(lib):
-                fname = file
-                file = os.path.join(lib, fname)
+            for file in lib.iterdir():
+                fname = file.name
 
-                if not os.path.isfile(file):
+                if not file.is_file():
                     log.debug(f"Not a file: {file}")
                     continue
 
                 if STEAM_APP_MANIFEST_FILE_PREFIX not in fname:
                     continue
 
-                app_id = self.get_from_vdf_file(file, "appid")[0] # List of AppIDs
-                title = self.get_from_vdf_file(file, "name")[0] # 1 Name
+                app_id = self.get_from_vdf_file(str(file), "appid")[0] # List of AppIDs
+                title = self.get_from_vdf_file(str(file), "name")[0] # 1 Name
 
                 # Value to look for seems to always be in index 3
                 # title = line_name[3]
@@ -91,7 +90,7 @@ class SteamHelper:
                 log.debug(f"{app_id}: {title}")
                 if title == game_name:
                     log.debug(f"Found title match: {title} with App Id {app_id} in {fname} in library {lib}")
-                    _fwd_slashed_path = str(Path(os.path.join(lib, f"common/{title}"))).replace('\\', '/').replace('\\\\', '/')
+                    _fwd_slashed_path = str(lib / f"common/{title}").replace('\\', '/').replace('\\\\', '/')
                     log.info(f'Found game install in {_fwd_slashed_path}')
                     return {
                         "title": title,
@@ -105,10 +104,11 @@ class SteamHelper:
     def recursive_dict_find_value(self, dict_to_find, key_to_find, stop_on_find=False):
         matches = []
         for key, val in dict_to_find.items():
-            # if isinstance(val, dict):
-            #     steamlog.debug(f"\n{key}: {json.dumps(val, indent=2)}")
-            # else:
-            #     steamlog.debug(f"{key}: {val}")
+            if isinstance(val, dict):
+                log.debug(f"\n{key}: {json.dumps(val, indent=2)}")
+            else:
+                log.debug(f"{key}: {val}")
+
             if key == key_to_find:
                 matches.append(val)
                 log.debug(f"Found {val} in {key}")
@@ -152,7 +152,7 @@ class SteamHelper:
         log.info(f"Gathered: {values_out}")
         return values_out
 
-    def get_steam_libraries(self) -> Union[list, bool]:
+    def get_steam_libraries(self) -> Union[list[Path], bool]:
         log.info("Getting available Steam Libraries...")
 
         library_file = ''
@@ -163,14 +163,16 @@ class SteamHelper:
                 return False
 
         if OS.WINDOWS:
-            library_file = os.path.join(self.steam_install, STEAM_LIBRARY_FOLDERS_FILE_TRAIL)
+            library_file = self.steam_install / "config" / STEAM_LIBRARY_FOLDERS_FILE_TRAIL
         else:
-            for root, dirs, files in os.walk(self.steam_install):
-                if "config" in dirs:
-                    library_file = os.path.join(root, STEAM_LIBRARY_FOLDERS_FILE_TRAIL)
+            for tree_item in self.steam_install.glob("**"):
+                if tree_item.is_dir() and tree_item.name.lower() == "config":
+                    library_file = tree_item / STEAM_LIBRARY_FOLDERS_FILE_TRAIL
+                    log.info(f"Found config folder: {tree_item}")
+                    log.info(f"Library file: {library_file}")
                     break
 
-        if not os.path.exists(library_file):
+        if not library_file.exists():
             log.error("Could not locate Steam Library file.")
             return False
 
@@ -181,10 +183,11 @@ class SteamHelper:
 
         # So far, path seems to be in the 2nd index of the list but let's iterate over list and check for valid path
         for item in path_list:
-            if os.path.isdir(item):
-                item = os.path.join(item, STEAM_STEAMAPPS_FOLDER)
+            item = Path(item)
+            if item.is_dir():
+                item = item / STEAM_STEAMAPPS_FOLDER
                 if item not in self.steam_library_paths:
-                    self.steam_library_paths.append(os.path.abspath(item))
+                    self.steam_library_paths.append(item.resolve())
 
         log.debug(f"Known paths: {self.steam_library_paths}")
 
@@ -209,7 +212,7 @@ class SteamHelper:
         saved_path = settings.get_steam_install_path()
         if saved_path:
             if Path(saved_path).exists():
-                self.steam_install = saved_path
+                self.steam_install = Path(saved_path)
                 log.info(f"Got Steam install path from Settings")
                 return self.steam_install
 
@@ -242,5 +245,4 @@ class SteamHelper:
         else:
             log.error("Unable to acquire Steam installation.")
         
-        return steam
-        
+        return Path(steam)
