@@ -346,8 +346,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.terminal_display.clear()
 
         self.reset_caches()
-        self.has_run_once = True # Set for the runtime lifetime
-        self.is_patching = True # Because this is triggered when the button to patch was clicked
+        self.has_run_once = True  # Set for the runtime lifetime
+        self.is_patching = True  # Because this is triggered when the button to patch was clicked
 
         self.set_terminal_clickable(False)
 
@@ -366,7 +366,7 @@ class StellarisChecksumPatcherGUI(QWidget):
                     # User Cancelled
                     return False
 
-                self.install_dir = settings_install_dir # Update install dir
+                self.install_dir = settings_install_dir  # Update install dir
 
         update_paths = False
 
@@ -440,9 +440,9 @@ class StellarisChecksumPatcherGUI(QWidget):
                     # Because we want to backup the .app container and not the executable itself
                     # Backing up the executable with this method as it stands would leave it
                     # inside the .app container. Better to just deal with the .app container.
-                    backup_file = stellaris_patch.create_backup(self.install_dir)
+                    stellaris_patch.create_backup(self.install_dir)
                 else:
-                    backup_file = stellaris_patch.create_backup(game_executable)
+                    stellaris_patch.create_backup(game_executable)
 
                 log.debug(f"Patching game executable: {game_executable}")
 
@@ -483,7 +483,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         thread_patch_exe.start()
         # self.thread_pool.start(self.worker)
 
-    def show_game_folder(self):
+    @staticmethod
+    def show_game_folder():
         if not OS.LINUX_PROTON:
             game_folder = settings.get_stellaris_install_path()
         else:
@@ -527,8 +528,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         documents_dir = get_user_save_folder()
 
         save_file_path = QFileDialog().getOpenFileName(
-                caption="Save file to repair...",
-                dir=documents_dir
+            caption="Save file to repair...",
+            dir=documents_dir
         )[0]
 
         if save_file_path or save_file_path != '':
@@ -564,7 +565,7 @@ class StellarisChecksumPatcherGUI(QWidget):
                 return
 
         thread_update = Threader(target=updater.check_for_update)
-        thread_id = thread_update.currentThread()
+        # thread_id = thread_update.currentThread()
         self.active_threads.append(thread_update)
         thread_update.start()
         thread_update.signals.finished.connect(self.check_update_finished)
@@ -781,7 +782,7 @@ class EventFilterMoveResize(EventFilterOvr):
     def resize_window(self, event):
         """Resize window based on mouse movement."""
         rect = self.window.geometry()
-        delta = event.globalPosition().toPoint() - self.window.pos()
+        # delta = event.globalPosition().toPoint() - self.window.pos()
 
         if self.mouse_press_area == "top-left":
             rect.setTopLeft(event.globalPosition().toPoint())

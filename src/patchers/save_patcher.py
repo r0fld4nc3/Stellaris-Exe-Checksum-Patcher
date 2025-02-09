@@ -129,7 +129,7 @@ def repair_save(save_file):
     file_contents = file.splitlines()
     new_file_contents = file_contents.copy()
 
-    # Pull up to date achievements
+    # Pull up-to-date achievements
     achievements = pull_latest_achivements_file()
 
     if not achievements or achievements == '':
@@ -155,7 +155,7 @@ def repair_save(save_file):
             achievements_line_start = i
             log.debug(f"Achievements line found: {i}")
 
-        # If existing achievements line, the next } will be the closing bracket
+        # If existing achievements line, the next '}' will be the closing bracket
         if existing_achievements and achievements_line_end == -1:
             if "}" in line:
                 achievements_line_end = i
@@ -193,7 +193,7 @@ def repair_save(save_file):
                 if "name=" in line:
                     log.debug("Found name= in galaxy={")
                     log.info("Setting ironman flag to yes.")
-                    new_file_contents.insert(i+1, "\tironman=yes") # Must be a tabbed insert
+                    new_file_contents.insert(i+1, "\tironman=yes")  # Must be a tabbed insert
                     break
 
     # Double check conditions are met to be able to write the proper file
@@ -209,7 +209,7 @@ def repair_save(save_file):
         offset = achievements_line_end - achievements_line_start
         log.debug(f"Line Offset: {offset}")
         if offset > 1:
-            for i in range(offset+1): # offset +1 to include the ending line
+            for i in range(offset+1):  # offset +1 to include the ending line
                 # Popping achievement line start means that once the line is popped,
                 # the remaining lines will fill that spot, therefore the index is the same
                 log.debug(f"Pop {new_file_contents[achievements_line_start]}")
@@ -271,6 +271,7 @@ def repair_save(save_file):
 
     log.info("Finished repairing save.")
     return True
+
 
 def pull_latest_achivements_file():
     log.info("Pulling latest Achievements file from GitHub repository.")

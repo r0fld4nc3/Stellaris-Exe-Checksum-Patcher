@@ -17,10 +17,10 @@ An easy and painless way to patch the game's executable so that mods are compati
 ## ⤵️ Usage
 * Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
 
-|Platform | Version |
-|---------|---------|
-| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v1.1.0-pre/StellarisChecksumPatcher.exe) | v1.1.0-pre |
-| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-linux)   | v2.0.0-pre |
+| Platform                                                                                                                         | Version        |
+|----------------------------------------------------------------------------------------------------------------------------------|----------------|
+| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v1.1.0-pre/StellarisChecksumPatcher.exe) | v1.1.0-pre     |
+| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-linux)   | v2.0.0-pre     |
 | macOS                                                                                                                            | Currently none |
 
 Please refer to the below **Build & Run From Source** section if you don't wish to run the binary file.
@@ -28,11 +28,11 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 ## ⚙️ Build & Run From Source
 * Go to [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases) and download the appropriate archive file for your system:
 
-|   OS    |  Format |
-----------|----------
-| Windows | .zip    |
-| Linux   | [.tar.xz](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher.tar.xz) |
-| macOS   | .tar.xz |
+| OS       | Format                                                                                                                            |
+|----------|-----------------------------------------------------------------------------------------------------------------------------------|
+| Windows  | .zip                                                                                                                              |
+| Linux    | [.tar.xz](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher.tar.xz) |
+| macOS    | .tar.xz                                                                                                                           |
 
 * Uncompress the archive and inside the extracted folder you will see a build-run script file.
 
@@ -40,7 +40,7 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
   * To add.
 
 * ### build-run on Linux
-    * #### Method 1 - Non terminal
+    * #### Method 1 - Non-terminal
       * Right click `build-run.sh` > Properties > Executable as Program (if it isn't already set)
       * Double-click to launch
 
@@ -62,7 +62,7 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 * **Patch Executable**
   * This method will automatically check for a Steam installation and patch the executable.
   * It will create a backup of the original adding a _.orig_ to the end of the file name.
-  * If it cannot find the installation, will prompt via dialog for the install folder.
+  * If it cannot find the installation, will prompt via dialog for the installation folder.
   * Will remember the installation location for next time.
 
 * **Fix Save Achievements**
@@ -91,9 +91,9 @@ I don't wish to make it so that it becomes easier or _cheesier_ or _cheatier_ to
 
 **Therefore, I do not condone and do not support bypassing this restriction by the developers with the aim of installing content that would enable cheating or unfairly facilitate the acquisition of Achievements, nor was this application made with that belief in mind.**
 
-I understand I cannot regulate this either and therefore ask for sensibility and fairness when playing Ironman with the patch in place. These achievements and everything surrounding them were done with great care and passion by fellow people and it is our responsibility to care for and respect their creations which they poured their hearts and hours into.
+I understand I cannot regulate this either and therefore ask for sensibility and fairness when playing Ironman with the patch in place. These achievements and everything surrounding them were done with great care and passion by fellow people, and it is our responsibility to care for and respect their creations which they poured their hearts and hours into.
 
 ## Sources
-This method was a side project mainly for learning purposes and honing skills. _(Also because I don't have MSWord lol)_
+This method was a side project mainly for learning purposes and honing skills.
 
 It was based on the original guide here: https://steamcommunity.com/sharedfiles/filedetails/?id=2719382752

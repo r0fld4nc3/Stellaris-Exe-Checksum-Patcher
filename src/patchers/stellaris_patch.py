@@ -14,7 +14,7 @@ log = create_logger("Patcher", LOG_LEVEL)
 EXE_DEFAULT_FILENAME = ""
 HEX_FIND = ""
 HEX_REPLACE = ""
-PATCH_PATTERN = None
+PATCH_PATTERN = re.compile(r"", re.IGNORECASE)
 BIN_PATH_POSTPEND = ""
 
 
@@ -203,7 +203,7 @@ def patch(file_path: Path) -> bool:
     log.info(f"Patching file: {file_path}")
 
     with open(file_path, 'rb') as file:
-        binary_data = file.read() # This stores all in memory. Careful with large files
+        binary_data = file.read()  # This stores all in memory. Careful with large files
 
     binary_hex = binascii.hexlify(binary_data).decode()
 

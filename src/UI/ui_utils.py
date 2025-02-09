@@ -1,6 +1,3 @@
-import sys
-from io import StringIO
-
 from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QObject, QRunnable, QThread, Slot, Signal, QCoreApplication
@@ -70,13 +67,13 @@ def set_icon_gray(icon: QIcon, size=(32, 32)):
     pixmap = icon.pixmap(size[0], size[1])
 
     gray_pixmap = QPixmap(pixmap.size())
-    gray_pixmap.fill(QColor("transparent")) # Background is transparent
+    gray_pixmap.fill(QColor("transparent"))  # Background is transparent
 
     # QPainter to apply the filter
     painter = QPainter(gray_pixmap)
-    painter.drawPixmap(0, 0, pixmap) # Draw original
+    painter.drawPixmap(0, 0, pixmap)  # Draw original
     painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
-    painter.fillRect(gray_pixmap.rect(), QColor("gray")) # Apply the colour filter
+    painter.fillRect(gray_pixmap.rect(), QColor("gray"))  # Apply the colour filter
     painter.end()
 
     return QIcon(gray_pixmap)

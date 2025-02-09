@@ -20,7 +20,7 @@ STEAM_INSTALL_LOCATION_KEY = "InstallPath"
 STEAM_STEAMAPPS_FOLDER = "steamapps"
 STEAM_APP_MANIFEST_FILE_PREFIX = "appmanifest"
 LIBRARY_FOLDERS_VDF_FILE = "libraryfolders.vdf"
-STEAM_LIBRARY_FOLDERS_FILE_TRAIL = LIBRARY_FOLDERS_VDF_FILE # Trail to join to steam install main path
+STEAM_LIBRARY_FOLDERS_FILE_TRAIL = LIBRARY_FOLDERS_VDF_FILE  # Trail to join to steam install main path
 
 LINUX_DISTRO_PATHS = [
     Path.home() / ".local" / "share" / "Steam",
@@ -81,8 +81,8 @@ class SteamHelper:
                 if STEAM_APP_MANIFEST_FILE_PREFIX not in fname:
                     continue
 
-                app_id = self.get_from_vdf_file(str(file), "appid")[0] # List of AppIDs
-                title = self.get_from_vdf_file(str(file), "name")[0] # 1 Name
+                app_id = self.get_from_vdf_file(str(file), "appid")[0]  # List of AppIDs
+                title = self.get_from_vdf_file(str(file), "name")[0]  # 1 Name
 
                 # Value to look for seems to always be in index 3
                 # title = line_name[3]

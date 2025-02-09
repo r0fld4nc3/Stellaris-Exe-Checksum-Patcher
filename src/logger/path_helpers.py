@@ -8,6 +8,7 @@ UNIX = "unix"
 DARWIN = "darwin"
 MAC = "mac"
 
+
 def win_get_appdata() -> Path:
     if os_windows():
         return Path(os.getenv("appdata"))

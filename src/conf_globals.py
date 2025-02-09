@@ -21,7 +21,7 @@ APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
 LOG_LEVEL = 1
 IS_DEBUG = False
-UPDATE_CHECK_COOLDOWN = 60 # seconds
+UPDATE_CHECK_COOLDOWN = 60  # seconds
 
 # Parse debug mode and set flags related to it
 if LOG_LEVEL == 0 or _args.debug:

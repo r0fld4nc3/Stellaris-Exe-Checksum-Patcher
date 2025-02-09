@@ -61,6 +61,7 @@ class STYLES:
             color: rgb(67, 144, 134);
             background-color: rgb(35, 55, 50);  
             """
+
     class CK:
         BACKGROUND = """
             background-color: rgb(35, 55, 50);

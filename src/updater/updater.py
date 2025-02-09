@@ -120,7 +120,8 @@ class Updater:
 
         return False
 
-    def construct_version_list_from_str(self, version: str):
+    @staticmethod
+    def construct_version_list_from_str(version: str):
         # Collect the digits between dots
         digit = ''
         constructed_version = []
