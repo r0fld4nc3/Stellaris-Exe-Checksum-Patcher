@@ -13,7 +13,13 @@ _parser.add_argument(
     help="Enable debug mode and expose more debugging information"
 )
 
-_args = _parser.parse_args()
+# PyInstaller/auto-py-to-exe errors on Windows (so far) when parsing args is at the top level.
+# At the time of writing, I require this here to set up globals immediately.
+# Potential solution is to wrap in try/except and let PyInstaller continue by providing a default namespace.
+try:
+    _args = _parser.parse_args()
+except SystemExit:
+    _args = argparse.Namespace(debug=False)
 
 APP_VERSION = [2, 0, 0]
 HOST: str = "r0fld4nc3"
