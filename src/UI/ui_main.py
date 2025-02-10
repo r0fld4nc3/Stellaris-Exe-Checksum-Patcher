@@ -7,12 +7,12 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
     QLabel, QSizePolicy, QFileDialog, QTextBrowser, QFrame, QAbstractScrollArea
 )
-from PySide6.QtCore import Qt, QSize, QThreadPool, QObject, QEvent
+from PySide6.QtCore import Qt, QSize, QThreadPool, QObject, QEvent, Slot
 from PySide6.QtGui import QIcon, QFont, QFontDatabase, QMouseEvent
 
 from .Styles import STYLES
 from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL, UPDATE_CHECK_COOLDOWN, IS_DEBUG
-from .ui_utils import Threader, get_screen_info, set_icon_gray
+from .ui_utils import Threader, get_screen_info, set_icon_gray, WorkerSignals
 from logger import create_logger, reset_log_file
 from patchers import stellaris_patch, update_patcher_globals
 from patchers.save_patcher import repair_save, get_user_save_folder
@@ -47,6 +47,8 @@ class StellarisChecksumPatcherGUI(QWidget):
             self.app = QApplication.instance()
 
         super().__init__()
+
+        self.signals = WorkerSignals()
 
         # Get size settings
         width = settings.get_window_width()
@@ -205,11 +207,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.btn_patch_executable.setIcon(self.stellaris_patch_icon)
         self.btn_patch_executable.setIconSize(QSize(64, 64))
         self.btn_patch_executable.setFont(QFont(self.orbitron_bold_font, 14))
-        if OS.LINUX:
-            # TOOD: Hacky way becase on Linux we're getting segfault after operations
-            self.btn_patch_executable.clicked.connect(self.patch_game_executable)
-        else:
-            self.btn_patch_executable.clicked.connect(self.patch_game_executable_thread)
+        self.btn_patch_executable.clicked.connect(self.patch_game_executable_thread)
         self.btn_patch_executable.setFlat(False)
 
         # Linux Version Dropdown
@@ -264,12 +262,13 @@ class StellarisChecksumPatcherGUI(QWidget):
 
         # Hook up Signals
         # Could be a bit hacky. Ensure created before assign
-        log.signals.progress.connect(self.terminal_display_log)
-        updater_log.signals.progress.connect(self.terminal_display_log)
-        patcher_log.signals.progress.connect(self.terminal_display_log)
-        patcher_save_log.signals.progress.connect(self.terminal_display_log)
-        steam_log.signals.progress.connect(self.terminal_display_log)
-        registry_log.signals.progress.connect(self.terminal_display_log)
+        log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
+        updater_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
+        patcher_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
+        patcher_save_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
+        steam_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
+        registry_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
+        self.signals.terminal_progress.connect(self.terminal_display_log, Qt.QueuedConnection)
 
         # Worker
         self.worker = None  # Currently unusued, possibly to deprecate
@@ -292,6 +291,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.is_patching = False
         self.auto_patch_failed = False
 
+    @Slot(str)
     def terminal_display_log(self, t_log):
         self.terminal_display.insertPlainText(f"{t_log}\n")
         self.refresh_terminal_log()
@@ -343,13 +343,9 @@ class StellarisChecksumPatcherGUI(QWidget):
         To be called from Worker Thread.
         :return: bool
         """
-        self.terminal_display.clear()
-
         self.reset_caches()
         self.has_run_once = True  # Set for the runtime lifetime
         self.is_patching = True  # Because this is triggered when the button to patch was clicked
-
-        self.set_terminal_clickable(False)
 
         log.info("Patching from game installation.")
 
@@ -393,9 +389,9 @@ class StellarisChecksumPatcherGUI(QWidget):
             self.is_patching = False
 
             log.error("Game installation not found.")
-            self.terminal_display_log(" ")
+            self.signals.terminal_progress.emit(" ")
             log.info("Patch failed.")
-            self.terminal_display_log(" ")
+            self.signals.terminal_progress.emit(" ")
             log.info("Please run again to manually select install directory.")
             self.set_terminal_clickable(True)
 
@@ -455,7 +451,7 @@ class StellarisChecksumPatcherGUI(QWidget):
                     self.set_terminal_clickable(True)
                     return False
 
-        self.terminal_display_log(' ')
+        self.signals.terminal_progress.emit(" ")
 
         log.info("Finished. Close the patcher and go play!")
 
