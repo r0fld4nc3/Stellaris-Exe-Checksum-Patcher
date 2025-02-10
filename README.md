@@ -30,7 +30,7 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 
 | OS       | Format                                                                                                                            |
 |----------|-----------------------------------------------------------------------------------------------------------------------------------|
-| Windows  | [.zip](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher.zip)       |
+| Windows  | [.zip](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-win.zip)   |
 | Linux    | [.tar.xz](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher.tar.xz) |
 | macOS    | .tar.xz                                                                                                                           |
 
@@ -78,12 +78,12 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 
 
 # 🔐 SHA256
-| File                              | SHA256                                                            | MD5                               |
-|-----------------------------------|-------------------------------------------------------------------|-----------------------------------|
-| Stellaris-Checksum-Patcher.exe    | 19c4fe8388386eca4903274465ec972863fc6458b0137a3ef9f4671b417278df  | e591190c0aa9c5bc4d97e74b727ea9d2  |
-| Stellaris-Checksum-Patcher.zip    | dc597ec5cb759af1687159321080cba5a72c6dda40fa2345a99117598406ba12  | 49737b3e21ba70fb2712bd1cf5290b95  |
-| Stellaris-Checksum-Patcher-linux  | 6ba57a516d614abd49e4b6b1f6d761ae104039d83c2f93cf84f15be584d54c6a  | e9fa97b42fb2df266f10b94984fc475b  |
-| Stellaris-Checksum-Patcher.tar.xz | 456cb3a3ffd0032c5de0f4111791bc2b78eda6c88016a746bdec0494cc924778  | 789ad18f733770a15b4b719dae29c670  |
+| File                               | SHA256                                                            | MD5                               |
+|------------------------------------|-------------------------------------------------------------------|-----------------------------------|
+| Stellaris-Checksum-Patcher.exe     | 19c4fe8388386eca4903274465ec972863fc6458b0137a3ef9f4671b417278df  | e591190c0aa9c5bc4d97e74b727ea9d2  |
+| Stellaris-Checksum-Patcher-win.zip | dc597ec5cb759af1687159321080cba5a72c6dda40fa2345a99117598406ba12  | 49737b3e21ba70fb2712bd1cf5290b95  |
+| Stellaris-Checksum-Patcher-linux   | 6ba57a516d614abd49e4b6b1f6d761ae104039d83c2f93cf84f15be584d54c6a  | e9fa97b42fb2df266f10b94984fc475b  |
+| Stellaris-Checksum-Patcher.tar.xz  | 456cb3a3ffd0032c5de0f4111791bc2b78eda6c88016a746bdec0494cc924778  | 789ad18f733770a15b4b719dae29c670  |
 
 
 # 🔎 My Stance
