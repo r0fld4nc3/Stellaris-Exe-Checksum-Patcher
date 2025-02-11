@@ -17,11 +17,11 @@ An easy and painless way to patch the game's executable so that mods are compati
 ## ⤵️ Usage
 * Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
 
-| Platform                                                                                                                         | Version        |
-|----------------------------------------------------------------------------------------------------------------------------------|----------------|
-| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher.exe)   | v2.0.0-pre     |
-| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-linux)   | v2.0.0-pre     |
-| macOS                                                                                                                            | Currently none |
+| Platform                                                                                                                         | Version              |
+|----------------------------------------------------------------------------------------------------------------------------------|----------------------|
+| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher.exe)   | v2.0.0 (pre-release) |
+| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-linux)   | v2.0.0 (pre-release) |
+| macOS                                                                                                                            | Currently none       |
 
 Please refer to the below **Build & Run From Source** section if you don't wish to run the binary file.
 
