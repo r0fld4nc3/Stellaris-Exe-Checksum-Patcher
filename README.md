@@ -80,10 +80,10 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 # 🔐 SHA256
 | File                               | SHA256                                                                                 | MD5                                                    |
 |------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
-| Stellaris-Checksum-Patcher.exe     | <sub><sup>19c4fe8388386eca4903274465ec972863fc6458b0137a3ef9f4671b417278df</sup></sub> | <sub><sup>e591190c0aa9c5bc4d97e74b727ea9d2</sup></sub> |
-| Stellaris-Checksum-Patcher-win.zip | <sub><sup>dc597ec5cb759af1687159321080cba5a72c6dda40fa2345a99117598406ba12</sup></sub> | <sub><sup>49737b3e21ba70fb2712bd1cf5290b95</sup></sub> |
-| Stellaris-Checksum-Patcher-linux   | <sub><sup>6ba57a516d614abd49e4b6b1f6d761ae104039d83c2f93cf84f15be584d54c6a</sup></sub> | <sub><sup>e9fa97b42fb2df266f10b94984fc475b</sup></sub> |
-| Stellaris-Checksum-Patcher.tar.xz  | <sub><sup>456cb3a3ffd0032c5de0f4111791bc2b78eda6c88016a746bdec0494cc924778</sup></sub> | <sub><sup>789ad18f733770a15b4b719dae29c670</sup></sub> |
+| Stellaris-Checksum-Patcher-linux   | <sub><sup>ef73bd521035eff796ff1db32dbd706296885ed3c0cd9b7b02708d0f8e91133e</sup></sub> | <sub><sup>b2e7a7360aab6f7683d516ed5b34f17a</sup></sub> |
+| Stellaris-Checksum-Patcher-win.zip | <sub><sup>75623f04cc5dd204afbf594d89bdb21b451bf04d2365fa28d69532f2748aa13a</sup></sub> | <sub><sup>5620ff0439c42727a5e7de37badfc4b5</sup></sub> |
+| Stellaris-Checksum-Patcher.exe     | <sub><sup>2987a266549bc8aee899656ae425adb2de926906529eae3418cfa97a9a5fbea4</sup></sub> | <sub><sup>def89d46d252d9e037915a4667b44120</sup></sub> |
+| Stellaris-Checksum-Patcher.tar.xz  | <sub><sup>4c73974a342c38ccc192e22d9e420edcd1454819b206e124627cb3fc23ae812a</sup></sub> | <sub><sup>329a64c5ae1cff2d39726b8638f7f81c</sup></sub> |
 
 
 # 🔎 My Stance
