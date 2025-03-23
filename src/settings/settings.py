@@ -1,5 +1,7 @@
+import shutil
 import json
 import os
+import tempfile
 from pathlib import Path
 import sys
 
@@ -161,34 +163,38 @@ class Settings:
             log.info("No config folder found.")
             return False
 
-        with open(self.config_file, 'r', encoding="utf-8") as config_file:
-            settings = dict(json.load(config_file))
+        if not Path(self.config_file).exists():
+            log.info("Config file does not exist. Creating.")
+            return self._safe_write_json(self.config_file, self.patcher_settings)
 
+        settings: dict = self._safe_read_json(self.config_file)
+        if settings is None:
+            log.info(f"Unable to read config file {self.config_file}. Creating new one")
+            return self._safe_write_json(self.config_file, self.patcher_settings)
+
+        # Remove unused keys
         for setting in reversed(list(settings.keys())):
             if setting not in self.patcher_settings.keys():
                 settings.pop(setting)
                 log.debug(f"Cleared unused settings key: {setting}")
 
-        # Add non existant settings
+        # Add missing settings
         for k, v in self.patcher_settings.items():
             if k not in settings:
                 settings[k] = v
                 log.info(f"Added {k}: {v}")
 
-        with open(self.config_file, 'w', encoding="utf-8") as config_file:
-            config_file.write(json.dumps(settings, indent=2))
-            log.debug(f"Saved cleaned config: {self.config_file}")
-
-        return True
+        return self._safe_write_json(self.config_file, settings)
 
     def save_config(self):
-        if self.config_dir == '' or not Path(self.config_dir).exists():
-            os.makedirs(self.config_dir)
-            log.debug(f"Generated config folder {self.config_dir}")
+        if not self.config_dir:
+            self.config_dir = self.get_config_dir()
 
-        with open(self.config_file, 'w', encoding="utf-8") as config_file:
-            config_file.write(json.dumps(self.patcher_settings, indent=2))
+        os.makedirs(str(self.config_dir), exist_ok=True)
+        result = self._safe_write_json(self.config_file, self.patcher_settings)
+        if result:
             log.debug(f"Saved config to {self.config_file}")
+        return result
 
     def load_config(self):
         if self.config_dir == '' or not Path(self.config_dir).exists()\
@@ -199,23 +205,81 @@ class Settings:
         self.clean_save_file()
 
         log.debug(f"Loading config from {self.config_dir}")
-        config_error = False
-        with open(self.config_file, 'r', encoding="utf-8") as config_file:
-            try:
-                self.patcher_settings = json.load(config_file)
-            except Exception as e:
-                log.error("An error occurred trying to read config file.")
-                log.error(e)
-                config_error = True
+        settings = self._safe_read_json(self.config_file)
+        if settings is None:
+            log.info("Generating new config file")
+            self.save_config()
+            return False
 
-        if config_error:
-            log.info("Generating new config file.")
-            with open(self.config_file, 'w', encoding="utf-8") as config_file:
-                config_file.write(json.dumps(self.patcher_settings, indent=2))
-        log.debug(self.patcher_settings)
+        # Load settings to class
+        self.patcher_settings.update(settings)
+
+        self.clean_save_file()
+
+        log.debug(f"Loaded config: {self.patcher_settings}")
+        return True
 
     def get_config_dir(self) -> Path:
-        if not self.config_dir or not Path(self.config_dir).exists:
+        if not self.config_dir or not Path(self.config_dir).exists():
             return Path(os.path.dirname(sys.executable))
 
         return self.config_dir
+
+    def _safe_read_json(self, fp):
+        try:
+            if not Path(fp).exists():
+                return None
+
+            with open(fp, 'r', encoding="utf-8") as file:
+                content = file.read()
+                if not content.strip():
+                    return None
+                return json.loads(content)
+        except json.JSONDecodeError as e:
+            log.error(f"Json decode error reading file: {e}")
+
+            backup_path = f"{fp}.baddecode"
+            shutil.copy2(fp, backup_path)
+            log.info(f"Backed up bad file to {backup_path}")
+            return None
+        except Exception as e:
+            log.error(f"Error reading config file: {e}")
+            return None
+
+
+    def _safe_write_json(self, fp: Path, data):
+        if not isinstance(fp, Path):
+            fp = Path(fp)
+
+        # Ensure directory exists
+        if not fp.parent.exists():
+            fp.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write to temporary first
+        temp_file = tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=str(fp.parent),
+            delete=False
+        )
+
+        log.info(f"Created temporary file: {temp_file.name}")
+
+        try:
+            json_str = json.dumps(data, indent=2, ensure_ascii=False)
+            temp_file.write(json_str)
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+            temp_file.close()
+
+            # Rename the temp file to the target file (atomic)
+            shutil.move(temp_file.name, fp)
+            return True
+        except Exception as e:
+            log.error(f"Error writing config file: {e}")
+            try:
+                os.unlink(temp_file.name)
+                log.info(f"Unlink: {temp_file.name}")
+            except:
+                pass
+            return False
