@@ -74,7 +74,7 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 * **This tool is currently only hosted on this GitHub project. In doubt, please compare your file and version/date to the SHA256 and MD5 table. I will try to keep it as up to date as possible with the current release**
 
 * ### "Windows protected your PC" Warning
-  * This is a common issue with unsigned or newly signed certificates. There isn't much I can do about it unless I generate a signature/certificate, pay and upload it to Microsoft. I can assure you this is nothing to be concerned of, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
+  * This is a common issue with unsigned or newly signed certificates. There isn't much I can do about it unless I generate a signature/certificate, pay and upload it to Microsoft. I can assure you this is nothing to be concerned about, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
 
 
 # 🔐 SHA256
