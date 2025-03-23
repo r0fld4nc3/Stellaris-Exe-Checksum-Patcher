@@ -80,7 +80,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
 
         # Icons and Fonts
-        window_icon = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.ico"))
+        window_icon_win = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.ico"))
+        window_icon_unix = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.png"))
         patch_icon = QIcon(str(self.icons / "patch_icon.png"))
         save_patch_icon = QIcon(str(self.icons / "save_patch_icon.png"))
         orbitron_bold_font_id = QFontDatabase.addApplicationFont(str(self.fonts / "Orbitron-Bold.ttf"))
@@ -90,8 +91,10 @@ class StellarisChecksumPatcherGUI(QWidget):
 
         # Set app constraints
         self.setWindowTitle(self.window_title_with_app_version)
-        self.setWindowIcon(window_icon)
-        self.setWindowIcon(self.stellaris_patch_icon)
+        if OS.WINDOWS:
+            self.setWindowIcon(window_icon_win)
+        else:
+            self.setWindowIcon(window_icon_unix)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
         self.resize_filter = EventFilterMoveResize(self)
         self.installEventFilter(self.resize_filter)
