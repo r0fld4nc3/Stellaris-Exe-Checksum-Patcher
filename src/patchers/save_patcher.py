@@ -10,7 +10,7 @@ import tempfile
 # 3rd Party
 from conf_globals import settings, OS, LOG_LEVEL
 from logger import create_logger
-from src.utils.encodings import detect_file_encoding
+from utils.encodings import detect_file_encoding
 
 log = create_logger("Save Patcher", LOG_LEVEL)
 

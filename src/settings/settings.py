@@ -7,7 +7,7 @@ from pathlib import Path
 
 from conf_globals import config_folder, LOG_LEVEL
 from logger import create_logger
-from src.utils.encodings import detect_file_encoding
+from utils.encodings import detect_file_encoding
 
 log = create_logger("Settings", LOG_LEVEL)
 

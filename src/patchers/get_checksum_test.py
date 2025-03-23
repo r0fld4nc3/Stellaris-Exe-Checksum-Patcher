@@ -4,7 +4,7 @@ import hashlib
 import binascii
 from pathlib import Path
 
-from src.utils.encodings import detect_file_encoding
+from utils.encodings import detect_file_encoding
 
 
 def list_dir(path, suffix, sub):

@@ -5,7 +5,7 @@ from typing import Union
 import json
 
 from conf_globals import settings, OS, LOG_LEVEL
-from src.utils.encodings import safe_read_file_encode
+from utils.encodings import safe_read_file_encode
 from logger import create_logger
 import vdf
 
