@@ -10,6 +10,7 @@ import tempfile
 # 3rd Party
 from conf_globals import settings, OS, LOG_LEVEL
 from logger import create_logger
+from src.utils.encodings import detect_file_encoding
 
 log = create_logger("Save Patcher", LOG_LEVEL)
 
@@ -123,7 +124,8 @@ def repair_save(save_file):
     # =======================================================
     # =================== GAMESTATE BLOCK ===================
     # =======================================================
-    with open(gamestate_file, 'r', encoding="utf-8") as f:
+    _encoding = detect_file_encoding(gamestate_file)
+    with gamestate_file.open('r', encoding=_encoding) as f:
         file = f.read()
 
     file_contents = file.splitlines()
@@ -225,7 +227,8 @@ def repair_save(save_file):
     # ==============================================================
 
     temp_file = Path(tempfile.gettempdir()) / "gamestate"
-    with open(temp_file, 'w', encoding="utf-8") as new_file:
+    _encoding = detect_file_encoding(temp_file)
+    with temp_file.open('w', encoding=_encoding) as new_file:
         new_file.write('\n'.join(new_file_contents))
 
     # Replace extracted gamestate with temp gamestate
@@ -235,7 +238,8 @@ def repair_save(save_file):
     # =================== META BLOCK ===================
     # ==================================================
     log.debug("Repairing meta")
-    with open(meta_file, 'r', encoding="utf-8") as f:
+    _encoding = detect_file_encoding(meta_file)
+    with meta_file.open('r', encoding=_encoding) as f:
         file = f.read()
 
     file_contents = file.splitlines()
@@ -248,7 +252,8 @@ def repair_save(save_file):
         log.debug(f"\n{new_file_contents}")
 
     temp_file = Path(tempfile.gettempdir()) / "meta"
-    with open(temp_file, 'w', encoding="utf-8") as new_file:
+    _encoding = detect_file_encoding(temp_file)
+    with temp_file.open('w', encoding=_encoding) as new_file:
         new_file.write('\n'.join(new_file_contents))
 
     # Replace extracted meta with temp meta
@@ -261,7 +266,8 @@ def repair_save(save_file):
             fname = file.name
             if fname in files_access_times.keys():
                 os.utime(file, files_access_times.get(fname, None))
-            with open(file, 'r', encoding="utf-8") as fread:
+            _encoding = detect_file_encoding(file)
+            with open(file, 'r', encoding=_encoding) as fread:
                 zf.writestr(Path(file).name, fread.read())
 
     # Set access times from original
@@ -294,7 +300,10 @@ def pull_latest_achivements_file():
     if not response.status_code == 200:
         log.error("Not a valid repository.")
 
-    achievements_file = Path(os.path.dirname(__file__)).parent / "achievements" / "achievements.txt"
+    # achievements_file = Path(os.path.dirname(__file__)).parent / "achievements" / "achievements.txt"
+    achievements_file = Path(__file__).parent.parent / "achievements" / "achievements.txt"
+    _encoding = detect_file_encoding(achievements_file)
+    log.debug(f"Achievements file: {str(achievements_file)}")
     try:
         pulled_release = response.json()["content"]
         achievements = base64.b64decode(pulled_release).decode("utf-8")
@@ -302,7 +311,7 @@ def pull_latest_achivements_file():
         # Update local achievements file
         log.info("Updating achievements file with repo content.")
         try:
-            with open(achievements_file, 'w', encoding="utf-8") as ach_f:
+            with achievements_file.open('w', encoding=_encoding) as ach_f:
                 ach_f.write(achievements)
         except Exception as e:
             log.error(f"Error writing to achievements file.\nError: {e}")
@@ -313,7 +322,7 @@ def pull_latest_achivements_file():
         log.debug(f"Achievements file: {achievements_file}")
 
         try:
-            with open(achievements_file, 'r', encoding="utf-8") as ach_f:
+            with achievements_file.open('r', encoding=_encoding) as ach_f:
                 achievements = ach_f.read()
         except Exception as e:
             log.error(f"Error in accessing achievements file.\nError: {e}")

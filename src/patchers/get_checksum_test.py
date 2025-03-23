@@ -4,6 +4,8 @@ import hashlib
 import binascii
 from pathlib import Path
 
+from src.utils.encodings import detect_file_encoding
+
 
 def list_dir(path, suffix, sub):
     result = []
@@ -36,7 +38,8 @@ def load_manifest(path):
         return files
 
     # Load hash calculation range from checksum_manifest
-    with open(checksum_manifest, 'r') as f:
+    _encoding = detect_file_encoding(checksum_manifest)
+    with open(checksum_manifest, 'r', encoding=_encoding) as f:
         for line in f:
             data = line.strip()
 
@@ -65,7 +68,8 @@ def load_manifest(path):
 
 def get_checksum_version(path):
     path = Path(path) / "launcher-settings.json"
-    with path.open('r', encoding="utf8") as f:
+    _encoding = detect_file_encoding(path)
+    with path.open('r', encoding=_encoding) as f:
         data = json.load(f)
         version_name = data.get("version").strip().split(' ')[0]
         raw_version = data.get("rawVersion").strip()
@@ -77,7 +81,8 @@ def get_checksum_version(path):
 
 def get_full_version(path):
     path = Path(path) / "launcher-settings.json"
-    with path.open('r', encoding="utf8") as f:
+    _encoding = detect_file_encoding(path)
+    with path.open('r', encoding=_encoding) as f:
         data = json.load(f).get("version").strip()
 
     return data

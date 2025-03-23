@@ -5,6 +5,7 @@ from typing import Union
 import json
 
 from conf_globals import settings, OS, LOG_LEVEL
+from src.utils.encodings import safe_read_file_encode
 from logger import create_logger
 import vdf
 
@@ -132,25 +133,30 @@ class SteamHelper:
 
         log.debug(f"From {Path(vdf_file).name} getting values of key \"{key}\"")
 
-        vdf_fh = vdf.load(open(vdf_file))
-        values_out = self.recursive_dict_find_value(vdf_fh, key, stop_on_find)
+        try:
+            file_content = safe_read_file_encode(vdf_file)
+            if file_content is None:
+                log.error(f"Could not read VDF file: {vdf_file}")
+                return []
 
-        # for k, v in vdf_fh.items():
-        #     print(f"{k=}: {v=}")
-        #
-        # values_out = []
-        #
-        # for line in vdf_fh:
-        #     line = line.lstrip().rstrip()
-        #
-        #     value = self._vdf_line_contains(line, key)
-        #
-        #     if value:
-        #         for v in value:
-        #             values_out.append(v)
+            try:
+                vdf_data = vdf.loads(file_content)
+            except Exception as e:
+                log.error(f"Error parsing VDF content: {e}")
+                # Try binary mode as fallback
+                try:
+                    vdf_data = vdf.load(open(vdf_file, 'rb'))
+                except Exception as e2:
+                    log.error(f"Failed binary fallback for VDF parsing: {e2}")
+                    return []
 
-        log.info(f"Gathered: {values_out}")
-        return values_out
+            values_out = self.recursive_dict_find_value(vdf_data, key, stop_on_find)
+            log.info(f"Gathered: {values_out}")
+            return values_out
+
+        except Exception as e:
+            log.error(f"Unexpected error processing VDF file {vdf_file}: {e}")
+            return []
 
     def get_steam_libraries(self) -> Union[list[Path], bool]:
         log.info("Getting available Steam Libraries...")
