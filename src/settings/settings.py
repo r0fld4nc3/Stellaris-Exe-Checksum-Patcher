@@ -1,12 +1,13 @@
-import shutil
-import json
 import os
+import sys
+import json
+import shutil
 import tempfile
 from pathlib import Path
-import sys
 
 from conf_globals import config_folder, LOG_LEVEL
 from logger import create_logger
+from src.utils.encodings import detect_file_encoding
 
 log = create_logger("Settings", LOG_LEVEL)
 
@@ -205,6 +206,7 @@ class Settings:
         self.clean_save_file()
 
         log.debug(f"Loading config from {self.config_dir}")
+        log.debug(f"Config file: {self.config_file}")
         settings = self._safe_read_json(self.config_file)
         if settings is None:
             log.info("Generating new config file")
@@ -230,7 +232,9 @@ class Settings:
             if not Path(fp).exists():
                 return None
 
-            with open(fp, 'r', encoding="utf-8") as file:
+            _encoding = detect_file_encoding(fp)
+
+            with open(fp, 'r', encoding=_encoding) as file:
                 content = file.read()
                 if not content.strip():
                     return None
