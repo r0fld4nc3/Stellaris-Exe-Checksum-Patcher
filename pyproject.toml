@@ -10,7 +10,7 @@ dependencies = [
   "PySide6==6.4.0.1",
   "requests==2.32.3",
   "vdf==3.4",
-  "chardet==4.2.0"
+  "chardet==5.2.0"
 ]
 authors = [
   {name = "Artur Rosário"}
