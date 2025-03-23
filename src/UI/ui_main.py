@@ -496,7 +496,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         log.info(f"Game Folder: {game_folder}")
 
         if OS.WINDOWS:
-            subprocess.run(["explorer.exe", "/select", os.path.normpath(game_folder)])
+            subprocess.run(["explorer.exe", "/select,", os.path.normpath(game_folder)])
         elif OS.LINUX:
             subprocess.run(["xdg-open", game_folder])
         elif OS.MACOS:
