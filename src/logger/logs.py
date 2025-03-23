@@ -84,5 +84,5 @@ def create_logger(logger_name: str, level: int) -> logging.Logger:
 
 def reset_log_file() -> None:
     if Path(LOG_FILE).exists():
-        with open(LOG_FILE, 'w') as f:
+        with open(LOG_FILE, 'w', encoding="utf-8") as f:
             f.write('')
