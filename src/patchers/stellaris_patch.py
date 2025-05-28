@@ -108,8 +108,6 @@ def update_patcher_globals2():
         HEX_REPLACE = "33C0"
         PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
 
-    log.info(f"{EXE_DEFAULT_FILENAME=}", silent=True)
-    log.info(f"{BIN_PATH_POSTPEND=}", silent=True)
     log.info(f"{HEX_FIND=}", silent=True)
     log.info(f"{HEX_REPLACE=}", silent=True)
     log.info(f"{PATCH_PATTERN=}", silent=True)
