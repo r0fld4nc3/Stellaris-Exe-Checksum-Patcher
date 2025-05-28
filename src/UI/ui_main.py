@@ -420,27 +420,28 @@ class StellarisChecksumPatcherGUI(QWidget):
 
             if is_patched:
                 log.info("File is already patched")
-
-            if OS.MACOS:
-                # Because we want to backup the .app container and not the executable itself
-                # Backing up the executable with this method as it stands would leave it
-                # inside the .app container. Better to just deal with the .app container.
-                backup_file = stellaris_patch.create_backup(self.install_dir)
             else:
-                backup_file = stellaris_patch.create_backup(game_executable)
 
-            log.debug(f"Patching game executable: {game_executable}")
-            patched = stellaris_patch.patch(game_executable)
+                if OS.MACOS:
+                    # Because we want to backup the .app container and not the executable itself
+                    # Backing up the executable with this method as it stands would leave it
+                    # inside the .app container. Better to just deal with the .app container.
+                    backup_file = stellaris_patch.create_backup(self.install_dir)
+                else:
+                    backup_file = stellaris_patch.create_backup(game_executable)
 
-            # 2nd Patch to remove checksum modified tooltip
-            update_patcher_globals2()
-            patched = stellaris_patch.patch(game_executable)
-            self.is_patching = False
+                log.debug(f"Patching game executable: {game_executable}")
+                patched = stellaris_patch.patch(game_executable)
 
-            if not patched:
-                log.error(f"Failed to patch game binary.\n")
-                self.set_terminal_clickable(True)
-                return False
+                # 2nd Patch to remove checksum modified tooltip
+                update_patcher_globals2()
+                patched = stellaris_patch.patch(game_executable)
+                self.is_patching = False
+
+                if not patched:
+                    log.error(f"Failed to patch game binary.\n")
+                    self.set_terminal_clickable(True)
+                    return False
 
         self.terminal_display_log(' ')
 
