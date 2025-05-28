@@ -14,7 +14,7 @@ from .Styles import STYLES
 from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL, UPDATE_CHECK_COOLDOWN, IS_DEBUG
 from .ui_utils import Threader, get_screen_info, set_icon_gray
 from logger import create_logger, reset_log_file
-from patchers import stellaris_patch, update_patcher_globals
+from patchers import stellaris_patch, update_patcher_globals,update_patcher_globals2
 from patchers.save_patcher import repair_save, get_user_save_folder
 
 # loggers to hook up to signals
@@ -420,26 +420,27 @@ class StellarisChecksumPatcherGUI(QWidget):
 
             if is_patched:
                 log.info("File is already patched")
+
+            if OS.MACOS:
+                # Because we want to backup the .app container and not the executable itself
+                # Backing up the executable with this method as it stands would leave it
+                # inside the .app container. Better to just deal with the .app container.
+                backup_file = stellaris_patch.create_backup(self.install_dir)
             else:
-                # Create a backup
-                if OS.MACOS:
-                    # Because we want to backup the .app container and not the executable itself
-                    # Backing up the executable with this method as it stands would leave it
-                    # inside the .app container. Better to just deal with the .app container.
-                    backup_file = stellaris_patch.create_backup(self.install_dir)
-                else:
-                    backup_file = stellaris_patch.create_backup(game_executable)
+                backup_file = stellaris_patch.create_backup(game_executable)
 
-                log.debug(f"Patching game executable: {game_executable}")
+            log.debug(f"Patching game executable: {game_executable}")
+            patched = stellaris_patch.patch(game_executable)
 
-                patched = stellaris_patch.patch(game_executable)
+            # 2nd Patch to remove checksum modified tooltip
+            update_patcher_globals2()
+            patched = stellaris_patch.patch(game_executable)
+            self.is_patching = False
 
-                self.is_patching = False
-
-                if not patched:
-                    log.error(f"Failed to patch game binary.\n")
-                    self.set_terminal_clickable(True)
-                    return False
+            if not patched:
+                log.error(f"Failed to patch game binary.\n")
+                self.set_terminal_clickable(True)
+                return False
 
         self.terminal_display_log(' ')
 
