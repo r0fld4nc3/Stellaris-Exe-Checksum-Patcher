@@ -430,13 +430,14 @@ class StellarisChecksumPatcherGUI(QWidget):
                 else:
                     backup_file = stellaris_patch.create_backup(game_executable)
 
+                # 1st Patch, to remove startup checksum check.
                 log.debug(f"Patching game executable: {game_executable}")
                 patched = stellaris_patch.patch(game_executable)
 
-                # Only for native linux so far
+                # New method has only been updated for native linux so far.
                 if OS.LINUX:
                     if not OS.LINUX_PROTON:
-                        # 2nd Patch to remove checksum modified tooltip
+                        # 2nd Patch, to remove checksum modified tooltip.
                         update_patcher_globals2()
                         patched = stellaris_patch.patch(game_executable)
                         self.is_patching = False

@@ -25,6 +25,7 @@ def update_patcher_globals():
     if OS.WINDOWS:
         log.info("Setting globals to Windows", silent=True)
         # Windows and Proton Linux
+        # TODO: update Windows Patch1
         EXE_DEFAULT_FILENAME = "stellaris.exe"  # Game executable name plus extension
         HEX_FIND = "85C0"
         HEX_REPLACE = "33C0"
@@ -34,13 +35,13 @@ def update_patcher_globals():
             log.info("Setting globals to Linux Native", silent=True)
             # Native Linux
             EXE_DEFAULT_FILENAME = "stellaris"
-            # Startup Initial Check
             HEX_FIND = "85DB"
             HEX_REPLACE = "31DB"
             PATCH_PATTERN = re.compile(r"E89B2C600031F6%s" % HEX_FIND, re.IGNORECASE)
         else:
             log.info("Setting globals to Linux Proton", silent=True)
             # Linux Proton (Windows equivalent?)
+            # TODO: update Proton Patch1
             EXE_DEFAULT_FILENAME = "stellaris.exe"
             HEX_FIND = "85C0"
             HEX_REPLACE = "33C0"
@@ -48,6 +49,7 @@ def update_patcher_globals():
     elif OS.MACOS:
         log.info("Setting globals to Linux macOS", silent=True)
         # The actual executable is inside the .app -> /.../stellaris.app/Contents/MacOS/stellaris
+        # TODO: update Mac Patch1
         EXE_DEFAULT_FILENAME = "stellaris.app"
         BIN_PATH_POSTPEND = "Contents/MacOS/stellaris"
         HEX_FIND = "85DB"
@@ -73,10 +75,11 @@ def update_patcher_globals2():
     if OS.WINDOWS:
         log.info("Setting globals to Windows", silent=True)
         # Windows and Proton Linux
-        EXE_DEFAULT_FILENAME = "stellaris.exe"  # Game executable name plus extension
-        HEX_FIND = "85C0"
-        HEX_REPLACE = "33C0"
-        PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
+        # TODO: Add Windows Patch2
+        #EXE_DEFAULT_FILENAME = "stellaris.exe"  # Game executable name plus extension
+        #HEX_FIND = "85C0"
+        #HEX_REPLACE = "33C0"
+        #PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
     elif OS.LINUX:
         if not OS.LINUX_PROTON:
             log.info("Setting globals to Linux Native", silent=True)
@@ -89,25 +92,29 @@ def update_patcher_globals2():
         else:
             log.info("Setting globals to Linux Proton", silent=True)
             # Linux Proton (Windows equivalent?)
-            EXE_DEFAULT_FILENAME = "stellaris.exe"
-            HEX_FIND = "85C0"
-            HEX_REPLACE = "33C0"
-            PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
+            # TODO: Add Proton Patch2
+            #EXE_DEFAULT_FILENAME = "stellaris.exe"
+            #HEX_FIND = "85C0"
+            #HEX_REPLACE = "33C0"
+            #PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
     elif OS.MACOS:
         log.info("Setting globals to Linux macOS", silent=True)
         # The actual executable is inside the .app -> /.../stellaris.app/Contents/MacOS/stellaris
-        EXE_DEFAULT_FILENAME = "stellaris.app"
-        BIN_PATH_POSTPEND = "Contents/MacOS/stellaris"
-        HEX_FIND = "85DB"
-        HEX_REPLACE = "31DB"
-        PATCH_PATTERN = re.compile(r"89C3E851.{8,10}%s" % HEX_FIND, re.IGNORECASE)
+        # TODO: Add Mac Patch2
+        #EXE_DEFAULT_FILENAME = "stellaris.app"
+        #BIN_PATH_POSTPEND = "Contents/MacOS/stellaris"
+        #HEX_FIND = "85DB"
+        #HEX_REPLACE = "31DB"
+        #PATCH_PATTERN = re.compile(r"89C3E851.{8,10}%s" % HEX_FIND, re.IGNORECASE)
     else:
         log.warning("Setting globals to we shouldn't be here, but here we are...", silent=True)
-        EXE_DEFAULT_FILENAME = "stellaris.wtf"
-        HEX_FIND = "85C0"
-        HEX_REPLACE = "33C0"
-        PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
+        #EXE_DEFAULT_FILENAME = "stellaris.wtf"
+        #HEX_FIND = "85C0"
+        #HEX_REPLACE = "33C0"
+        #PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
 
+    log.info(f"{EXE_DEFAULT_FILENAME=}", silent=True)
+    log.info(f"{BIN_PATH_POSTPEND=}", silent=True)
     log.info(f"{HEX_FIND=}", silent=True)
     log.info(f"{HEX_REPLACE=}", silent=True)
     log.info(f"{PATCH_PATTERN=}", silent=True)
