@@ -433,15 +433,20 @@ class StellarisChecksumPatcherGUI(QWidget):
                 # 1st Patch, to remove startup checksum check.
                 log.debug(f"Patching game executable: {game_executable}")
                 patched = stellaris_patch.patch(game_executable)
+                self.is_patching = False
+                
+                # Check it applied.
+                if not patched:
+                    log.error(f"Failed to patch game binary.\n")
+                    self.set_terminal_clickable(True)
+                    return False
+                
+                # 2nd Patch, to remove checksum modified tooltip.
+                update_patcher_globals2()
+                patched = stellaris_patch.patch(game_executable)
+                self.is_patching = False
 
-                # New method has only been updated for native linux so far.
-                if OS.LINUX:
-                    if not OS.LINUX_PROTON:
-                        # 2nd Patch, to remove checksum modified tooltip.
-                        update_patcher_globals2()
-                        patched = stellaris_patch.patch(game_executable)
-                        self.is_patching = False
-
+                # Check second patch applied.
                 if not patched:
                     log.error(f"Failed to patch game binary.\n")
                     self.set_terminal_clickable(True)
