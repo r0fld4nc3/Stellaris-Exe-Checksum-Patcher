@@ -82,7 +82,7 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 |------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
 | Stellaris-Checksum-Patcher-linux   | <sub><sup>a9f26f9b4e86c3533b83e7e16af48dc79e8eac45a45c5752e9cb0b365a15d6de</sup></sub> | <sub><sup>eca776501d4c0e634f95b438e6e8b8d6</sup></sub> |
 | Stellaris-Checksum-Patcher-win.zip | <sub><sup>afbf04f0db8a070fb35653af6e2ffeb3c1609e4dd6fac73be82a644328420073</sup></sub> | <sub><sup>522e021fec263ea048ef9bd1be6d8909</sup></sub> |
-| Stellaris-Checksum-Patcher.exe     | <sub><sup>5ffc80544361b8aa82634ef1755bc368f879e2617c35bb032ab4d23ee284e4e9</sup></sub> | <sub><sup>8a3bc81b1a9abaf6e4b36ba634ade2bd</sup></sub> |
+| Stellaris-Checksum-Patcher.exe     | <sub><sup>5218e49db31812583386f4c944d7744e799b9344c813670a5d04b4c2166c8d16</sup></sub> | <sub><sup>a3dfaea91f0a4206fd9b5b7978b125f6</sup></sub> |
 | Stellaris-Checksum-Patcher.tar.xz  | <sub><sup>1e539c0a132bf9faa58521199b4ca45aedcfb41246ec60dd72a14a74c0995b2c</sup></sub> | <sub><sup>6163a03894cec4165608ed86326445fd</sup></sub> |
 
 
