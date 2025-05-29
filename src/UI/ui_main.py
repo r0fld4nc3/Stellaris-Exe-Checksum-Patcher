@@ -434,7 +434,7 @@ class StellarisChecksumPatcherGUI(QWidget):
             if is_patched:
                 log.info("File is already patched")
             else:
-
+                # Create a backup
                 if OS.MACOS:
                     # Because we want to backup the .app container and not the executable itself
                     # Backing up the executable with this method as it stands would leave it

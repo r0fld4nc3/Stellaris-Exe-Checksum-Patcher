@@ -19,6 +19,9 @@ BIN_PATH_POSTPEND = ""
 
 
 def update_patcher_globals():
+    """
+    Update Patcher Globals to patch mods acceptance with Achievements/Ironman
+    """
     log.info("Updating Patcher Globals for 1st patch...", silent=True)
     global EXE_DEFAULT_FILENAME, HEX_FIND, HEX_REPLACE, PATCH_PATTERN, BIN_PATH_POSTPEND
 
@@ -67,6 +70,9 @@ def update_patcher_globals():
     log.info(f"{PATCH_PATTERN=}", silent=True)
 
 def update_patcher_globals2():
+    """
+    Update Patcher Globals to patch modifier checksum warning
+    """
     log.info("Updating Patcher Globals for 2nd patch...", silent=True)
     global EXE_DEFAULT_FILENAME, HEX_FIND, HEX_REPLACE, PATCH_PATTERN, BIN_PATH_POSTPEND
 
