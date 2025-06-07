@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
-    QLabel, QSizePolicy, QFileDialog, QTextBrowser, QFrame, QAbstractScrollArea
+    QLabel, QSizePolicy, QFileDialog, QTextBrowser, QFrame, QAbstractScrollArea, QGroupBox
 )
 from PySide6.QtCore import Qt, QSize, QThreadPool, QObject, QEvent, Slot
 from PySide6.QtGui import QIcon, QFont, QFontDatabase, QMouseEvent
@@ -14,7 +14,7 @@ from .Styles import STYLES
 from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL, UPDATE_CHECK_COOLDOWN, IS_DEBUG
 from .ui_utils import Threader, get_screen_info, set_icon_gray, WorkerSignals
 from logger import create_logger, reset_log_file
-from patchers import stellaris_patch, update_patcher_globals,update_patcher_globals2
+from patchers import stellaris_patch, update_patcher_globals, update_patcher_globals2, update_patcher_globals_old
 from patchers.save_patcher import repair_save, get_user_save_folder
 
 # loggers to hook up to signals
@@ -30,6 +30,11 @@ log = create_logger("UI", LOG_LEVEL)
 class LINUX_VERSIONS_ENUM:
     NATIVE = "Native"
     PROTON = "Proton"
+
+
+class PATCH_METHODS_ENUM:
+    OLD_CHECKSUM = "Old Checksum"
+    NEW_CHECKSUM = "New Checksum"
 
 
 class StellarisChecksumPatcherGUI(QWidget):
@@ -222,6 +227,14 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.linux_version_picker.setFont(QFont(self.orbitron_bold_font, 14))
         self.linux_version_picker.currentTextChanged.connect(self.on_linux_picker_text_changed)
 
+        # Patch Method Version
+        self.exp_patch_method_picker = QComboBox()
+        self.exp_patch_method_picker.setMinimumSize(QSize(200, 48))
+        self.exp_patch_method_picker.setMaximumSize(QSize(300, 48))
+        self.exp_patch_method_picker.addItems([PATCH_METHODS_ENUM.NEW_CHECKSUM, PATCH_METHODS_ENUM.OLD_CHECKSUM])
+        self.exp_patch_method_picker.setStyleSheet(self.style.COMBOBOX)
+        self.exp_patch_method_picker.setFont(QFont(self.orbitron_bold_font, 14))
+
         # Show Game Folder Button
         self.btn_show_game_folder = QPushButton("Show Game Folder")
         self.btn_show_game_folder.setStyleSheet(self.style.BUTTONS)
@@ -248,6 +261,15 @@ class StellarisChecksumPatcherGUI(QWidget):
 
         # Misc Layout
         self.hlayout_misc_functions.addWidget(self.btn_show_game_folder)
+        # Patch Method Group Box
+        patch_method_group = QGroupBox()
+        patch_method_group.setMinimumSize(QSize(210, 96))
+        patch_method_group.setMaximumSize(QSize(310, 96))
+        patch_method_group.setTitle("&Patch Method")
+        patch_method_group_layout = QVBoxLayout()
+        patch_method_group.setLayout(patch_method_group_layout)
+        patch_method_group_layout.addWidget(self.exp_patch_method_picker)
+        self.hlayout_misc_functions.addWidget(patch_method_group)
 
         # Main Layout
         self.main_layout.addWidget(self.main_frame)
@@ -313,12 +335,14 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.btn_patch_executable.setDisabled(False)
         # self.btn_fix_save_file.setDisabled(False) # TODO: Uncomment when it is time
         self.linux_version_picker.setDisabled(False)
+        self.exp_patch_method_picker.setDisabled(False)
         self.btn_show_game_folder.setDisabled(False)
 
     def disable_ui_elements(self):
         self.btn_patch_executable.setDisabled(True)
         self.btn_fix_save_file.setDisabled(True)
         self.linux_version_picker.setDisabled(True)
+        self.exp_patch_method_picker.setDisabled(True)
         self.btn_show_game_folder.setDisabled(True)
 
     def remove_thread(self, thread_id_remove):
@@ -444,13 +468,22 @@ class StellarisChecksumPatcherGUI(QWidget):
                     stellaris_patch.create_backup(game_executable)
 
                 # 1st Patch, to remove startup checksum check.
-                log.debug(f"Patching game executable: {game_executable}")
+                if str(self.exp_patch_method_picker.currentText()) == PATCH_METHODS_ENUM.NEW_CHECKSUM:
+                    # New Checksum Patch
+                    log.info(f"Attempting to patch game executable with {PATCH_METHODS_ENUM.NEW_CHECKSUM}")
+                    update_patcher_globals()
+                else:
+                    # Old Checksum Patch
+                    log.info(f"Attempting to patch game executable with {PATCH_METHODS_ENUM.OLD_CHECKSUM}")
+                    update_patcher_globals_old()
                 patched = stellaris_patch.patch(game_executable)
                 self.is_patching = False
                 
                 # Check it applied.
-                if not patched:
-                    log.error(f"Failed to patch game binary.\n")
+                if patched:
+                    log.info(f"Successfully patched Checksum. Achievements should now be earnable with mods (requires compatible save)")
+                else:
+                    log.error(f"Failed to patch Checksum\n")
                     self.set_terminal_clickable(True)
                     return False
                 
@@ -611,8 +644,6 @@ class StellarisChecksumPatcherGUI(QWidget):
         elif text == LINUX_VERSIONS_ENUM.PROTON:
             OS.LINUX_PROTON = True
             self.install_dir = settings.get_stellaris_proton_install_path()
-
-        update_patcher_globals()
 
         log.info(f"{self.install_dir=}", silent=True)
 

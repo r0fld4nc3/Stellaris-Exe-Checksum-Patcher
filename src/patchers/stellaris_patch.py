@@ -120,6 +120,54 @@ def update_patcher_globals2():
     log.info(f"{HEX_REPLACE=}", silent=True)
     log.info(f"{PATCH_PATTERN=}", silent=True)
 
+def update_patcher_globals_old():
+    log.info("Updating Patcher Globals", silent=True)
+    global EXE_DEFAULT_FILENAME, HEX_FIND, HEX_REPLACE, PATCH_PATTERN, BIN_PATH_POSTPEND
+
+    if OS.WINDOWS:
+        log.info("Setting globals to Windows", silent=True)
+        # Windows and Proton Linux
+        EXE_DEFAULT_FILENAME = "stellaris.exe"  # Game executable name plus extension
+        HEX_FIND = "85C0"
+        HEX_REPLACE = "33C0"
+        PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
+    elif OS.LINUX:
+        if not OS.LINUX_PROTON:
+            log.info("Setting globals to Linux Native", silent=True)
+            # Native Linux
+            EXE_DEFAULT_FILENAME = "stellaris"
+            HEX_FIND = "85DB"
+            HEX_REPLACE = "33DB"
+            PATCH_PATTERN = re.compile(r"488B30.{20,50}%s" % HEX_FIND, re.IGNORECASE)
+        else:
+            log.info("Setting globals to Linux Proton", silent=True)
+            # Linux Proton (Windows equivalent?)
+            EXE_DEFAULT_FILENAME = "stellaris.exe"
+            HEX_FIND = "85C0"
+            HEX_REPLACE = "33C0"
+            PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
+    elif OS.MACOS:
+        log.info("Setting globals to Linux macOS", silent=True)
+        # .app IS NOT A FILE, IT'S A DIRECTORY
+        # The actual executable is inside the .app -> /.../stellaris.app/Contents/MacOS/stellaris
+        EXE_DEFAULT_FILENAME = "stellaris.app"
+        BIN_PATH_POSTPEND = "Contents/MacOS/stellaris"
+        HEX_FIND = "85DB"
+        HEX_REPLACE = "31DB"
+        PATCH_PATTERN = re.compile(r"89C3E851.{8,10}%s" % HEX_FIND, re.IGNORECASE)
+    else:
+        log.warning("Setting globals to we shouldn't be here, but here we are...", silent=True)
+        EXE_DEFAULT_FILENAME = "stellaris.wtf"
+        HEX_FIND = "85C0"
+        HEX_REPLACE = "33C0"
+        PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
+
+    log.info(f"{EXE_DEFAULT_FILENAME=}", silent=True)
+    log.info(f"{BIN_PATH_POSTPEND=}", silent=True)
+    log.info(f"{HEX_FIND=}", silent=True)
+    log.info(f"{HEX_REPLACE=}", silent=True)
+    log.info(f"{PATCH_PATTERN=}", silent=True)
+
 TITLE_NAME = "Stellaris"  # Steam title name
 
 
