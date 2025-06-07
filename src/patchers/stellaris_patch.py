@@ -47,7 +47,6 @@ def update_patcher_globals():
             HEX_FIND = "85C0"
             HEX_REPLACE = "31C0"
             PATCH_PATTERN = re.compile(r"488B1248.{20,26}%s" % HEX_FIND, re.IGNORECASE)
-
     elif OS.MACOS:
         log.info("Setting globals to Linux macOS", silent=True)
         # The actual executable is inside the .app -> /.../stellaris.app/Contents/MacOS/stellaris
