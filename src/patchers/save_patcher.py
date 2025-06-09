@@ -155,13 +155,13 @@ def repair_save(save_file, repair_ironman_flag=False):
         if achievements_line_start == -1 and "achievement={" in line:
             existing_achievements = True
             achievements_line_start = i
-            log.debug(f"Achievements line found: {i}")
+            log.info(f"Achievements line found: {i}")
 
         # If existing achievements line, the next '}' will be the closing bracket
         if existing_achievements and achievements_line_end == -1:
             if "}" in line:
                 achievements_line_end = i
-                log.debug(f"Achievements line close found: {i}")
+                log.info(f"Achievements line close found: {i}")
                 break
 
         # Deal with new contents directly.
@@ -238,7 +238,7 @@ def repair_save(save_file, repair_ironman_flag=False):
     # ==================================================
     # =================== META BLOCK ===================
     # ==================================================
-    log.debug("Repairing meta")
+    log.info("Repairing meta")
     _encoding = detect_file_encoding(meta_file)
     with meta_file.open('r', encoding=_encoding) as f:
         file = f.read()
@@ -249,7 +249,7 @@ def repair_save(save_file, repair_ironman_flag=False):
     if repair_ironman_flag:
         if "ironman=yes" not in new_file_contents:
             log.debug(f"\n{new_file_contents}")
-            log.debug("ironman=yes not found in meta file.")
+            log.info("ironman=yes not found in meta file.")
             new_file_contents.append("ironman=yes")
             log.debug(f"\n{new_file_contents}")
 
