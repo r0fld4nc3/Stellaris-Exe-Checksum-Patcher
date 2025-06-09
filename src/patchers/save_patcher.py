@@ -180,7 +180,7 @@ def repair_save(save_file, repair_ironman_flag=False):
     # Insert ironman=yes at index of name= + 1, so it is the line directly below name=
     if repair_ironman_flag:
         has_ironman_flag = False
-        _has_passed_galaxy_line = False
+        has_passed_galaxy_line = False
 
         # Check for ironman flag existing once before full parse
         if "ironman=yes" in file_contents:
@@ -190,9 +190,9 @@ def repair_save(save_file, repair_ironman_flag=False):
             for i, line in enumerate(file_contents):
                 if "galaxy={" in line:
                     log.debug("Passed galaxy={")
-                    _has_passed_galaxy_line = True
+                    has_passed_galaxy_line = True
 
-                if _has_passed_galaxy_line:
+                if has_passed_galaxy_line:
                     if "name=" in line:
                         log.debug("Found name= in galaxy={")
                         log.info("Setting ironman flag to yes.")
