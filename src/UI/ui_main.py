@@ -585,6 +585,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         log.info(f"Save games directory: {os.path.normpath(save_games_dir)}")
         settings.set_save_games_dir(save_games_dir)
 
+        # TODO: Ask if save was ironman or not, to repair the appropriate flag or leave it be.
+
         thread_repair_save = Threader(target=lambda save_file=save_file_path: repair_save(save_file))
         thread_id = thread_repair_save.currentThread()
         thread_repair_save.setTerminationEnabled(True)
