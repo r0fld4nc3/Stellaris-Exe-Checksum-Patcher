@@ -75,7 +75,7 @@ def get_user_save_folder():
     return documents_dir
 
 
-def repair_save(save_file):
+def repair_save(save_file, repair_ironman_flag=False):
     # .sav
     save_dir = Path(save_file).parent
     save_file_name = Path(save_file).name
@@ -178,25 +178,26 @@ def repair_save(save_file):
     # Immediately below name= there should be a line for ironman
     # If it isn't and if we don't find ironman= anywhere in the file
     # Insert ironman=yes at index of name= + 1, so it is the line directly below name=
-    has_ironman_flag = False
-    _has_passed_galaxy_line = False
+    if repair_ironman_flag:
+        has_ironman_flag = False
+        _has_passed_galaxy_line = False
 
-    # Check for ironman flag existing once before full parse
-    if "ironman=yes" in file_contents:
-        has_ironman_flag = True
+        # Check for ironman flag existing once before full parse
+        if "ironman=yes" in file_contents:
+            has_ironman_flag = True
 
-    if not has_ironman_flag:
-        for i, line in enumerate(file_contents):
-            if "galaxy={" in line:
-                log.debug("Passed galaxy={")
-                _has_passed_galaxy_line = True
+        if not has_ironman_flag:
+            for i, line in enumerate(file_contents):
+                if "galaxy={" in line:
+                    log.debug("Passed galaxy={")
+                    _has_passed_galaxy_line = True
 
-            if _has_passed_galaxy_line:
-                if "name=" in line:
-                    log.debug("Found name= in galaxy={")
-                    log.info("Setting ironman flag to yes.")
-                    new_file_contents.insert(i+1, "\tironman=yes")  # Must be a tabbed insert
-                    break
+                if _has_passed_galaxy_line:
+                    if "name=" in line:
+                        log.debug("Found name= in galaxy={")
+                        log.info("Setting ironman flag to yes.")
+                        new_file_contents.insert(i+1, "\tironman=yes")  # Must be a tabbed insert
+                        break
 
     # Double check conditions are met to be able to write the proper file
     if existing_achievements or clusters_found:
@@ -245,11 +246,16 @@ def repair_save(save_file):
     file_contents = file.splitlines()
     new_file_contents = file_contents.copy()
 
-    if "ironman=yes" not in new_file_contents:
-        log.debug(f"\n{new_file_contents}")
-        log.debug("ironman=yes not found in meta file.")
-        new_file_contents.append("ironman=yes")
-        log.debug(f"\n{new_file_contents}")
+    if repair_ironman_flag:
+        if "ironman=yes" not in new_file_contents:
+            log.debug(f"\n{new_file_contents}")
+            log.debug("ironman=yes not found in meta file.")
+            new_file_contents.append("ironman=yes")
+            log.debug(f"\n{new_file_contents}")
+
+    # =================================================
+    # ============== PUT IT ALL TOGETHER ==============
+    # =================================================
 
     temp_file = Path(tempfile.gettempdir()) / "meta"
     _encoding = detect_file_encoding(temp_file)
