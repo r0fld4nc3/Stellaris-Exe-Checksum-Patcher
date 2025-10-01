@@ -1,0 +1,45 @@
+{
+    "windows": {
+        "description": "Settings for native Windows and Linux Proton.",
+        "exe_filename": "stellaris.exe",
+        "checksum_patch": {
+            "hex_find": "85C0",
+            "hex_replace": "31C0",
+            "patch_pattern": "C8CA018BF8%s"
+        },
+        "checksum_warning": {
+            "hex_find": "85C0",
+            "hex_replace": "31C0",
+            "patch_pattern": "3401E8C9971501%s"
+        }
+    },
+    "linux_native": {
+        "description": "Settings for native Linux builds.",
+        "exe_filename": "stellaris",
+        "checksum_patch": {
+            "hex_find": "85DB",
+            "hex_replace": "31DB",
+            "patch_pattern": "E8BC55.{8,16}%s"
+        },
+        "checksum_warning": {
+            "hex_find": "85C0",
+            "hex_replace": "31C0",
+            "patch_pattern": "8B30BF13219D03E86400DAFE%s"
+        }
+    },
+    "macos": {
+        "description": "Settings for macOS builds.",
+        "exe_filename": "stellaris.app",
+        "bin_path_postpend": "Contents/MacOS/stellaris",
+        "checksum_patch": {
+            "hex_find": "85DB",
+            "hex_replace": "31DB",
+            "patch_pattern": "89C3E851.{8,10}%s"
+        },
+        "checksum_warning": {
+            "hex_find": "85DB",
+            "hex_replace": "31DB",
+            "patch_pattern": "89C3E851.{8,10}%s"
+        }
+    }
+}

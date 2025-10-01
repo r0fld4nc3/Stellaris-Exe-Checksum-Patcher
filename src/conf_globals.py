@@ -1,5 +1,5 @@
-import platform
 import argparse
+import platform
 
 system = platform.system()
 debug_commands = ("-debug", "-d")
@@ -8,9 +8,7 @@ debug_commands = ("-debug", "-d")
 _parser = argparse.ArgumentParser(description="Application Startup")
 
 _parser.add_argument(
-    "-d", "--debug",
-    action="store_true",
-    help="Enable debug mode and expose more debugging information"
+    "-d", "--debug", action="store_true", help="Enable debug mode and expose more debugging information"
 )
 
 # PyInstaller/auto-py-to-exe errors on Windows (so far) when parsing args is at the top level.
@@ -25,9 +23,11 @@ APP_VERSION = [2, 0, 0]
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
+BRANCH: str = "patch-method-tryouts"
 LOG_LEVEL = 1
 IS_DEBUG = False
 UPDATE_CHECK_COOLDOWN = 60  # seconds
+USE_LOCAL_PATTERNS = False  # Force use of only local patterns file
 
 # Parse debug mode and set flags related to it
 if LOG_LEVEL == 0 or _args.debug:
@@ -43,6 +43,7 @@ class OS:
 
 
 from logger.path_helpers import win_get_localappdata
+
 config_folder = win_get_localappdata() / HOST / APP_NAME
 
 
@@ -60,9 +61,11 @@ for action in _parser._actions:
         log.info(f"[INIT] Run with flag {action.option_strings}: {action.help}")
 
 from updater import Updater
+
 updater = Updater("r0fld4nc3", "Stellaris-Exe-Checksum-Patcher")
 
 from settings import Settings
+
 settings = Settings()
 settings.load_config()
 

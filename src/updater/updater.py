@@ -1,9 +1,9 @@
-import json
-import requests
-import time
+import json  # isort: skip
+import requests  # isort: skip
+import time  # isort: skip
 
-from conf_globals import LOG_LEVEL
-from logger import create_logger
+from conf_globals import LOG_LEVEL  # isort: skip
+from logger import create_logger  # isort: skip
 
 log = create_logger("Updater", LOG_LEVEL)
 
@@ -56,6 +56,7 @@ class Updater:
 
         try:
             api_call = f"{self.api}{self._api_releases}"
+            log.info(f"{api_call}", silent=True)
             response = requests.get(api_call, timeout=60)
         except requests.ConnectionError as con_err:
             log.error(f"Unable to establish connection to update repo.")
@@ -70,8 +71,14 @@ class Updater:
         return releases
 
     def get_first_non_pre_release(self, releases: dict) -> int:
+        # Return if releases not dict type
+        if not isinstance(releases, dict):
+            return 0
+
         # Get first non pre-release version index
-        log.info(f"Getting first non pre-release available from list of supplied {len(releases)} releases.", silent=True)
+        log.info(
+            f"Getting first non pre-release available from list of supplied {len(releases)} releases.", silent=True
+        )
 
         log.debug(f"{json.dumps(releases, indent=2)}", silent=True)
 
@@ -115,7 +122,10 @@ class Updater:
             log.info(f"This release {current} is outdated with remote {remote_release_name} ({remote_release_tag})")
             return True
         else:
-            log.debug(f"This release {current} is up to date with remote {remote_release_name} ({remote_release_tag})", silent=True)
+            log.debug(
+                f"This release {current} is up to date with remote {remote_release_name} ({remote_release_tag})",
+                silent=True,
+            )
             log.info("Up to date")
 
         return False
@@ -123,7 +133,7 @@ class Updater:
     @staticmethod
     def construct_version_list_from_str(version: str):
         # Collect the digits between dots
-        digit = ''
+        digit = ""
         constructed_version = []
 
         for c in version:
@@ -136,7 +146,7 @@ class Updater:
                 log.debug(f"    - '{c}' is not a digit.", silent=True)
                 if digit:
                     constructed_version.append(int(digit))
-                    digit = ''
+                    digit = ""
 
         # Handle if last item(s) are digits and weren't appended
         if digit:
@@ -152,10 +162,10 @@ class Updater:
         _repo = f"{_user}/{repo}"
         _api = f"https://api.github.com/repos/{_repo}"
 
-        log.debug(f"User: {_user}\nRepository Name: {_repo}\nAPI: {_api}")
+        log.info(f"User: {_user}\nRepository Name: {_repo}\nAPI: {_api}", silent=True)
 
         return _user, _repo, _api
 
     def set_local_version(self, version: str):
         self.local_version = self.construct_version_list_from_str(version)
-        log.debug(f"Set local version {version}")
+        log.info(f"Set local version {version}", silent=True)

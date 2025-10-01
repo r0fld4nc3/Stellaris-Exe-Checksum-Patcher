@@ -176,3 +176,5 @@ Lib
 GitHub-Issues
 _saves_testing
 saves_backup
+
+*.lock

@@ -1,13 +1,13 @@
-import os
-import sys
-import json
-import shutil
-import tempfile
-from pathlib import Path
+import os  # isort: skip
+import sys  # isort: skip
+import json  # isort: skip
+import shutil  # isort: skip
+import tempfile  # isort: skip
+from pathlib import Path  # isort: skip
 
-from conf_globals import config_folder, LOG_LEVEL
-from logger import create_logger
-from utils.encodings import detect_file_encoding
+from conf_globals import config_folder, LOG_LEVEL  # isort: skip
+from logger import create_logger  # isort: skip
+from utils.encodings import detect_file_encoding  # isort: skip
 
 log = create_logger("Settings", LOG_LEVEL)
 
@@ -16,6 +16,7 @@ class Settings:
     class ENUM:
         APP_VERSION = "app-version"
         UPDATE_LAST_CHECKED = "update-last-checked"
+        PATTERNS_UPDATE_LAST_CHECKED = "patch-patterns-update-last-checked"
         UPDATE_AVAILABLE = "update-available"
         WINDOW_WIDTH = "window-width"
         WINDOW_HEIGHT = "window-height"
@@ -24,6 +25,7 @@ class Settings:
         STEAM_INSTALL_PATH = "steam-install-path"
         SAVE_GAMES_PATH = "save-games-path"
         PATCHED_BLOCK = "patched-block"
+        PATCHED_HASH = "patched-exe-hash"
         EXE_NAME = "exe-name"
         EXE_PROTON_NAME = "exe-proton-name"
 
@@ -39,6 +41,7 @@ class Settings:
             self.ENUM.STEAM_INSTALL_PATH: "",
             self.ENUM.SAVE_GAMES_PATH: "",
             self.ENUM.PATCHED_BLOCK: "",
+            self.ENUM.PATCHED_HASH: "",
             self.ENUM.EXE_NAME: "",
             self.ENUM.EXE_PROTON_NAME: "",
         }
@@ -74,8 +77,10 @@ class Settings:
         return self.patcher_settings.get(self.ENUM.WINDOW_HEIGHT)
 
     def set_stellaris_install_path(self, install_path) -> None:
-        self.patcher_settings[self.ENUM.STELLARIS_INSTALL_PATH] = install_path.replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving Stellaris install location: {self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)}")
+        self.patcher_settings[self.ENUM.STELLARIS_INSTALL_PATH] = install_path.replace("\\", "/").replace("\\\\", "/")
+        log.info(
+            f"Saving Stellaris install location: {self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)}"
+        )
         self.save_config()
 
     def get_stellaris_install_path(self) -> str:
@@ -83,8 +88,12 @@ class Settings:
         return self.patcher_settings.get(self.ENUM.STELLARIS_INSTALL_PATH)
 
     def set_stellaris_proton_install_path(self, install_path) -> None:
-        self.patcher_settings[self.ENUM.STELLARIS_PROTON_INSTALL_PATH] = install_path.replace('\\', '/').replace('\\\\', '/')
-        log.info(f"Saving Stellaris (Proton) install location: {self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)}")
+        self.patcher_settings[self.ENUM.STELLARIS_PROTON_INSTALL_PATH] = install_path.replace("\\", "/").replace(
+            "\\\\", "/"
+        )
+        log.info(
+            f"Saving Stellaris (Proton) install location: {self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)}"
+        )
         self.save_config()
 
     def get_stellaris_proton_install_path(self) -> str:
@@ -92,7 +101,7 @@ class Settings:
         return self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)
 
     def set_steam_install_path(self, install_path) -> None:
-        self.patcher_settings[self.ENUM.STEAM_INSTALL_PATH] = install_path.replace('\\', '/').replace('\\\\', '/')
+        self.patcher_settings[self.ENUM.STEAM_INSTALL_PATH] = install_path.replace("\\", "/").replace("\\\\", "/")
         log.info(f"Saving Steam install path: {self.patcher_settings.get(self.ENUM.STEAM_INSTALL_PATH)}")
         self.save_config()
 
@@ -123,7 +132,7 @@ class Settings:
         return self.patcher_settings.get(self.ENUM.SAVE_GAMES_PATH)
 
     def set_save_games_dir(self, save_games_dir: str):
-        self.patcher_settings[self.ENUM.SAVE_GAMES_PATH] = str(save_games_dir).replace('\\', '/').replace('\\\\', '/')
+        self.patcher_settings[self.ENUM.SAVE_GAMES_PATH] = str(save_games_dir).replace("\\", "/").replace("\\\\", "/")
         log.info(f"Saving games directory: {self.patcher_settings.get(self.ENUM.SAVE_GAMES_PATH)}")
         self.save_config()
 
@@ -138,7 +147,7 @@ class Settings:
 
     def get_update_last_checked(self) -> int:
         # self.load_config()
-        return self.patcher_settings.get(self.ENUM.UPDATE_LAST_CHECKED)
+        return self.patcher_settings.get(self.ENUM.UPDATE_LAST_CHECKED, 0)
 
     def set_update_last_checked(self, timestamp: int):
         self.patcher_settings[self.ENUM.UPDATE_LAST_CHECKED] = int(timestamp)
@@ -152,6 +161,26 @@ class Settings:
     def set_has_update(self, bool_to_set: bool):
         self.patcher_settings[self.ENUM.UPDATE_AVAILABLE] = bool(bool_to_set)
         log.info(f"Saving is update available: {self.patcher_settings.get(self.ENUM.UPDATE_AVAILABLE)}")
+        self.save_config()
+
+    def set_patched_hash(self, hash_str: str):
+        self.patcher_settings[self.ENUM.PATCHED_HASH] = hash_str
+        log.info(f"Saving patched hash: {hash_str}")
+        self.save_config()
+
+    def get_patched_hash(self) -> str:
+        # self.load_config()
+        return self.patcher_settings[self.ENUM.PATCHED_HASH]
+
+    def get_patch_patterns_update_last_checked(self):
+        # self.load_config()
+        return self.patcher_settings.get(self.ENUM.PATTERNS_UPDATE_LAST_CHECKED, 0)
+
+    def set_patch_patterns_update_last_checked(self, timestamp: int):
+        self.patcher_settings[self.ENUM.PATTERNS_UPDATE_LAST_CHECKED] = int(timestamp)
+        log.info(
+            f"Saving patch patterns update last checked: {self.patcher_settings.get(self.ENUM.PATTERNS_UPDATE_LAST_CHECKED)}"
+        )
         self.save_config()
 
     def clean_save_file(self):
@@ -198,8 +227,7 @@ class Settings:
         return result
 
     def load_config(self):
-        if self.config_dir == '' or not Path(self.config_dir).exists()\
-                or not Path(self.config_file).exists():
+        if self.config_dir == "" or not Path(self.config_dir).exists() or not Path(self.config_file).exists():
             log.debug(f"Config does not exist.")
             return False
 
@@ -234,7 +262,7 @@ class Settings:
 
             _encoding = detect_file_encoding(fp)
 
-            with open(fp, 'r', encoding=_encoding) as file:
+            with open(fp, "r", encoding=_encoding) as file:
                 content = file.read()
                 if not content.strip():
                     return None
@@ -250,7 +278,6 @@ class Settings:
             log.error(f"Error reading config file: {e}")
             return None
 
-
     def _safe_write_json(self, fp: Path, data):
         if not isinstance(fp, Path):
             fp = Path(fp)
@@ -260,12 +287,7 @@ class Settings:
             fp.parent.mkdir(parents=True, exist_ok=True)
 
         # Write to temporary first
-        temp_file = tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            dir=str(fp.parent),
-            delete=False
-        )
+        temp_file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=str(fp.parent), delete=False)
 
         log.info(f"Created temporary file: {temp_file.name}")
 

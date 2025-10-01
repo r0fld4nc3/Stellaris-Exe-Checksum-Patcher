@@ -1,28 +1,58 @@
-import os
-import sys
-import time
-from pathlib import Path
-import subprocess
-from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
-    QLabel, QSizePolicy, QFileDialog, QTextBrowser, QFrame, QAbstractScrollArea, QGroupBox
+import os  # isort: skip
+import sys  # isort: skip
+import time  # isort: skip
+from pathlib import Path  # isort: skip
+import subprocess  # isort: skip
+from PySide6.QtWidgets import (  # isort: skip
+    QAbstractScrollArea,
+    QApplication,
+    QComboBox,
+    QFileDialog,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, QSize, QThreadPool, QObject, QEvent, Slot
-from PySide6.QtGui import QIcon, QFont, QFontDatabase, QMouseEvent
 
-from .Styles import STYLES
-from conf_globals import updater, settings, APP_VERSION, OS, LOG_LEVEL, UPDATE_CHECK_COOLDOWN, IS_DEBUG
-from .ui_utils import Threader, get_screen_info, set_icon_gray, WorkerSignals
-from logger import create_logger, reset_log_file
-from patchers import stellaris_patch, update_patcher_globals, update_patcher_globals2, update_patcher_globals_old
-from patchers.save_patcher import repair_save, get_user_save_folder
+from patchers import (  # isort: skip
+    stellaris_patch,
+    update_patcher_globals,
+    update_patcher_globals_old,
+)
+
+from PySide6.QtCore import Qt, QSize, QThreadPool, QObject, QEvent, Slot  # isort: skip
+from PySide6.QtGui import QIcon, QFont, QFontDatabase, QMouseEvent  # isort: skip
+
+from .Styles import STYLES  # isort: skip
+from conf_globals import (  # isort: skip
+    APP_VERSION,
+    BRANCH,
+    IS_DEBUG,
+    LOG_LEVEL,
+    OS,
+    UPDATE_CHECK_COOLDOWN,
+    settings,
+    updater,
+)
+
+from .ui_utils import Threader, get_screen_info, set_icon_gray, WorkerSignals  # isort: skip
+from logger import create_logger, reset_log_file  # isort: skip
+from patchers.save_patcher import repair_save, get_user_save_folder  # isort: skip
 
 # loggers to hook up to signals
-from updater.updater import log as updater_log
-from patchers.stellaris_patch import log as patcher_log
-from patchers.save_patcher import log as patcher_save_log
-from utils.steam_helper import log as steam_log
-from utils.registry_helper import log as registry_log
+from updater.updater import log as updater_log  # isort: skip
+from patchers.stellaris_patch import log as patcher_log  # isort: skip
+from patchers.save_patcher import log as patcher_save_log  # isort: skip
+from utils.steam_helper import log as steam_log  # isort: skip
+from utils.registry_helper import log as registry_log  # isort: skip
+
+# Patch Patterns
+from patch_patterns.patterns import PATTERNS_LOCAL, get_patterns_config_remote  # isort: skip
 
 log = create_logger("UI", LOG_LEVEL)
 
@@ -32,13 +62,8 @@ class LINUX_VERSIONS_ENUM:
     PROTON = "Proton"
 
 
-class PATCH_METHODS_ENUM:
-    OLD_CHECKSUM = "Old Checksum"
-    NEW_CHECKSUM = "New Checksum"
-
-
 class StellarisChecksumPatcherGUI(QWidget):
-    _APP_VERSION = 'v' + ".".join([str(v) for v in APP_VERSION[0:3]])
+    _APP_VERSION = "v" + ".".join([str(v) for v in APP_VERSION[0:3]])
     if len(APP_VERSION) > 3:
         _APP_VERSION += "-"
         _APP_VERSION += "-".join(str(v) for v in APP_VERSION[3:])
@@ -79,8 +104,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.is_patching = False
         self.auto_patch_failed = False
 
-        self.install_dir = ''
-        self._prev_app_version = ''
+        self.install_dir = ""
+        self._prev_app_version = ""
 
         self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
 
@@ -159,7 +184,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.lbl_title.setMaximumSize(QSize(16777215, 36))
         self.lbl_title.setContentsMargins(5, 2, 5, 2)
 
-        self.lbl_app_version = QLabel(f"{self._APP_VERSION}{'-debug' if IS_DEBUG else ''}")
+        self.lbl_app_version = QLabel(f"{self._APP_VERSION}-{BRANCH}{'-debug' if IS_DEBUG else ''}")
         self.lbl_app_version.setSizePolicy(size_policy_app_version_label)
 
         # Themed Exit Application
@@ -186,9 +211,9 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.terminal_display.setSizePolicy(size_policy_terminal_display)
 
         # Project Browser Link
-        self.project_link_html = '''
+        self.project_link_html = """
                 <p>Project link: <a href="https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher">https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher</a></p>
-                '''
+                """
         self.txt_browser_project_link = QTextBrowser()
         self.txt_browser_project_link.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.txt_browser_project_link.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -227,14 +252,6 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.linux_version_picker.setFont(QFont(self.orbitron_bold_font, 14))
         self.linux_version_picker.currentTextChanged.connect(self.on_linux_picker_text_changed)
 
-        # Patch Method Version
-        self.exp_patch_method_picker = QComboBox()
-        self.exp_patch_method_picker.setMinimumSize(QSize(200, 48))
-        self.exp_patch_method_picker.setMaximumSize(QSize(300, 48))
-        self.exp_patch_method_picker.addItems([PATCH_METHODS_ENUM.NEW_CHECKSUM, PATCH_METHODS_ENUM.OLD_CHECKSUM])
-        self.exp_patch_method_picker.setStyleSheet(self.style.COMBOBOX)
-        self.exp_patch_method_picker.setFont(QFont(self.orbitron_bold_font, 14))
-
         # Show Game Folder Button
         self.btn_show_game_folder = QPushButton("Show Game Folder")
         self.btn_show_game_folder.setStyleSheet(self.style.BUTTONS)
@@ -244,6 +261,16 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.btn_show_game_folder.setMaximumSize(QSize(16777215, 64))
         self.btn_show_game_folder.setFont(QFont(self.orbitron_bold_font, 14))
         self.btn_show_game_folder.clicked.connect(self.show_game_folder)
+
+        # Open Config Directory Button
+        self.btn_show_app_config_dir = QPushButton("Show Config Folder")
+        self.btn_show_app_config_dir.setStyleSheet(self.style.BUTTONS)
+        self.btn_show_app_config_dir.setFlat(False)
+        self.btn_show_app_config_dir.setSizePolicy(size_policy_button)
+        self.btn_show_app_config_dir.setMinimumSize(QSize(100, 48))
+        self.btn_show_app_config_dir.setMaximumSize(QSize(16777215, 64))
+        self.btn_show_app_config_dir.setFont(QFont(self.orbitron_bold_font, 14))
+        self.btn_show_app_config_dir.clicked.connect(self.show_app_config_folder)
 
         # ============ Add Widgets to Layouts ============
         # Window Functions
@@ -260,16 +287,8 @@ class StellarisChecksumPatcherGUI(QWidget):
             self.hlayout_patch_buttons.addWidget(self.linux_version_picker)
 
         # Misc Layout
+        self.hlayout_misc_functions.addWidget(self.btn_show_app_config_dir)
         self.hlayout_misc_functions.addWidget(self.btn_show_game_folder)
-        # Patch Method Group Box
-        patch_method_group = QGroupBox()
-        patch_method_group.setMinimumSize(QSize(210, 96))
-        patch_method_group.setMaximumSize(QSize(310, 96))
-        patch_method_group.setTitle("&Patch Method")
-        patch_method_group_layout = QVBoxLayout()
-        patch_method_group.setLayout(patch_method_group_layout)
-        patch_method_group_layout.addWidget(self.exp_patch_method_picker)
-        self.hlayout_misc_functions.addWidget(patch_method_group)
 
         # Main Layout
         self.main_layout.addWidget(self.main_frame)
@@ -306,6 +325,12 @@ class StellarisChecksumPatcherGUI(QWidget):
 
         self.check_update()
 
+        # Download patch patterns once
+        # This allows us to store it when they don't exist and use local only if required
+        if not PATTERNS_LOCAL.exists():
+            log.info("Downloading remote patch patterns to local storage.", silent=True)
+            get_patterns_config_remote()
+
     def load_settings(self):
         self.install_dir = settings.get_stellaris_install_path()
         self._prev_app_version = settings.get_app_version()
@@ -335,14 +360,12 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.btn_patch_executable.setDisabled(False)
         # self.btn_fix_save_file.setDisabled(False) # TODO: Uncomment when it is time
         self.linux_version_picker.setDisabled(False)
-        self.exp_patch_method_picker.setDisabled(False)
         self.btn_show_game_folder.setDisabled(False)
 
     def disable_ui_elements(self):
         self.btn_patch_executable.setDisabled(True)
         self.btn_fix_save_file.setDisabled(True)
         self.linux_version_picker.setDisabled(True)
-        self.exp_patch_method_picker.setDisabled(True)
         self.btn_show_game_folder.setDisabled(True)
 
     def remove_thread(self, thread_id_remove):
@@ -456,7 +479,7 @@ class StellarisChecksumPatcherGUI(QWidget):
             is_patched = stellaris_patch.is_patched(game_executable)
 
             if is_patched:
-                log.info("File is already patched")
+                log.info("File is already patched!")
             else:
                 # Create a backup
                 if OS.MACOS:
@@ -468,33 +491,19 @@ class StellarisChecksumPatcherGUI(QWidget):
                     stellaris_patch.create_backup(game_executable)
 
                 # 1st Patch, to remove startup checksum check.
-                if str(self.exp_patch_method_picker.currentText()) == PATCH_METHODS_ENUM.NEW_CHECKSUM:
-                    # New Checksum Patch
-                    log.info(f"Attempting to patch game executable with {PATCH_METHODS_ENUM.NEW_CHECKSUM}")
-                    update_patcher_globals()
-                else:
-                    # Old Checksum Patch
-                    log.info(f"Attempting to patch game executable with {PATCH_METHODS_ENUM.OLD_CHECKSUM}")
-                    update_patcher_globals_old()
-                patched = stellaris_patch.patch(game_executable)
-                self.is_patching = False
-                
-                # Check it applied.
-                if patched:
-                    log.info(f"Successfully patched Checksum. Achievements should now be earnable with mods (requires compatible save)")
-                else:
-                    log.error(f"Failed to patch Checksum\n")
-                    self.set_terminal_clickable(True)
-                    return False
-                
-                # 2nd Patch, to remove checksum modified tooltip.
-                update_patcher_globals2()
+                log.info(f"Attempting to patch game executable for Checksum Check")
+                update_patcher_globals()
+
                 patched = stellaris_patch.patch(game_executable)
                 self.is_patching = False
 
-                # Check second patch applied.
-                if not patched:
-                    log.error(f"Failed to patch game binary.\n")
+                # Check it applied.
+                if patched:
+                    log.info(
+                        f"Successfully patched Checksum. Achievements should now be earnable with mods (requires compatible save)"
+                    )
+                else:
+                    log.error(f"Failed to patch Checksum\n")
                     self.set_terminal_clickable(True)
                     return False
 
@@ -533,11 +542,25 @@ class StellarisChecksumPatcherGUI(QWidget):
         else:
             game_folder = settings.get_stellaris_proton_install_path()
 
+        # Attempt to auto find if it wasn't loaded from settings
+        if not game_folder or not Path(game_folder).exists():
+            game_executable = stellaris_patch.locate_game_executable()
+
+            if game_executable:
+                game_folder = str(game_executable)
+
+                if not OS.LINUX_PROTON:
+                    settings.set_executable_name(game_executable.name)
+                    settings.set_stellaris_install_path(game_folder)
+                else:
+                    settings.set_stellaris_proton_install_path(game_folder)
+                    settings.set_executable_proton_name(game_executable.name)
+
         if not game_folder:
             log.info("No game folder defined.")
             return
 
-        log.info(f"Game Folder: {game_folder}")
+        log.info(f"Game Folder: {game_folder}", silent=True)
 
         if OS.WINDOWS:
             subprocess.run(["explorer.exe", "/select,", os.path.normpath(game_folder)])
@@ -549,9 +572,24 @@ class StellarisChecksumPatcherGUI(QWidget):
             log.warning("No known Operating System")
 
     @staticmethod
+    def show_app_config_folder():
+        config_dir = settings.get_config_dir()
+
+        if config_dir.exists() and config_dir.is_dir():
+            log.info(f"App Config Folder: {config_dir}", silent=True)
+
+            if OS.WINDOWS:
+                subprocess.run(["explorer.exe", "/select,", os.path.normpath(config_dir)])
+            elif OS.LINUX:
+                subprocess.run(["xdg-open", config_dir])
+            elif OS.MACOS:
+                subprocess.run(["open", "-R", config_dir])
+            else:
+                log.warning("No known Operating System")
+
+    @staticmethod
     def prompt_install_dir():
-        _install_dir = QFileDialog().getExistingDirectory(
-                caption="Please choose Stellaris installation Folder...")
+        _install_dir = QFileDialog().getExistingDirectory(caption="Please choose Stellaris installation Folder...")
         if _install_dir:
             _install_dir = Path(_install_dir).absolute().resolve()
 
@@ -570,12 +608,9 @@ class StellarisChecksumPatcherGUI(QWidget):
         # Windows
         documents_dir = get_user_save_folder()
 
-        save_file_path = QFileDialog().getOpenFileName(
-            caption="Save file to repair...",
-            dir=documents_dir
-        )[0]
+        save_file_path = QFileDialog().getOpenFileName(caption="Save file to repair...", dir=documents_dir)[0]
 
-        if save_file_path or save_file_path != '':
+        if save_file_path or save_file_path != "":
             log.info(f"Save file: {save_file_path}")
 
         if not save_file_path:
@@ -584,8 +619,6 @@ class StellarisChecksumPatcherGUI(QWidget):
         save_games_dir = Path(save_file_path).parent.parent
         log.info(f"Save games directory: {os.path.normpath(save_games_dir)}")
         settings.set_save_games_dir(save_games_dir)
-
-        # TODO: Ask if save was ironman or not, to repair the appropriate flag or leave it be.
 
         thread_repair_save = Threader(target=lambda save_file=save_file_path: repair_save(save_file))
         thread_id = thread_repair_save.currentThread()
@@ -601,8 +634,14 @@ class StellarisChecksumPatcherGUI(QWidget):
         last_checked = settings.get_update_last_checked()
         now = int(time.time())
 
-        log.debug(f"{self._APP_VERSION} == {self._prev_app_version} = {self._APP_VERSION == self._prev_app_version}", silent=True)
-        log.debug(f"{now} - {last_checked} < {UPDATE_CHECK_COOLDOWN} = {now - last_checked < UPDATE_CHECK_COOLDOWN}", silent=True)
+        log.debug(
+            f"{self._APP_VERSION} == {self._prev_app_version} = {self._APP_VERSION == self._prev_app_version}",
+            silent=True,
+        )
+        log.debug(
+            f"{now} - {last_checked} < {UPDATE_CHECK_COOLDOWN} = {now - last_checked < UPDATE_CHECK_COOLDOWN}",
+            silent=True,
+        )
 
         if self._APP_VERSION == self._prev_app_version:
             if now - last_checked < UPDATE_CHECK_COOLDOWN:
@@ -631,8 +670,10 @@ class StellarisChecksumPatcherGUI(QWidget):
                 update_available = False
 
         if update_available:
-            html = self.txt_browser_project_link.toHtml().replace("</p>", '').replace("</body>", '').replace("</html>", '')
-            html += "<span style=\" font-weight:700;\"> (UPDATE AVAILABLE)</span></p></body></html>"
+            html = (
+                self.txt_browser_project_link.toHtml().replace("</p>", "").replace("</body>", "").replace("</html>", "")
+            )
+            html += '<span style=" font-weight:700;"> (UPDATE AVAILABLE)</span></p></body></html>'
             self.txt_browser_project_link.setHtml(html)
             self.lbl_title.setFont(QFont(self.orbitron_bold_font, 20))
             self.lbl_title.setText(self.lbl_title.text() + " (UPDATE AVAILABLE)")
