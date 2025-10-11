@@ -1,45 +1,154 @@
 {
-    "windows": {
-        "description": "Settings for native Windows and Linux Proton.",
-        "exe_filename": "stellaris.exe",
-        "checksum_patch": {
-            "hex_find": "85C0",
-            "hex_replace": "33C0",
-            "patch_pattern": "488B1248.{20,26}%s"
+    "Stellaris": {
+        "latest": {
+            "windows": {
+                "description": "Settings for native Windows and Linux Proton.",
+                "exe_filename": "stellaris.exe",
+                "path_postfix": "",
+                "patches": {
+                    "checksum_patch": {
+                        "display_name": "Checksum",
+                        "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
+                        "hex_find": "85C0",
+                        "hex_replace": "33C0",
+                        "patch_pattern": "E8798ED301.{4,8}%s"
+                    },
+                    "checksum_warning": {
+                        "display_name": "Warning",
+                        "description": "Patch the yellow warning indicating the checksum is modified.",
+                        "hex_find": "85C0",
+                        "hex_replace": "31C0",
+                        "patch_pattern": "E87BAA1B01%s"
+                    },
+                    "tooltip_patch": {
+                        "display_name": "Tooltip Patch",
+                        "description": "Patch the tooltip text.",
+                        "hex_find": "85C0",
+                        "hex_replace": "31C0",
+                        "patch_pattern": "E8B99F1B01%s"
+                    }
+                }
+            },
+            "linux": {
+                "description": "Settings for native Linux builds.",
+                "exe_filename": "stellaris",
+                "path_postfix": "",
+                "patches": {
+                    "checksum_patch": {
+                        "display_name": "Checksum",
+                        "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
+                        "hex_find": "85DB",
+                        "hex_replace": "31DB",
+                        "patch_pattern": "E87C5C.{4,8}%s"
+                    },
+                    "checksum_warning": {
+                        "display_name": "Warning",
+                        "description": "Patch the yellow warning indicating the checksum is modified.",
+                        "hex_find": "85C0",
+                        "hex_replace": "31DB",
+                        "patch_pattern": "E827E7.{4,8}%s"
+                    },
+                    "tooltip_patch": {
+                        "display_name": "Tooltip Patch",
+                        "description": "Patch the tooltip text.",
+                        "hex_find": "85C0",
+                        "hex_replace": "31C0",
+                        "patch_pattern": "E8D4DAC7FE%s"
+                    },
+                    "crash_reporter_checksum": {
+                        "display_name": "Crash Reporter Checksum",
+                        "description": "Patch the crash reporter to always return as original status.",
+                        "hex_find": "480f45C8",
+                        "hex_replace": "90909090",
+                        "patch_pattern": "B95C7D.{8,16}%s"
+                    }
+                }
+            },
+            "macos": {
+                "description": "Settings for macOS builds.",
+                "exe_filename": "stellaris.app",
+                "path_postfix": "Contents/MacOS/stellaris",
+                "patches": {}
+            }
         },
-        "checksum_warning": {
-            "hex_find": "85C0",
-            "hex_replace": "31C0",
-            "patch_pattern": "3401E8C9971501%s"
-        }
-    },
-    "linux_native": {
-        "description": "Settings for native Linux builds.",
-        "exe_filename": "stellaris",
-        "checksum_patch": {
-            "hex_find": "85DB",
-            "hex_replace": "31DB",
-            "patch_pattern": "E8BC55.{8,16}%s"
-        },
-        "checksum_warning": {
-            "hex_find": "85C0",
-            "hex_replace": "31DB",
-            "patch_pattern": "8B30BF13219D03E86400DAFE%s"
-        }
-    },
-    "macos": {
-        "description": "Settings for macOS builds.",
-        "exe_filename": "stellaris.app",
-        "bin_path_postpend": "Contents/MacOS/stellaris",
-        "checksum_patch": {
-            "hex_find": "85DB",
-            "hex_replace": "31DB",
-            "patch_pattern": "89C3E851.{8,10}%s"
-        },
-        "checksum_warning": {
-            "hex_find": "85DB",
-            "hex_replace": "31DB",
-            "patch_pattern": "89C3E851.{8,10}%s"
+        "4.1.3": {
+            "windows": {
+                "description": "Settings for native Windows and Linux Proton.",
+                "exe_filename": "stellaris.exe",
+                "path_postfix": "",
+                "patches": {
+                    "checksum_patch": {
+                        "display_name": "Checksum",
+                        "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
+                        "hex_find": "85C0",
+                        "hex_replace": "33C0",
+                        "patch_pattern": "488B1248.{20,26}%s"
+                    },
+                    "checksum_warning": {
+                        "display_name": "Warning",
+                        "description": "Patch the yellow warning indicating the checksum is modified.",
+                        "hex_find": "85C0",
+                        "hex_replace": "31C0",
+                        "patch_pattern": "3401E8C9971501%s"
+                    }
+                }
+            },
+            "linux": {
+                "description": "Settings for native Linux builds.",
+                "exe_filename": "stellaris",
+                "path_postfix": "",
+                "patches": {
+                    "checksum_patch": {
+                        "display_name": "Checksum",
+                        "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
+                        "hex_find": "85DB",
+                        "hex_replace": "31DB",
+                        "patch_pattern": "E8BC55.{4,8}%s"
+                    },
+                    "checksum_warning": {
+                        "display_name": "Warning",
+                        "description": "Patch the yellow warning indicating the checksum is modified.",
+                        "hex_find": "85C0",
+                        "hex_replace": "31DB",
+                        "patch_pattern": "E8B767.{4,8}%s"
+                    },
+                    "tooltip_patch": {
+                        "display_name": "Tooltip Patch",
+                        "description": "Patch the tooltip text.",
+                        "hex_find": "85C0",
+                        "hex_replace": "31C0",
+                        "patch_pattern": "E8645BCAFE%s"
+                    },
+                    "crash_reporter_checksum": {
+                        "display_name": "Crash Reporter Checksum",
+                        "description": "Patch the crash reporter to always return as original status.",
+                        "hex_find": "480f45C8",
+                        "hex_replace": "90909090",
+                        "patch_pattern": "B94C6B.{8,16}%s"
+                    }
+                }
+            },
+            "macos": {
+                "description": "Settings for macOS builds.",
+                "exe_filename": "stellaris.app",
+                "path_postfix": "Contents/MacOS/stellaris",
+                "patches": {
+                    "checksum_patch": {
+                        "display_name": "Checksum",
+                        "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
+                        "hex_find": "85DB",
+                        "hex_replace": "31DB",
+                        "patch_pattern": "89C3E851.{8,10}%s"
+                    },
+                    "checksum_warning": {
+                        "display_name": "Warning",
+                        "description": "Patch the yellow warning indicating the checksum is modified.",
+                        "hex_find": "85DB",
+                        "hex_replace": "31DB",
+                        "patch_pattern": "89C3E851.{8,10}%s"
+                    }
+                }
+            }
         }
     }
 }
