@@ -56,10 +56,10 @@ class Updater:
 
         try:
             api_call = f"{self.api}{self._api_releases}"
-            log.info(f"{api_call}", silent=True)
+            log.info(f"CALL {api_call}", silent=True)
             response = requests.get(api_call, timeout=60)
         except requests.ConnectionError as con_err:
-            log.error(f"Unable to establish connection to update repo.")
+            log.warning(f"Unable to establish connection to update repo.")
             log.error(con_err)
             return False
 
@@ -67,6 +67,8 @@ class Updater:
             log.error("Not a valid repository.")
         else:
             releases = response.json()[:max_fetch]
+
+        log.debug(f"Releases: {releases}")
 
         return releases
 
@@ -80,7 +82,7 @@ class Updater:
             f"Getting first non pre-release available from list of supplied {len(releases)} releases.", silent=True
         )
 
-        log.debug(f"{json.dumps(releases, indent=2)}", silent=True)
+        log.debug(f"{json.dumps(releases, indent=2)}")
 
         for i, release in enumerate(self.pulled_releases):
             pre_release = release.get("prerelease")
@@ -90,7 +92,7 @@ class Updater:
                 log.info(f"Release number {i} {name} ({tag}) is not a pre-release. Comparing against it.", silent=True)
                 return i
             else:
-                log.debug(f"Release number {i} {name} ({tag}) is set as pre-release. Skipping.", silent=True)
+                log.info(f"Release number {i} {name} ({tag}) is set as pre-release. Skipping.", silent=True)
 
         return 0  # Return first index, I guess
 
@@ -112,11 +114,11 @@ class Updater:
             tuple_current = tuple(current)
             tuple_comp = tuple(comp)
             if tuple_current < tuple_comp:
-                log.debug(f"{tuple_current} < {tuple_comp}", silent=True)
+                log.debug(f"{tuple_current} < {tuple_comp}")
                 has_update = True
                 break
 
-        log.debug(f"{has_update=}", silent=True)
+        log.debug(f"{has_update=}")
 
         if has_update:
             log.info(f"This release {current} is outdated with remote {remote_release_name} ({remote_release_tag})")
@@ -137,13 +139,14 @@ class Updater:
         constructed_version = []
 
         for c in version:
-            log.debug(f"{digit=}", silent=True)
-            log.debug(f"-> '{c}'", silent=True)
+            log.debug(f"{digit=}")
+            log.debug(f"-> '{c}'")
+
             if c.isdigit():
-                log.debug(f"    - '{c}' is a digit.", silent=True)
+                log.debug(f"    - '{c}' is a digit.")
                 digit += c
             else:
-                log.debug(f"    - '{c}' is not a digit.", silent=True)
+                log.debug(f"    - '{c}' is not a digit.")
                 if digit:
                     constructed_version.append(int(digit))
                     digit = ""
@@ -152,7 +155,7 @@ class Updater:
         if digit:
             constructed_version.append(int(digit))
 
-        log.debug(f"{constructed_version=}", silent=True)
+        log.debug(f"{constructed_version=}")
 
         return constructed_version
 
@@ -162,7 +165,9 @@ class Updater:
         _repo = f"{_user}/{repo}"
         _api = f"https://api.github.com/repos/{_repo}"
 
-        log.info(f"User: {_user}\nRepository Name: {_repo}\nAPI: {_api}", silent=True)
+        log.info(f"User: {_user}", silent=True)
+        log.info(f"Repository Name: {_repo}", silent=True)
+        log.info(f"API: {_api}", silent=True)
 
         return _user, _repo, _api
 

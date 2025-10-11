@@ -2,33 +2,42 @@ import json  # isort: skip
 from pathlib import Path  # isort: skip
 import time  # isort: skip
 import requests  # isort: skip
+from enum import Enum
 
-from conf_globals import LOG_LEVEL, UPDATE_CHECK_COOLDOWN, OS, settings, updater  # isort: skip
+from conf_globals import LOG_LEVEL, UPDATE_CHECK_COOLDOWN, OS, SETTINGS, updater  # isort: skip
 from logger import create_logger  # isort: skip
 
 log = create_logger("Patterns", LOG_LEVEL)  # isort: skip
 
-PATTERNS_FILE_NAME = "patterns.json"
-PATTERNS_URL = f"https://raw.githubusercontent.com/{updater.repo}/refs/heads/patch-method-tryouts/src/patch_patterns/{PATTERNS_FILE_NAME}"  # TODO: Cahnge this to main repo
-PATTERNS_LOCAL = settings.get_config_dir() / PATTERNS_FILE_NAME
+PATTERNS_FILE_NAME = "patterns_v2.json"
+PATTERNS_URL = f"https://raw.githubusercontent.com/{updater.repo}/refs/heads/26-incompatible-with-4xx/src/patch_patterns/{PATTERNS_FILE_NAME}"  # TODO: Change this to main repo
+PATTERNS_LOCAL = SETTINGS.get_config_dir() / PATTERNS_FILE_NAME
+
+
+# Also stated in pdx_patchers.py - keep in sync or import from there
+class Platform(Enum):
+    WINDOWS = "windows"
+    LINUX_NATIVE = "linux"
+    LINUX_PROTON = "linux_proton"  # Maps to windows in patterns
+    MACOS = "macos"
 
 
 def get_patterns_config_remote():
     log.info(f"Fetching patterns from remote: {PATTERNS_URL}")
 
-    last_checked = settings.get_patch_patterns_update_last_checked()
+    last_checked = SETTINGS.get_patch_patterns_update_last_checked()
     now = int(time.time())
     check_delta = now - last_checked
 
     if not last_checked:
-        settings.set_patch_patterns_update_last_checked(now)
+        SETTINGS.set_patch_patterns_update_last_checked(now)
 
     if check_delta < UPDATE_CHECK_COOLDOWN:
         log.info(f"Update cooldown still in effect: {check_delta} seconds remaining")
         # Return local file
         return get_patterns_config_local()
     else:
-        settings.set_patch_patterns_update_last_checked(now)
+        SETTINGS.set_patch_patterns_update_last_checked(now)
 
     try:
         response = requests.get(PATTERNS_URL, timeout=10)
@@ -41,14 +50,14 @@ def get_patterns_config_remote():
         log.info(json.dumps(patterns_data, indent=2), silent=True)
 
         if OS.WINDOWS or (OS.LINUX and OS.LINUX_PROTON):
-            config_key = "windows"
+            config_key = Platform.WINDOWS
         elif OS.LINUX and not OS.LINUX_PROTON:
-            config_key = "linux_native"
+            config_key = Platform.LINUX_NATIVE
         elif OS.MACOS:
-            config_key = "macos"
+            config_key = Platform.MACOS
         else:
             log.warning("Unsupported OS detected. Defaulting to Windows patterns")
-            config_key = "windows"
+            config_key = Platform.WINDOWS
 
         # Save patterns file
         if not PATTERNS_LOCAL.exists():
@@ -56,9 +65,9 @@ def get_patterns_config_remote():
             with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
                 f.write(json.dumps(patterns_data, indent=2))
 
-        log.info(f"Loading patterns for '{config_key}")
+        log.info(f"Loading patterns for '{config_key.value}")
 
-        return patterns_data.get(config_key)
+        return patterns_data.get(config_key.value)
 
     except requests.exceptions.Timeout:
         log.error("Request timed out.")
@@ -82,25 +91,25 @@ def get_patterns_config_local() -> dict:
         return False
 
     if OS.WINDOWS or (OS.LINUX and OS.LINUX_PROTON):
-        config_key = "windows"
+        config_key = Platform.WINDOWS
     elif OS.LINUX and not OS.LINUX_PROTON:
-        config_key = "linux_native"
+        config_key = Platform.LINUX_NATIVE
     elif OS.MACOS:
-        config_key = "macos"
+        config_key = Platform.MACOS
     else:
         log.warning("Unsupported OS detected. Defaulting to Windows patterns")
-        config_key = "windows"
+        config_key = Platform.WINDOWS
 
-    log.info(f"Loading patterns for '{config_key}")
+    log.info(f"Loading patterns for '{config_key.value}")
 
     with open(PATTERNS_LOCAL, "r", encoding="UTF-8") as f:
         patterns_data = json.load(f)
         log.info(f"Loaded patterns data\n{json.dumps(patterns_data, indent=2)}", silent=True)
 
-    config: dict = patterns_data.get(config_key, None)
+    config: dict = patterns_data.get(config_key.value, None)
 
     if not config:
-        log.error(f"No configuration found for key '{config_key}' in patterns file '{PATTERNS_LOCAL}'.")
+        log.error(f"No configuration found for key '{config_key.value}' in patterns file '{PATTERNS_LOCAL}'.")
         return False
 
     return config

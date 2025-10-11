@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import chardet
 
 from conf_globals import LOG_LEVEL
@@ -25,8 +26,9 @@ ENCODINGS = [
     "cp1256",  # Arabic
     "cp1251",  # Cyrillic
     "koi8-r",  # Russian
-    "shift_jis"  # Japanese
+    "shift_jis",  # Japanese
 ]
+
 
 def detect_file_encoding(fp, min_confidence=0.7, default_encoding="utf-8", read_size=4096):
     """
@@ -42,7 +44,7 @@ def detect_file_encoding(fp, min_confidence=0.7, default_encoding="utf-8", read_
         The detected encoding as a string, or default_encoding if detection fails
     """
 
-    log.info(f"Detect encoding: {str(fp)}")
+    log.debug(f"Detect encoding: {str(fp)}")
 
     if not isinstance(fp, Path):
         fp = Path(fp)
@@ -56,7 +58,7 @@ def detect_file_encoding(fp, min_confidence=0.7, default_encoding="utf-8", read_
         return default_encoding
 
     try:
-        with open(fp, 'rb') as f:
+        with open(fp, "rb") as f:
             # For small files, read the entire file
             if fp.stat().st_size <= read_size:
                 raw_data = f.read()
@@ -80,7 +82,7 @@ def detect_file_encoding(fp, min_confidence=0.7, default_encoding="utf-8", read_
             _encoding = _encoding.lower()
 
             # Special cases
-            if _encoding == 'ascii':
+            if _encoding == "ascii":
                 # ASCII is a subset of UTF-8
                 log.debug(f"Detected encoding {_encoding}, using utf-8.")
                 return "utf-8"
@@ -127,10 +129,7 @@ def safe_read_file_encode(fp: Path, default_encoding="utf-8", min_confidence=0.7
         return ""
 
     detected_encoding = detect_file_encoding(
-        fp,
-        min_confidence=min_confidence,
-        default_encoding=default_encoding,
-        read_size=read_size
+        fp, min_confidence=min_confidence, default_encoding=default_encoding, read_size=read_size
     )
 
     # Create a prioritized list of encodings to try
@@ -145,7 +144,7 @@ def safe_read_file_encode(fp: Path, default_encoding="utf-8", min_confidence=0.7
     last_exception = None
     for enc in encodings_to_try:
         try:
-            with open(fp, 'r', encoding=enc) as f:
+            with open(fp, "r", encoding=enc) as f:
                 content = f.read()
                 log.debug(f"Successfully read file with encoding {enc}")
                 return content

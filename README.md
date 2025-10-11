@@ -12,7 +12,7 @@ If you've stopped receiving achievements on a save where you should or previousl
 
 ❗ Still working on save fixing.
 
-An easy and painless way to patch the game's executable so that mods are compatible with Ironman mode therefore also enabling the pursuit of Achievements with a modded game.
+An easy and painless way to patch the game's executable to enable Achievements being earnable with mods that change the game's Checksum.
 
 ## ⤵️ Usage
 * Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
@@ -40,19 +40,21 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
   * To add.
 
 * ### build-run on Linux
-    * #### Method 1 - Non-terminal
-      * Right click `build-run.sh` > Properties > Executable as Program (if it isn't already set)
-      * Double-click to launch
+  * Uncompress the archive.
 
-    * #### Method 2 - Terminal
-      * Open a terminal on the folder where there script is located or navigate your terminal to there.
-      * Run `chmod +x build-run.sh; ./build-run.sh`
+  * #### Method 1 - Non-terminal
+    * Right click `build-run.sh` > Properties > Executable as Program (if it isn't already set)
+    * Double-click to launch
+
+  * #### Method 2 - Terminal
+    * Open a terminal on the folder where there script is located or navigate your terminal to there.
+    * Run `chmod +x build-run.sh; ./build-run.sh`
 
 ## ❗ Disclaimer ❗
-* Remember to **not** upload the modified Stellaris executable to download or distribution sites.
-* Use at your own risk. I take no responsibility for your actions or what you choose to do with the modified file.
-* The goal of this is to simply offer a faster and more automated way to enable mod compatibility with Ironman and Achievements for a better personal experience.
-* My stance on this further down.
+* Remember to **NOT** upload the modified Stellaris executable to download or distribution sites.
+* Use at your own risk. By using this software, you agree that I, the developer, take no responsibility for your actions, what you choose to do with the modified file and any and all damages that may present themselves by using this software.
+* The goal of this is to simply offer a faster and more automated way to enable mod compatibility with Achievements for a better personal experience.
+* Clarification of my stance on this further down.
 
 <p align="center">
 <img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-06.png" width="762">
@@ -61,7 +63,7 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 ## 🟢 Patches
 * **Patch Executable**
   * This method will automatically check for a Steam installation and patch the executable.
-  * It will create a backup of the original adding a _.orig_ to the end of the file name.
+  * It will create a backup of the original adding a `.orig` to the end of the file name.
   * If it cannot find the installation, will prompt via dialog for the installation folder.
   * Will remember the installation location for next time.
 
@@ -98,4 +100,8 @@ I understand I cannot regulate this either and therefore ask for sensibility and
 ## Sources
 This method was a side project mainly for learning purposes and honing skills.
 
-It was based on the original guide here: https://steamcommunity.com/sharedfiles/filedetails/?id=2719382752
+This method is based off of these following guides:
+
+- [Enabling Achievements in Stellaris With Mods (All game versions) [SRE] by class101](https://steamcommunity.com/sharedfiles/filedetails/?id=2460079052)
+
+- [How to enable Achievements with ANY mod by Chillsmeit](https://steamcommunity.com/sharedfiles/filedetails/?id=2719382752)

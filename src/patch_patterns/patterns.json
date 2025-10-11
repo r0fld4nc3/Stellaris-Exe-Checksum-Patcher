@@ -4,8 +4,8 @@
         "exe_filename": "stellaris.exe",
         "checksum_patch": {
             "hex_find": "85C0",
-            "hex_replace": "31C0",
-            "patch_pattern": "C8CA018BF8%s"
+            "hex_replace": "33C0",
+            "patch_pattern": "488B1248.{20,26}%s"
         },
         "checksum_warning": {
             "hex_find": "85C0",
@@ -23,7 +23,7 @@
         },
         "checksum_warning": {
             "hex_find": "85C0",
-            "hex_replace": "31C0",
+            "hex_replace": "31DB",
             "patch_pattern": "8B30BF13219D03E86400DAFE%s"
         }
     },

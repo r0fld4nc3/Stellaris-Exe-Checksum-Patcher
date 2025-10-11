@@ -4,6 +4,7 @@ import json  # isort: skip
 import shutil  # isort: skip
 import tempfile  # isort: skip
 from pathlib import Path  # isort: skip
+from typing import Optional, Union
 
 from conf_globals import config_folder, LOG_LEVEL  # isort: skip
 from logger import create_logger  # isort: skip
@@ -17,11 +18,14 @@ class Settings:
         APP_VERSION = "app-version"
         UPDATE_LAST_CHECKED = "update-last-checked"
         PATTERNS_UPDATE_LAST_CHECKED = "patch-patterns-update-last-checked"
+        FORCE_LOCAL_PATTERNS = "patch-patterns-force-local"
         UPDATE_AVAILABLE = "update-available"
         WINDOW_WIDTH = "window-width"
         WINDOW_HEIGHT = "window-height"
-        STELLARIS_INSTALL_PATH = "stellaris-install-path"
-        STELLARIS_PROTON_INSTALL_PATH = "stellaris-proton-install-path"
+        GAMES = "games"
+        INSTALL_PATH = "install-path"
+        PROTON_INSTALL_PATH = "proton-install-path"
+        PATCHES = "patches"
         STEAM_INSTALL_PATH = "steam-install-path"
         SAVE_GAMES_PATH = "save-games-path"
         PATCHED_BLOCK = "patched-block"
@@ -29,21 +33,18 @@ class Settings:
         EXE_NAME = "exe-name"
         EXE_PROTON_NAME = "exe-proton-name"
 
+        _DICT_DEFAULT_GAME_SETTINGS = {INSTALL_PATH: "", PROTON_INSTALL_PATH: "", SAVE_GAMES_PATH: "", PATCHES: []}
+
     def __init__(self):
-        self.patcher_settings = {
+        self.patcher_settings: dict = {
             self.ENUM.APP_VERSION: "",
             self.ENUM.UPDATE_LAST_CHECKED: 0,
+            self.ENUM.FORCE_LOCAL_PATTERNS: False,
             self.ENUM.UPDATE_AVAILABLE: False,
             self.ENUM.WINDOW_WIDTH: 0,
             self.ENUM.WINDOW_HEIGHT: 0,
-            self.ENUM.STELLARIS_INSTALL_PATH: "",
-            self.ENUM.STELLARIS_PROTON_INSTALL_PATH: "",
+            self.ENUM.GAMES: {},
             self.ENUM.STEAM_INSTALL_PATH: "",
-            self.ENUM.SAVE_GAMES_PATH: "",
-            self.ENUM.PATCHED_BLOCK: "",
-            self.ENUM.PATCHED_HASH: "",
-            self.ENUM.EXE_NAME: "",
-            self.ENUM.EXE_PROTON_NAME: "",
         }
         self._config_file_name = "stellaris-checksum-patcher-settings.json"
         self.config_dir = Path(config_folder)
@@ -76,32 +77,60 @@ class Settings:
         # self.load_config()
         return self.patcher_settings.get(self.ENUM.WINDOW_HEIGHT)
 
-    def set_stellaris_install_path(self, install_path) -> None:
-        self.patcher_settings[self.ENUM.STELLARIS_INSTALL_PATH] = install_path.replace("\\", "/").replace("\\\\", "/")
-        log.info(
-            f"Saving Stellaris install location: {self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)}"
-        )
+    def set_install_path(self, game_name: str, install_path: Union[Path, str]):
+        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
+
+        if not game:
+            self.patcher_settings[self.ENUM.GAMES][game_name] = self.ENUM._DICT_DEFAULT_GAME_SETTINGS
+
+        # Enforce install_path type
+        if not isinstance(install_path, Path):
+            install_path = Path(install_path).resolve().as_posix()
+
+        self.patcher_settings[self.ENUM.GAMES][game_name][self.ENUM.INSTALL_PATH] = str(install_path)
+
+        log.info(f"Saving {game_name} install location: {install_path}")
         self.save_config()
 
-    def get_stellaris_install_path(self) -> str:
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.STELLARIS_INSTALL_PATH)
+        return True
 
-    def set_stellaris_proton_install_path(self, install_path) -> None:
-        self.patcher_settings[self.ENUM.STELLARIS_PROTON_INSTALL_PATH] = install_path.replace("\\", "/").replace(
-            "\\\\", "/"
-        )
-        log.info(
-            f"Saving Stellaris (Proton) install location: {self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)}"
-        )
+    def get_install_path(self, game_name: str) -> str:
+        # self.load_config()
+
+        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
+
+        if not game:
+            return ""
+
+        return self.patcher_settings[self.ENUM.GAMES][game_name].get(self.ENUM.INSTALL_PATH)
+
+    def set_proton_install_path(self, game_name: str, install_path):
+        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
+
+        if not game:
+            self.patcher_settings[self.ENUM.GAMES][game_name] = self.ENUM._DICT_DEFAULT_GAME_SETTINGS
+
+        install_location_curated = str(install_path).replace("\\", "/").replace("\\\\", "/")
+
+        self.patcher_settings[self.ENUM.GAMES][game_name][self.ENUM.PROTON_INSTALL_PATH] = install_location_curated
+
+        log.info(f"Saving {game_name} Proton install location: {install_path}")
         self.save_config()
 
-    def get_stellaris_proton_install_path(self) -> str:
+        return True
+
+    def get_proton_install_path(self, game_name: str) -> str:
         # self.load_config()
-        return self.patcher_settings.get(self.ENUM.STELLARIS_PROTON_INSTALL_PATH)
+
+        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
+
+        if not game:
+            return ""
+
+        return self.patcher_settings[self.ENUM.GAMES][game_name].get(self.ENUM.PROTON_INSTALL_PATH)
 
     def set_steam_install_path(self, install_path) -> None:
-        self.patcher_settings[self.ENUM.STEAM_INSTALL_PATH] = install_path.replace("\\", "/").replace("\\\\", "/")
+        self.patcher_settings[self.ENUM.STEAM_INSTALL_PATH] = Path(install_path).as_posix()
         log.info(f"Saving Steam install path: {self.patcher_settings.get(self.ENUM.STEAM_INSTALL_PATH)}")
         self.save_config()
 
@@ -109,41 +138,53 @@ class Settings:
         # self.load_config()
         return self.patcher_settings.get(self.ENUM.STEAM_INSTALL_PATH)
 
-    def set_executable_name(self, executable_name: str):
-        self.patcher_settings[self.ENUM.EXE_NAME] = executable_name
-        log.info(f"Saving executable name: {self.patcher_settings.get(self.ENUM.EXE_NAME)}")
+    def set_save_games_dir(self, game_name: str, save_games_dir: str):
+        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
+
+        if not game:
+            self.patcher_settings[self.ENUM.GAMES][game_name] = self.ENUM._DICT_DEFAULT_GAME_SETTINGS
+
+        path_curated = Path(save_games_dir).as_posix()
+
+        self.patcher_settings[self.ENUM.GAMES][game_name][self.ENUM.SAVE_GAMES_PATH] = path_curated
+
+        log.info(f"Saving {game_name} save games directory: {path_curated}")
         self.save_config()
 
-    def get_executable_name(self) -> str:
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.EXE_NAME)
+        return True
 
-    def set_executable_proton_name(self, executable_name: str):
-        self.patcher_settings[self.ENUM.EXE_PROTON_NAME] = executable_name
-        log.info(f"Saving executable (Proton) name: {self.patcher_settings.get(self.ENUM.EXE_PROTON_NAME)}")
+    def get_save_games_dir(self, game_name: str) -> Optional[Path]:
+        # self.load_config()
+
+        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
+
+        if not game:
+            return None
+
+        return self.patcher_settings[self.ENUM.GAMES][game_name].get(self.ENUM.SAVE_GAMES_PATH)
+
+    def set_patches_applied_to_game(self, game_name: str, patches: list[str]):
+        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
+
+        if not game:
+            self.patcher_settings[self.ENUM.GAMES][game_name] = self.ENUM._DICT_DEFAULT_GAME_SETTINGS
+
+        self.patcher_settings[self.ENUM.GAMES][game_name][self.ENUM.PATCHES] = patches
+
+        log.info(f"Saving {game_name} patches: {patches}")
         self.save_config()
 
-    def get_executable_proton_name(self) -> str:
+        return True
+
+    def get_patches_applied_to_game(self, game_name: str) -> list[str]:
         # self.load_config()
-        return self.patcher_settings.get(self.ENUM.EXE_PROTON_NAME)
 
-    def get_save_games_dir(self) -> str:
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.SAVE_GAMES_PATH)
+        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
 
-    def set_save_games_dir(self, save_games_dir: str):
-        self.patcher_settings[self.ENUM.SAVE_GAMES_PATH] = str(save_games_dir).replace("\\", "/").replace("\\\\", "/")
-        log.info(f"Saving games directory: {self.patcher_settings.get(self.ENUM.SAVE_GAMES_PATH)}")
-        self.save_config()
+        if not game:
+            return []
 
-    def get_patched_block(self) -> str:
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.PATCHED_BLOCK)
-
-    def set_patched_block(self, str_to_set: str):
-        self.patcher_settings[self.ENUM.PATCHED_BLOCK] = str(str_to_set)
-        log.info(f"Saving patched block: {self.patcher_settings.get(self.ENUM.PATCHED_BLOCK)}")
-        self.save_config()
+        return self.patcher_settings[self.ENUM.GAMES][game_name].get(self.ENUM.PATCHES, [])
 
     def get_update_last_checked(self) -> int:
         # self.load_config()
@@ -163,15 +204,6 @@ class Settings:
         log.info(f"Saving is update available: {self.patcher_settings.get(self.ENUM.UPDATE_AVAILABLE)}")
         self.save_config()
 
-    def set_patched_hash(self, hash_str: str):
-        self.patcher_settings[self.ENUM.PATCHED_HASH] = hash_str
-        log.info(f"Saving patched hash: {hash_str}")
-        self.save_config()
-
-    def get_patched_hash(self) -> str:
-        # self.load_config()
-        return self.patcher_settings[self.ENUM.PATCHED_HASH]
-
     def get_patch_patterns_update_last_checked(self):
         # self.load_config()
         return self.patcher_settings.get(self.ENUM.PATTERNS_UPDATE_LAST_CHECKED, 0)
@@ -182,6 +214,15 @@ class Settings:
             f"Saving patch patterns update last checked: {self.patcher_settings.get(self.ENUM.PATTERNS_UPDATE_LAST_CHECKED)}"
         )
         self.save_config()
+
+    def set_force_use_local_patterns(self, state: bool):
+        self.patcher_settings[self.ENUM.FORCE_LOCAL_PATTERNS] = state
+        log.info(f"Saving force local patterns to: {state}")
+        self.save_config()
+
+    def get_force_use_local_patterns(self):
+        # self.load_config()
+        return self.patcher_settings.get(self.ENUM.FORCE_LOCAL_PATTERNS, False)
 
     def clean_save_file(self):
         """
@@ -289,7 +330,7 @@ class Settings:
         # Write to temporary first
         temp_file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=str(fp.parent), delete=False)
 
-        log.info(f"Created temporary file: {temp_file.name}")
+        log.debug(f"Created temporary file: {temp_file.name}")
 
         try:
             json_str = json.dumps(data, indent=2, ensure_ascii=False)

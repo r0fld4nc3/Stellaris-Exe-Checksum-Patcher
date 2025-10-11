@@ -23,11 +23,11 @@ APP_VERSION = [2, 0, 0]
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
-BRANCH: str = "road-to-2.0.0"
+BRANCH: str = "26-incompatible-with.4xx_2025_04"
 LOG_LEVEL = 1
 IS_DEBUG = False
 UPDATE_CHECK_COOLDOWN = 60  # seconds
-USE_LOCAL_PATTERNS = False  # Force use of only local patterns file
+USE_LOCAL_PATTERNS = False  # Force use of only local patterns file. If True will override user choice.
 
 # Parse debug mode and set flags related to it
 if LOG_LEVEL == 0 or _args.debug:
@@ -49,9 +49,11 @@ config_folder = win_get_localappdata() / HOST / APP_NAME
 
 # Because we're using the config folder defined here, in the logger class and import
 # We have to import the logger after
-from logger import create_logger
+from logger import create_logger, reset_log_file
 
 log = create_logger("Globals", LOG_LEVEL)
+if not IS_DEBUG:
+    reset_log_file()
 log.info(f"[INIT] Running Stellaris-Exe-Checksum-Patcher.")
 # Print flags
 for action in _parser._actions:
@@ -66,12 +68,12 @@ updater = Updater("r0fld4nc3", "Stellaris-Exe-Checksum-Patcher")
 
 from settings import Settings
 
-settings = Settings()
-settings.load_config()
+SETTINGS = Settings()
+SETTINGS.load_config()
 
 from utils import steam_helper
 
-steam = steam_helper.SteamHelper()
+STEAM = steam_helper.SteamHelper()
 
 # Worker Signals hook not initialised here yet, so won't print to GUI console
 log.info(f"Debug:             {IS_DEBUG}")

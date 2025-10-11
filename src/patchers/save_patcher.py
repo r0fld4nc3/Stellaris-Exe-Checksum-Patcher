@@ -1,14 +1,15 @@
-import sys
+import base64
 import os
 import shutil
-import requests
-import base64
-from pathlib import Path
-import zipfile
+import sys
 import tempfile
+import zipfile
+from pathlib import Path
+
+import requests
 
 # 3rd Party
-from conf_globals import settings, OS, LOG_LEVEL
+from conf_globals import LOG_LEVEL, OS, SETTINGS
 from logger import create_logger
 from utils.encodings import detect_file_encoding
 
@@ -26,7 +27,7 @@ def get_current_dir():
 
 def get_user_save_folder():
     log.info("Attempting to locate Stellaris save game folder.")
-    documents_dir = ''
+    documents_dir = ""
 
     # Windows
     if OS.WINDOWS or OS.MACOS:
@@ -39,7 +40,7 @@ def get_user_save_folder():
         # GET THE OTHER DRIVES IN THE libraryfolders.vdf
         # ITERATE THROUGH THOSE DRIVES TO FIND THE save games FOLDER.
 
-        pdx_dir = ''
+        pdx_dir = ""
 
         home_steam = Path.home() / ".steam"
 
@@ -67,7 +68,7 @@ def get_user_save_folder():
         pass
 
     if not Path(documents_dir).exists():
-        log.info(f"Unable to find documents dir. Current try: \"{documents_dir}\"")
+        log.info(f'Unable to find documents dir. Current try: "{documents_dir}"')
         documents_dir = os.path.dirname(sys.executable)
     else:
         log.info(f"Found {documents_dir}")
@@ -105,7 +106,7 @@ def repair_save(save_file, repair_ironman_flag=False):
 
     # Try to unzip the save file
     try:
-        with zipfile.ZipFile(save_file, 'r') as zip_file:
+        with zipfile.ZipFile(save_file, "r") as zip_file:
             zip_file.extractall(repair_dir)
     except Exception as e:
         log.error(e)
@@ -125,7 +126,7 @@ def repair_save(save_file, repair_ironman_flag=False):
     # =================== GAMESTATE BLOCK ===================
     # =======================================================
     _encoding = detect_file_encoding(gamestate_file)
-    with gamestate_file.open('r', encoding=_encoding) as f:
+    with gamestate_file.open("r", encoding=_encoding) as f:
         file = f.read()
 
     file_contents = file.splitlines()
@@ -134,7 +135,7 @@ def repair_save(save_file, repair_ironman_flag=False):
     # Pull up-to-date achievements
     achievements = pull_latest_achivements_file()
 
-    if not achievements or achievements == '':
+    if not achievements or achievements == "":
         log.error("Unable to fix save as achievements could not be retrieved.")
         return False
 
@@ -196,7 +197,7 @@ def repair_save(save_file, repair_ironman_flag=False):
                     if "name=" in line:
                         log.debug("Found name= in galaxy={")
                         log.info("Setting ironman flag to yes.")
-                        new_file_contents.insert(i+1, "\tironman=yes")  # Must be a tabbed insert
+                        new_file_contents.insert(i + 1, "\tironman=yes")  # Must be a tabbed insert
                         break
 
     # Double check conditions are met to be able to write the proper file
@@ -212,7 +213,7 @@ def repair_save(save_file, repair_ironman_flag=False):
         offset = achievements_line_end - achievements_line_start
         log.debug(f"Line Offset: {offset}")
         if offset > 1:
-            for i in range(offset+1):  # offset +1 to include the ending line
+            for i in range(offset + 1):  # offset +1 to include the ending line
                 # Popping achievement line start means that once the line is popped,
                 # the remaining lines will fill that spot, therefore the index is the same
                 log.debug(f"Pop {new_file_contents[achievements_line_start]}")
@@ -229,8 +230,8 @@ def repair_save(save_file, repair_ironman_flag=False):
 
     temp_file = Path(tempfile.gettempdir()) / "gamestate"
     _encoding = detect_file_encoding(temp_file)
-    with temp_file.open('w', encoding=_encoding) as new_file:
-        new_file.write('\n'.join(new_file_contents))
+    with temp_file.open("w", encoding=_encoding) as new_file:
+        new_file.write("\n".join(new_file_contents))
 
     # Replace extracted gamestate with temp gamestate
     shutil.copy(temp_file, gamestate_file)
@@ -240,7 +241,7 @@ def repair_save(save_file, repair_ironman_flag=False):
     # ==================================================
     log.info("Repairing meta")
     _encoding = detect_file_encoding(meta_file)
-    with meta_file.open('r', encoding=_encoding) as f:
+    with meta_file.open("r", encoding=_encoding) as f:
         file = f.read()
 
     file_contents = file.splitlines()
@@ -259,21 +260,21 @@ def repair_save(save_file, repair_ironman_flag=False):
 
     temp_file = Path(tempfile.gettempdir()) / "meta"
     _encoding = detect_file_encoding(temp_file)
-    with temp_file.open('w', encoding=_encoding) as new_file:
-        new_file.write('\n'.join(new_file_contents))
+    with temp_file.open("w", encoding=_encoding) as new_file:
+        new_file.write("\n".join(new_file_contents))
 
     # Replace extracted meta with temp meta
     shutil.copy(temp_file, meta_file)
 
     # Rebuild .sav file
-    with zipfile.ZipFile(save_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+    with zipfile.ZipFile(save_file, "w", zipfile.ZIP_DEFLATED) as zf:
         for file in Path(repair_dir).iterdir():
             # Fix files access times to their originals
             fname = file.name
             if fname in files_access_times.keys():
                 os.utime(file, files_access_times.get(fname, None))
             _encoding = detect_file_encoding(file)
-            with open(file, 'r', encoding=_encoding) as fread:
+            with open(file, "r", encoding=_encoding) as fread:
                 zf.writestr(Path(file).name, fread.read())
 
     # Set access times from original
@@ -317,7 +318,7 @@ def pull_latest_achivements_file():
         # Update local achievements file
         log.info("Updating achievements file with repo content.")
         try:
-            with achievements_file.open('w', encoding=_encoding) as ach_f:
+            with achievements_file.open("w", encoding=_encoding) as ach_f:
                 ach_f.write(achievements)
         except Exception as e:
             log.error(f"Error writing to achievements file.\nError: {e}")
@@ -328,12 +329,10 @@ def pull_latest_achivements_file():
         log.debug(f"Achievements file: {achievements_file}")
 
         try:
-            with achievements_file.open('r', encoding=_encoding) as ach_f:
+            with achievements_file.open("r", encoding=_encoding) as ach_f:
                 achievements = ach_f.read()
         except Exception as e:
             log.error(f"Error in accessing achievements file.\nError: {e}")
-            achievements = ''
+            achievements = ""
 
     return achievements
-
-
