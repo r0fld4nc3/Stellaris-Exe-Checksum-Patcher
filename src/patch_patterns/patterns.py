@@ -69,7 +69,7 @@ def get_patterns_config_remote():
             config_key = Platform.WINDOWS
 
         # Save patterns file
-        if not USE_LOCAL_PATTERNS:
+        if not USE_LOCAL_PATTERNS or not SETTINGS.get_force_use_local_patterns():
             log.info(f"Saving remote patterns to config dir: {PATTERNS_LOCAL}")
             with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
                 f.write(json.dumps(patterns_data, indent=2))
