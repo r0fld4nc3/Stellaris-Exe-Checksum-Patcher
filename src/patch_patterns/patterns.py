@@ -4,7 +4,15 @@ import time  # isort: skip
 import requests  # isort: skip
 from enum import Enum
 
-from conf_globals import LOG_LEVEL, UPDATE_CHECK_COOLDOWN, OS, SETTINGS, updater  # isort: skip
+from conf_globals import (
+    LOG_LEVEL,
+    OS,
+    SETTINGS,
+    UPDATE_CHECK_COOLDOWN,
+    USE_LOCAL_PATTERNS,
+    updater,
+)
+
 from logger import create_logger  # isort: skip
 
 log = create_logger("Patterns", LOG_LEVEL)  # isort: skip
@@ -61,7 +69,7 @@ def get_patterns_config_remote():
             config_key = Platform.WINDOWS
 
         # Save patterns file
-        if not PATTERNS_LOCAL.exists():
+        if not USE_LOCAL_PATTERNS:
             log.info(f"Saving remote patterns to config dir: {PATTERNS_LOCAL}")
             with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
                 f.write(json.dumps(patterns_data, indent=2))
