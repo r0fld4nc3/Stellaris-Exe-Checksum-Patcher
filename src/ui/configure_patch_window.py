@@ -41,7 +41,7 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         self.setWindowTitle("Configure Patches")
         self.setWindowIcon(window_icon)
-        self.setMinimumSize(500, 400)
+        self.setMinimumSize(600, 400)
 
         # Dialog Layout that contains the frame
         dialog_layout = QVBoxLayout(self)
