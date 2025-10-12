@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from conf_globals import LOG_LEVEL, OS
+from conf_globals import LOG_LEVEL, OS, SETTINGS, USE_LOCAL_PATTERNS
 from logger import create_logger
 from patchers import MultiGamePatcher, PatchConfiguration
 from patchers import models as patcher_models
@@ -101,13 +101,29 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.patches_scroll_area.setWidget(self.patches_widget)
         content_layout.addWidget(self.patches_scroll_area)
 
+        # --- OK/Cancel Layout ---
+        ok_cancel_layout = QHBoxLayout()
+        content_layout.addLayout(ok_cancel_layout)
+
+        # --- Use Local Patterns CheckBox---
+        self.chkbox_use_local_patterns = QCheckBox("Force Local Patterns")
+        self.chkbox_use_local_patterns.stateChanged.connect(self.callback_use_local_patterns)
+        self.chkbox_use_local_patterns.setToolTip(
+            "When toggled, application will not longer pull updated patterns from remote and will only strictly use the patterns file present on disk.\nThis is mainly useful for testing purposes, for trying out different patterns to prevent the local file from being overwritten on application startup."
+        )
+        # Force update state when global enforcement rule is applied
+        if USE_LOCAL_PATTERNS:
+            self.chkbox_use_local_patterns.setEnabled(False)
+            SETTINGS.set_force_use_local_patterns(Qt.CheckState.Unchecked.value)
+        ok_cancel_layout.addWidget(self.chkbox_use_local_patterns)
+
         # --- Ok / Cancel Buttons
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         for button in button_box.buttons():
             button.setFont(self.font)
-        content_layout.addWidget(button_box)
+        ok_cancel_layout.addWidget(button_box)
 
         # --- Signals ---
         self.game_combobox.currentTextChanged.connect(self._on_game_changed)
@@ -115,6 +131,16 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         # --- Initial population ---
         self._populate_options()
+
+        # --- Load settings ---
+        self._load_settings()
+
+    def _load_settings(self):
+        # Reflect settings in UI
+        use_local_patterns = any([USE_LOCAL_PATTERNS, SETTINGS.get_force_use_local_patterns()])
+        self.chkbox_use_local_patterns.setCheckState(
+            Qt.CheckState.Checked if use_local_patterns else Qt.CheckState.Unchecked
+        )
 
     def _populate_options(self):
         if OS.LINUX:
@@ -210,6 +236,12 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         # Trigger re-update options
         self._on_version_changed(self.version_combobox.currentText())
+
+    def callback_use_local_patterns(self, state):
+        if state in (Qt.CheckState.Checked.value, Qt.CheckState.Unchecked.value):
+            SETTINGS.set_force_use_local_patterns(state)
+        else:
+            log.warning("Checkbox in Partially Checked state. We shouldn't be here.", silent=True)
 
     def get_configuration(self) -> PatchConfiguration:
         selected_patches = []

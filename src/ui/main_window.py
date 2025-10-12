@@ -71,7 +71,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     if len(APP_VERSION) > 3:
         _APP_VERSION += "-"
         _APP_VERSION += "-".join(str(v) for v in APP_VERSION[3:])
-    icons = Path(__file__).parent / "ui_icons"
+    icons = Path(__file__).parent / "icons"
     fonts = Path(__file__).parent / "fonts"
     styles_path = Path(__file__).parent / "styles"
 
@@ -118,8 +118,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         window_icon_unix = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.png"))
         patch_icon = QIcon(str(self.icons / "patch_icon.png"))
         save_patch_icon = QIcon(str(self.icons / "save_patch_icon.png"))
+        configure_icon = QIcon(str(self.icons / "configure_icon_big.png"))
+
         orbitron_bold_font_id = QFontDatabase.addApplicationFont(str(self.fonts / "Orbitron-Bold.ttf"))
         self.orbitron_bold_font = QFontDatabase.applicationFontFamilies(orbitron_bold_font_id)[0]
+
+        # --- Instance icon assignment ---
         self.stellaris_patch_icon = patch_icon
         self.stellaris_save_patch_icon = set_icon_gray(save_patch_icon)
 
@@ -226,14 +230,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.txt_browser_project_link.setSizePolicy(size_policy_project_browser_link)
         self.txt_browser_project_link.setMaximumSize(QSize(16777215, 36))
 
-        # --- Configure Button---
-        self.btn_configure_patch_options = QPushButton("Configure")
-        self.btn_configure_patch_options.setSizePolicy(size_policy_button)
-        self.btn_configure_patch_options.setMinimumSize(QSize(100, 48))
-        self.btn_configure_patch_options.setMaximumSize(QSize(16777215, 64))
-        self.btn_configure_patch_options.setFont(QFont(self.orbitron_bold_font, 14))
-        self.btn_configure_patch_options.clicked.connect(self.open_configure_patch_options_window)
-
         # --- Fix Save Button---
         self.btn_fix_save_file = QPushButton("Fix Save Achievements\n(Coming soon..)")
         self.btn_fix_save_file.setIcon(self.stellaris_save_patch_icon)
@@ -250,6 +246,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_patch_executable.setFont(QFont(self.orbitron_bold_font, 14))
         self.btn_patch_executable.clicked.connect(self.start_patch_game_executable_thread)
         self.btn_patch_executable.setFlat(False)
+
+        # --- Configure Button---
+        self.btn_configure_patch_options = QPushButton()
+        self.btn_configure_patch_options.setObjectName("ConfigureButton")
+        self.btn_configure_patch_options.setIcon(configure_icon)
+        self.btn_configure_patch_options.setIconSize(QSize(64, 64))
+        self.btn_configure_patch_options.setFixedSize(QSize(64, 64))
+        self.btn_configure_patch_options.clicked.connect(self.open_configure_patch_options_window)
 
         # --- Show Game Folder Button---
         self.btn_show_game_folder = QPushButton("Show Game Folder")
@@ -269,17 +273,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_show_app_config_dir.setFont(QFont(self.orbitron_bold_font, 14))
         self.btn_show_app_config_dir.clicked.connect(self.show_app_config_folder)
 
-        # --- Use Local Patterns CheckBox---
-        self.chkbox_use_local_patterns = QCheckBox("Force Local Patterns")
-        self.chkbox_use_local_patterns.setSizePolicy(size_policy_button)
-        self.chkbox_use_local_patterns.setMinimumSize(QSize(100, 48))
-        self.chkbox_use_local_patterns.setMaximumSize(QSize(16777215, 64))
-        self.chkbox_use_local_patterns.setFont(QFont(self.orbitron_bold_font, 14))
-        self.chkbox_use_local_patterns.stateChanged.connect(self.callback_use_local_patterns)
-        if USE_LOCAL_PATTERNS:
-            self.chkbox_use_local_patterns.setEnabled(False)
-            SETTINGS.set_force_use_local_patterns(Qt.CheckState.Unchecked.value)
-
         # ---Add Widgets to Layouts---
         # --- Window Functions---
         self.hlayout_window_functions.addWidget(self.lbl_title, 0, Qt.AlignmentFlag.AlignLeft)
@@ -296,7 +289,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Misc Layout---
         self.hlayout_misc_functions.addWidget(self.btn_show_app_config_dir)
         self.hlayout_misc_functions.addWidget(self.btn_show_game_folder)
-        self.hlayout_misc_functions.addWidget(self.chkbox_use_local_patterns)
 
         # --- Main Layout---
         self.setCentralWidget(self.main_frame)
@@ -392,12 +384,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         SETTINGS.set_app_version(f"{self._APP_VERSION}")
         updater.set_local_version(str(self._APP_VERSION))
 
-        # Reflect settings in UI
-        use_local_patterns = any([USE_LOCAL_PATTERNS, SETTINGS.get_force_use_local_patterns()])
-        self.chkbox_use_local_patterns.setCheckState(
-            Qt.CheckState.Checked if use_local_patterns else Qt.CheckState.Unchecked
-        )
-
     @Slot(str)
     def terminal_display_log(self, t_log):
         self.terminal_display.insertPlainText(f"{t_log}\n")
@@ -417,7 +403,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_patch_executable.setDisabled(False)
         # self.btn_fix_save_file.setDisabled(False) # TODO: Uncomment when it is time
         self.btn_show_app_config_dir.setDisabled(False)
-        self.chkbox_use_local_patterns.setDisabled(False)
         self.btn_configure_patch_options.setDisabled(False)
         self.btn_show_game_folder.setDisabled(False)
         self.set_terminal_clickable(True)
@@ -426,7 +411,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_patch_executable.setDisabled(True)
         self.btn_fix_save_file.setDisabled(True)
         self.btn_show_app_config_dir.setDisabled(True)
-        self.chkbox_use_local_patterns.setDisabled(True)
         self.btn_configure_patch_options.setDisabled(True)
         self.btn_show_game_folder.setDisabled(True)
         self.set_terminal_clickable(False)
@@ -678,12 +662,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 log.error(f"Failed to open game folder: {e}")
         else:
             log.warning(f"Unable to determine game folder.")
-
-    def callback_use_local_patterns(self, state):
-        if state in (Qt.CheckState.Checked.value, Qt.CheckState.Unchecked.value):
-            SETTINGS.set_force_use_local_patterns(state)
-        else:
-            log.warning("Checkbox in Partially Checked state. We shouldn't be here.", silent=True)
 
     @staticmethod
     def show_app_config_folder():
