@@ -37,7 +37,12 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.font = font
 
         # --- Style and Appearance ---
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
+        # Qt.Window treats this is a top-level window while being able to receive a parent
+        # This fixes the odd behaviour where a frameless window with a parent
+        # would appear off centre and clipped by the main window.
+        self.setWindowFlags(
+            Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint | Qt.Window
+        )
 
         self.setWindowTitle("Configure Patches")
         self.setWindowIcon(window_icon)
