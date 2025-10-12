@@ -682,7 +682,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     @staticmethod
     def prompt_install_dir():
         qurl_install_dir: tuple[QUrl, str] = QFileDialog().getOpenFileUrl(
-            caption="Please choose Stellaris installation Folder..."
+            caption="Please choose Stellaris executable binary..."
         )
         install_dir = qurl_install_dir[0].path()
         log.info(f"{install_dir=}")
