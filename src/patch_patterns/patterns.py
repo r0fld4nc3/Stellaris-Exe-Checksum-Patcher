@@ -74,7 +74,7 @@ def get_patterns_config_remote():
             with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
                 f.write(json.dumps(patterns_data, indent=2))
 
-        log.info(f"Loading patterns for '{config_key.value}")
+        log.info(f"[Remote] Loading patterns for '{config_key.value}'")
 
         return patterns_data.get(config_key.value)
 
@@ -109,7 +109,7 @@ def get_patterns_config_local() -> dict:
         log.warning("Unsupported OS detected. Defaulting to Windows patterns")
         config_key = Platform.WINDOWS
 
-    log.info(f"Loading patterns for '{config_key.value}")
+    log.info(f"[Local] Loading patterns for '{config_key.value}'")
 
     with open(PATTERNS_LOCAL, "r", encoding="UTF-8") as f:
         patterns_data = json.load(f)
