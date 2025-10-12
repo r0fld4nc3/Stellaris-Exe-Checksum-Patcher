@@ -87,20 +87,20 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.signals = WorkerSignals()
 
-        # Get size settings
+        # --- Get size settings ---
         width = SETTINGS.get_window_width()
         height = SETTINGS.get_window_height()
 
-        # Failsafes
+        # --- Failsafes ---
         if width < 1:
             width = 966
         if height < 1:
             height = 821
 
-        # Base Size
+        # --- Base Size---
         self.resize(width, height)
 
-        # Styles
+        # --- Styles---
         self.load_stylesheet(f"{self.styles_path}/stellaris.qss")
 
         self.setWindowOpacity(0.95)
@@ -113,7 +113,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
 
-        # Icons and Fonts
+        # --- Icons and Fonts---
         window_icon_win = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.ico"))
         window_icon_unix = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.png"))
         patch_icon = QIcon(str(self.icons / "patch_icon.png"))
@@ -133,7 +133,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.resize_move_filter = EventFilterMoveResize(self)
         self.installEventFilter(self.resize_move_filter)
 
-        # ========== Size Policies ==========
+        # --- Size Policies---
         size_policy_button = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Maximum)
         size_policy_button.setHorizontalStretch(0)
         size_policy_button.setVerticalStretch(0)
@@ -146,30 +146,30 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         size_policy_app_version_label.setHorizontalStretch(0)
         size_policy_app_version_label.setVerticalStretch(0)
 
-        # ====================================
+        # ------------------------------------
 
-        # Frame Layout
+        # --- Frame Layout---
         self.frame_layout = QVBoxLayout()
 
-        # Window Functions Container & Layout
+        # --- Window Functions Container & Layout---
         self.window_functions_container_handle = QWidget(self)
         self.window_functions_container_handle.setObjectName("WindowFunctionsContainer")
         self.window_functions_container_handle.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.hlayout_window_functions = QHBoxLayout(self.window_functions_container_handle)
 
-        #
+        # --- Layout After Terminal ---
         self.hlayout_after_terminal_display = QHBoxLayout()
 
-        #
+        # --- Patch Buttons Laytout ---
         self.hlayout_patch_buttons = QHBoxLayout()
         # self.hlayout_patch_buttons.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignHCenter)
 
-        #
+        # --- Layout for Miscellaneous functions
         self.hlayout_misc_functions = QHBoxLayout()
         self.hlayout_misc_functions.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        # ========== Widgets ==========
-        # Main Frame
+        # ---Widgets---
+        # --- Main Frame---
         self.main_frame = QFrame()
         self.main_frame.setMinimumSize(QSize(650, 500))
         self.main_frame.setFrameShape(QFrame.WinPanel)
@@ -189,7 +189,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.lbl_app_version = QLabel(f"{self._APP_VERSION}-{BRANCH}{'-debug' if IS_DEBUG else ''}")
         self.lbl_app_version.setSizePolicy(size_policy_app_version_label)
 
-        # Themed Exit Application
+        # --- Themed Exit Application---
         self.btn_themed_exit_app = QPushButton("X")
         self.btn_themed_exit_app.setObjectName("ExitButton")
         self.btn_themed_exit_app.setFont(self.orbitron_bold_font)
@@ -197,7 +197,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_themed_exit_app.setMinimumSize(QSize(32, 32))
         self.btn_themed_exit_app.clicked.connect(self.app_quit)
 
-        # Terminal Display
+        # --- Terminal Display---
         self.terminal_display = QTextBrowser()
         self.terminal_display.setObjectName("TerminalDisplay")
         self.terminal_display.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored))
@@ -205,14 +205,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.terminal_display.setFrameShadow(QFrame.Sunken)
         self.terminal_display.setLineWidth(2)
         self.terminal_display.setOpenExternalLinks(True)
-        # Terminal Display- Size Policy
+        # --- Terminal Display- Size Policy---
         size_policy_terminal_display = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
         size_policy_terminal_display.setHorizontalStretch(0)
         size_policy_terminal_display.setVerticalStretch(0)
         size_policy_terminal_display.setHeightForWidth(self.terminal_display.sizePolicy().hasHeightForWidth())
         self.terminal_display.setSizePolicy(size_policy_terminal_display)
 
-        # Project Browser Link
+        # --- Project Browser Link---
         self.project_link_html = """
                 <p>Project link: <a href="https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher">https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher</a></p>
                 """
@@ -226,7 +226,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.txt_browser_project_link.setSizePolicy(size_policy_project_browser_link)
         self.txt_browser_project_link.setMaximumSize(QSize(16777215, 36))
 
-        # Configure Button
+        # --- Configure Button---
         self.btn_configure_patch_options = QPushButton("Configure")
         self.btn_configure_patch_options.setSizePolicy(size_policy_button)
         self.btn_configure_patch_options.setMinimumSize(QSize(100, 48))
@@ -234,7 +234,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_configure_patch_options.setFont(QFont(self.orbitron_bold_font, 14))
         self.btn_configure_patch_options.clicked.connect(self.open_configure_patch_options_window)
 
-        # Fix Save Button
+        # --- Fix Save Button---
         self.btn_fix_save_file = QPushButton("Fix Save Achievements\n(Coming soon..)")
         self.btn_fix_save_file.setIcon(self.stellaris_save_patch_icon)
         self.btn_fix_save_file.setIconSize(QSize(64, 64))
@@ -243,7 +243,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_fix_save_file.clicked.connect(self.fix_save_achievements_thread)
         self.btn_fix_save_file.setDisabled(True)  # TODO: Delete line when it is time
 
-        # Patch Button
+        # --- Patch Button---
         self.btn_patch_executable = QPushButton("Patch Executable")
         self.btn_patch_executable.setIcon(self.stellaris_patch_icon)
         self.btn_patch_executable.setIconSize(QSize(64, 64))
@@ -251,7 +251,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_patch_executable.clicked.connect(self.start_patch_game_executable_thread)
         self.btn_patch_executable.setFlat(False)
 
-        # Show Game Folder Button
+        # --- Show Game Folder Button---
         self.btn_show_game_folder = QPushButton("Show Game Folder")
         self.btn_show_game_folder.setFlat(False)
         self.btn_show_game_folder.setSizePolicy(size_policy_button)
@@ -260,7 +260,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_show_game_folder.setFont(QFont(self.orbitron_bold_font, 14))
         self.btn_show_game_folder.clicked.connect(self.show_game_folder)
 
-        # Open Config Directory Button
+        # --- Open Config Directory Button---
         self.btn_show_app_config_dir = QPushButton("Show Config Folder")
         self.btn_show_app_config_dir.setFlat(False)
         self.btn_show_app_config_dir.setSizePolicy(size_policy_button)
@@ -269,7 +269,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_show_app_config_dir.setFont(QFont(self.orbitron_bold_font, 14))
         self.btn_show_app_config_dir.clicked.connect(self.show_app_config_folder)
 
-        # Use Local Patterns CheckBox
+        # --- Use Local Patterns CheckBox---
         self.chkbox_use_local_patterns = QCheckBox("Force Local Patterns")
         self.chkbox_use_local_patterns.setSizePolicy(size_policy_button)
         self.chkbox_use_local_patterns.setMinimumSize(QSize(100, 48))
@@ -280,29 +280,29 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             self.chkbox_use_local_patterns.setEnabled(False)
             SETTINGS.set_force_use_local_patterns(Qt.CheckState.Unchecked.value)
 
-        # ============ Add Widgets to Layouts ============
-        # Window Functions
+        # ---Add Widgets to Layouts---
+        # --- Window Functions---
         self.hlayout_window_functions.addWidget(self.lbl_title, 0, Qt.AlignmentFlag.AlignLeft)
         self.hlayout_window_functions.addWidget(self.btn_themed_exit_app, 0, Qt.AlignmentFlag.AlignRight)
 
-        # After Terminal Layout
+        # --- After Terminal Layout---
         self.hlayout_after_terminal_display.addWidget(self.txt_browser_project_link)
 
-        # Patch Buttons Layout
+        # --- Patch Buttons Layout---
         self.hlayout_patch_buttons.addWidget(self.btn_fix_save_file)
         self.hlayout_patch_buttons.addWidget(self.btn_patch_executable)
         self.hlayout_patch_buttons.addWidget(self.btn_configure_patch_options)
 
-        # Misc Layout
+        # --- Misc Layout---
         self.hlayout_misc_functions.addWidget(self.btn_show_app_config_dir)
         self.hlayout_misc_functions.addWidget(self.btn_show_game_folder)
         self.hlayout_misc_functions.addWidget(self.chkbox_use_local_patterns)
 
-        # Main Layout
+        # --- Main Layout---
         self.setCentralWidget(self.main_frame)
         self.main_frame.setLayout(self.frame_layout)
 
-        # Main Frame Layout
+        # --- Main Frame Layout---
         self.frame_layout.addWidget(self.window_functions_container_handle)
         self.frame_layout.addWidget(self.lbl_app_version)
         self.frame_layout.addWidget(self.terminal_display)
@@ -310,10 +310,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.frame_layout.addLayout(self.hlayout_patch_buttons)
         self.frame_layout.addLayout(self.hlayout_misc_functions)
 
-        # Add frame_layout to main_frame
+        # --- Add frame_layout to main_frame---
         self.main_frame.setLayout(self.frame_layout)
 
-        # Hook up Signals
+        # --- Hook up Signals---
         # Could be a bit hacky. Ensure created before assign
         log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
         updater_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
@@ -323,14 +323,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         registry_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
         self.signals.terminal_progress.connect(self.terminal_display_log, Qt.QueuedConnection)
 
-        # Worker
+        # --- Worker---
         self.worker = None  # Currently unusued, possibly to deprecate
 
-        # Threads
+        # --- Threads---
         self.thread_pool = QThreadPool()  # Currently unusued, possibly to deprecate
         self.active_threads = []
 
-        # Patch info
+        # --- Patch info---
         if not PATTERNS_LOCAL.exists():
             # Download patch patterns once
             # This allows us to store it when they don't exist and use local only if required
@@ -351,7 +351,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.selected_version = patcher_models.CONST_VERSION_LATEST_KEY
         self.available_versions: List[str] = self.patcher.get_available_versions(self.game_to_patch)
 
-        # Cache available patches to display
+        # --- Cache available patches to display---
         self.available_patches: dict = self.patcher.get_available_patches_for_game(
             self.game_to_patch, version=self.selected_version
         )

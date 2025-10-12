@@ -52,7 +52,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         dialog_layout = QVBoxLayout(self)
         dialog_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Frame
+        # --- Frame ---
         main_frame = QFrame(self)
         main_frame.setFrameShape(QFrame.WinPanel)
         main_frame.setFrameShadow(QFrame.Plain)
@@ -61,11 +61,11 @@ class ConfigurePatchOptionsDialog(QDialog):
         main_frame.setContentsMargins(10, 10, 10, 10)
         dialog_layout.addWidget(main_frame)
 
-        # Content Layout
+        # --- Content Layout ---
         content_layout = QVBoxLayout(main_frame)
         content_layout.setContentsMargins(10, 10, 10, 10)
 
-        # --- Game & Version Selection
+        # --- Game & Version Selection --.
         selection_layout = QHBoxLayout()
 
         self.game_combobox = QComboBox()
@@ -80,7 +80,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         selection_layout.addWidget(self.version_combobox, 1)
         content_layout.addLayout(selection_layout)
 
-        # Linux Version Dropdown
+        # --- Linux Version Dropdown ---
         self.linux_version_picker = QComboBox()
         if OS.LINUX:
             self.linux_version_picker.addItems(
@@ -113,7 +113,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.game_combobox.currentTextChanged.connect(self._on_game_changed)
         self.version_combobox.currentTextChanged.connect(self._on_version_changed)
 
-        # Initial population
+        # --- Initial population ---
         self._populate_options()
 
     def _populate_options(self):
