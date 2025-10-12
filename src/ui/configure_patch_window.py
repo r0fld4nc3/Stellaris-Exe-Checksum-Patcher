@@ -18,7 +18,7 @@ from logger import create_logger
 from patchers import MultiGamePatcher, PatchConfiguration
 from patchers import models as patcher_models
 
-log = create_logger("Patch Conf", LOG_LEVEL)
+log = create_logger("Patch Config", LOG_LEVEL)
 
 
 class ConfigurePatchOptionsDialog(QDialog):
@@ -143,6 +143,8 @@ class ConfigurePatchOptionsDialog(QDialog):
         )
 
     def _populate_options(self):
+        log.info(f"Populating Options", silent=True)
+
         if OS.LINUX:
             intial_linux_versions = (
                 patcher_models.LINUX_VERSIONS_ENUM.PROTON
@@ -152,6 +154,19 @@ class ConfigurePatchOptionsDialog(QDialog):
             self.linux_version_picker.setCurrentText(intial_linux_versions)
 
         available_games = self.patcher.get_available_games()
+
+        if not self.current_config.game and available_games:
+            log.warning(
+                f"No initial game selection in configuration: {self.current_config}. Defaulting to first found and updating configuration to match."
+            )
+            log.info(f"{available_games=}", silent=True)
+            log.info(f"{self.current_config.game=}", silent=True)
+            self.current_config = patcher_models.PatchConfiguration(
+                game=available_games[0],
+                version=patcher_models.CONST_VERSION_LATEST_KEY,
+                is_proton=self.current_config.is_proton,
+            )
+
         self.game_combobox.blockSignals(True)
         self.game_combobox.addItems(available_games)
         self.game_combobox.setCurrentText(self.current_config.game)
