@@ -35,7 +35,7 @@ class LoggerWithSignals(logging.Logger):
             self.signals.progress.emit("[WARN] " + str(msg))
 
     def error(self, msg, *args, silent=False, **kwargs):
-        _version_print_msg = f"System Info: {system} {APP_VERSION}{'-' + BRANCH if BRANCH else ''}\nUse Local Patterns: {USE_LOCAL_PATTERNS}"
+        _version_print_msg = f"System Info: '{system} {APP_VERSION}{'-' + BRANCH if BRANCH else ''}' 'Use Local Patterns: {USE_LOCAL_PATTERNS}'"
 
         super().error(msg, *args, **kwargs)
         if not silent:
