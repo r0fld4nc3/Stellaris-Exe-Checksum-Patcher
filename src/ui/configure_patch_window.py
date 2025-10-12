@@ -58,6 +58,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         main_frame.setFrameShadow(QFrame.Plain)
         main_frame.setLineWidth(5)
         main_frame.setMidLineWidth(0)
+        main_frame.setContentsMargins(10, 10, 10, 10)
         dialog_layout.addWidget(main_frame)
 
         # Content Layout
