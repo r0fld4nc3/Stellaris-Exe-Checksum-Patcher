@@ -102,6 +102,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         # Styles
         self.load_stylesheet(f"{self.styles_path}/stellaris.qss")
 
+        self.setWindowOpacity(0.95)
+
         self.is_patching = False
 
         self.window_title = "Stellaris Checksum Patcher"
@@ -128,9 +130,7 @@ class StellarisChecksumPatcherGUI(QWidget):
             self.setWindowIcon(window_icon_unix)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
         self.resize_move_filter = EventFilterMoveResize(self)
-        self.start_pos = None
         self.installEventFilter(self.resize_move_filter)
-        self.setWindowOpacity(0.95)
 
         # ========== Size Policies ==========
         size_policy_button = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Maximum)
