@@ -109,7 +109,7 @@ class GamePatcher:
             return Platform.WINDOWS
         elif system == Platform.LINUX_NATIVE.value:
             return Platform.LINUX_NATIVE
-        elif system == Platform.MACOS.value:
+        elif system == "darwin":
             return Platform.MACOS
         else:
             raise ValueError(f"Unsupported platform: {system}")
