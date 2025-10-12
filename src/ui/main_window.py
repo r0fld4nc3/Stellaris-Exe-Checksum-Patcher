@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (  # isort: skip
     QWidget,
     QCheckBox,
     QMessageBox,
+    QMainWindow,
 )
 from PySide6.QtCore import Qt, QUrl  # isort: skip
 
@@ -65,7 +66,7 @@ from patch_patterns.patterns import PATTERNS_LOCAL, get_patterns_config_remote  
 log = create_logger("UI", LOG_LEVEL)
 
 
-class StellarisChecksumPatcherGUI(QWidget):
+class StellarisChecksumPatcherGUI(QMainWindow):
     _APP_VERSION = "v" + ".".join([str(v) for v in APP_VERSION[0:3]])
     if len(APP_VERSION) > 3:
         _APP_VERSION += "-"
@@ -147,9 +148,6 @@ class StellarisChecksumPatcherGUI(QWidget):
 
         # ====================================
 
-        # Main layout
-        self.main_layout = QVBoxLayout()
-
         # Frame Layout
         self.frame_layout = QVBoxLayout()
 
@@ -176,6 +174,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.main_frame.setMinimumSize(QSize(650, 500))
         self.main_frame.setFrameShape(QFrame.WinPanel)
         self.main_frame.setFrameShadow(QFrame.Plain)
+        self.main_frame.setContentsMargins(10, 10, 10, 10)
         self.main_frame.setLineWidth(5)
         self.main_frame.setMidLineWidth(0)
 
@@ -300,7 +299,8 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.hlayout_misc_functions.addWidget(self.chkbox_use_local_patterns)
 
         # Main Layout
-        self.main_layout.addWidget(self.main_frame)
+        self.setCentralWidget(self.main_frame)
+        self.main_frame.setLayout(self.frame_layout)
 
         # Main Frame Layout
         self.frame_layout.addWidget(self.window_functions_container_handle)
@@ -310,7 +310,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         self.frame_layout.addLayout(self.hlayout_patch_buttons)
         self.frame_layout.addLayout(self.hlayout_misc_functions)
 
-        self.setLayout(self.main_layout)
+        # Add frame_layout to main_frame
         self.main_frame.setLayout(self.frame_layout)
 
         # Hook up Signals
@@ -820,7 +820,7 @@ class StellarisChecksumPatcherGUI(QWidget):
         super().show()
         self._adjust_app_size()
         self.terminal_display.clear()
-        sys.exit(self.app.exec())
+        sys.exit(self.app.exec_())
 
     def closeEvent(self, event):
         log.info("Application is closing. Shutting down procedure")
