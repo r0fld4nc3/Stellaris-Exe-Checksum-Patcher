@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from conf_globals import APP_NAME, APP_VERSION, BRANCH, HOST, USE_LOCAL_PATTERNS, system
-from ui.ui_utils import WorkerSignals
+from ui.utils import WorkerSignals
 
 from .path_helpers import ensure_paths, get_os_env_config_folder
 

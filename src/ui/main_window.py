@@ -7,7 +7,6 @@ import subprocess  # isort: skip
 from PySide6.QtWidgets import (  # isort: skip
     QAbstractScrollArea,
     QApplication,
-    QComboBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -17,7 +16,6 @@ from PySide6.QtWidgets import (  # isort: skip
     QTextBrowser,
     QVBoxLayout,
     QWidget,
-    QCheckBox,
     QMessageBox,
     QMainWindow,
 )
@@ -49,7 +47,7 @@ from conf_globals import (  # isort: skip
     updater,
 )
 
-from .ui_utils import WorkerSignals, Threader, EventFilterMoveResize, get_screen_info, set_icon_gray  # isort: skip
+from .utils import WorkerSignals, Threader, EventFilterMoveResize, get_screen_info, set_icon_gray  # isort: skip
 from logger import create_logger  # isort: skip
 from patchers.save_patcher import repair_save, get_user_save_folder  # isort: skip
 
