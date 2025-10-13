@@ -30,6 +30,7 @@ from typing import List, Optional, Union
 from patchers import models as patcher_models
 
 from .configure_patch_window import ConfigurePatchOptionsDialog
+from .resources import AppFont, AppIcon, AppStyle, ResourceManager
 
 from PySide6.QtCore import Qt, QSize, QThreadPool, Slot  # isort: skip
 from PySide6.QtGui import QIcon, QFont, QFontDatabase  # isort: skip
@@ -69,9 +70,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     if len(APP_VERSION) > 3:
         _APP_VERSION += "-"
         _APP_VERSION += "-".join(str(v) for v in APP_VERSION[3:])
-    icons = Path(__file__).parent / "icons"
-    fonts = Path(__file__).parent / "fonts"
-    styles_path = Path(__file__).parent / "styles"
 
     def __init__(self):
         if not QApplication.instance():
@@ -80,57 +78,25 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             self.app = QApplication.instance()
 
         super().__init__()
-
         self.setObjectName("MainWindow")
 
+        self.resources = ResourceManager()
         self.signals = WorkerSignals()
 
         # --- Get size settings ---
-        width = SETTINGS.get_window_width()
-        height = SETTINGS.get_window_height()
+        width, height = SETTINGS.get_window_width(), SETTINGS.get_window_height()
 
         # --- Failsafes ---
-        if width < 1:
-            width = 966
-        if height < 1:
-            height = 821
+        width = 966 if width < 1 else width
+        height = 821 if height < 1 else height
 
         # --- Base Size---
         self.resize(width, height)
 
-        # --- Styles---
-        self.load_stylesheet(f"{self.styles_path}/stellaris.qss")
-
         self.setWindowOpacity(0.95)
-
         self.is_patching = False
-
-        self.window_title = "Stellaris Checksum Patcher"
-
         self._prev_app_version = ""
 
-        self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
-
-        # --- Icons and Fonts---
-        window_icon_win = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.ico"))
-        window_icon_unix = QIcon(str(self.icons / "stellaris_checksum_patcher_icon.png"))
-        patch_icon = QIcon(str(self.icons / "patch_icon.png"))
-        save_patch_icon = QIcon(str(self.icons / "save_patch_icon.png"))
-        configure_icon = QIcon(str(self.icons / "configure_icon_big.png"))
-
-        orbitron_bold_font_id = QFontDatabase.addApplicationFont(str(self.fonts / "Orbitron-Bold.ttf"))
-        self.orbitron_bold_font = QFontDatabase.applicationFontFamilies(orbitron_bold_font_id)[0]
-
-        # --- Instance icon assignment ---
-        self.stellaris_patch_icon = patch_icon
-        self.stellaris_save_patch_icon = set_icon_gray(save_patch_icon)
-
-        # --- Set App Constraints ---
-        self.setWindowTitle(self.window_title_with_app_version)
-        if OS.WINDOWS:
-            self.setWindowIcon(window_icon_win)
-        else:
-            self.setWindowIcon(window_icon_unix)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
         self.resize_move_filter = EventFilterMoveResize(self)
         self.installEventFilter(self.resize_move_filter)
@@ -149,6 +115,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         size_policy_app_version_label.setVerticalStretch(0)
 
         # ------------------------------------
+
+        self.load_app_styles()
 
         # --- Frame Layout---
         self.frame_layout = QVBoxLayout()
@@ -182,21 +150,15 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.lbl_title = QLabel(self.window_title)
         self.lbl_title.setObjectName("TitleLabel")
-        self.lbl_title.setFont(QFont(self.orbitron_bold_font, 24))
         self.lbl_title.setSizePolicy(size_policy_app_version_label)
-        self.lbl_title.setMinimumSize(QSize(24, 36))
-        self.lbl_title.setMaximumSize(QSize(16777215, 36))
-        self.lbl_title.setContentsMargins(5, 2, 5, 2)
 
         self.lbl_app_version = QLabel(f"{self._APP_VERSION}-{BRANCH}{'-debug' if IS_DEBUG else ''}")
         self.lbl_app_version.setSizePolicy(size_policy_app_version_label)
 
-        # --- Themed Exit Application---
+        # --- Themed Exit Button ---
         self.btn_themed_exit_app = QPushButton("X")
         self.btn_themed_exit_app.setObjectName("ExitButton")
-        self.btn_themed_exit_app.setFont(self.orbitron_bold_font)
         self.btn_themed_exit_app.setSizePolicy(size_policy_button)
-        self.btn_themed_exit_app.setMinimumSize(QSize(32, 32))
         self.btn_themed_exit_app.clicked.connect(self.app_quit)
 
         # --- Terminal Display---
@@ -207,6 +169,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.terminal_display.setFrameShadow(QFrame.Sunken)
         self.terminal_display.setLineWidth(2)
         self.terminal_display.setOpenExternalLinks(True)
+
         # --- Terminal Display- Size Policy---
         size_policy_terminal_display = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
         size_policy_terminal_display.setHorizontalStretch(0)
@@ -230,45 +193,29 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Fix Save Button---
         self.btn_fix_save_file = QPushButton("Fix Save Achievements\n(Coming soon..)")
-        self.btn_fix_save_file.setIcon(self.stellaris_save_patch_icon)
-        self.btn_fix_save_file.setIconSize(QSize(64, 64))
-        self.btn_fix_save_file.setFont(QFont(self.orbitron_bold_font, 12))
         self.btn_fix_save_file.setFlat(False)
         self.btn_fix_save_file.clicked.connect(self.fix_save_achievements_thread)
         self.btn_fix_save_file.setDisabled(True)  # TODO: Delete line when it is time
 
         # --- Patch Button---
         self.btn_patch_executable = QPushButton("Patch Executable")
-        self.btn_patch_executable.setIcon(self.stellaris_patch_icon)
-        self.btn_patch_executable.setIconSize(QSize(64, 64))
-        self.btn_patch_executable.setFont(QFont(self.orbitron_bold_font, 14))
         self.btn_patch_executable.clicked.connect(self.start_patch_game_executable_thread)
         self.btn_patch_executable.setFlat(False)
 
         # --- Configure Button---
         self.btn_configure_patch_options = QPushButton()
         self.btn_configure_patch_options.setObjectName("ConfigureButton")
-        self.btn_configure_patch_options.setIcon(configure_icon)
-        self.btn_configure_patch_options.setIconSize(QSize(64, 64))
-        self.btn_configure_patch_options.setFixedSize(QSize(64, 64))
         self.btn_configure_patch_options.clicked.connect(self.open_configure_patch_options_window)
 
         # --- Show Game Folder Button---
         self.btn_show_game_folder = QPushButton("Show Game Folder")
         self.btn_show_game_folder.setFlat(False)
         self.btn_show_game_folder.setSizePolicy(size_policy_button)
-        self.btn_show_game_folder.setMinimumSize(QSize(100, 48))
-        self.btn_show_game_folder.setMaximumSize(QSize(16777215, 64))
-        self.btn_show_game_folder.setFont(QFont(self.orbitron_bold_font, 14))
         self.btn_show_game_folder.clicked.connect(self.show_game_folder)
 
         # --- Open Config Directory Button---
         self.btn_show_app_config_dir = QPushButton("Show Config Folder")
-        self.btn_show_app_config_dir.setFlat(False)
         self.btn_show_app_config_dir.setSizePolicy(size_policy_button)
-        self.btn_show_app_config_dir.setMinimumSize(QSize(100, 48))
-        self.btn_show_app_config_dir.setMaximumSize(QSize(16777215, 64))
-        self.btn_show_app_config_dir.setFont(QFont(self.orbitron_bold_font, 14))
         self.btn_show_app_config_dir.clicked.connect(self.show_app_config_folder)
 
         # ---Add Widgets to Layouts---
@@ -352,35 +299,78 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.load_settings()
 
+        self.apply_app_style()
+
         self.check_update()
-
-    def load_stylesheet(self, qss_filepath: Union[str, Path]):
-        """Read QSS file and apply style to the application"""
-
-        log.info(f"Loading Stylesheet: {qss_filepath}", silent=True)
-
-        qss_path = Path(qss_filepath)
-        if not qss_path.exists() or not qss_path.is_file():
-            log.error(f"QSS style path is invalid: {qss_path}", silent=True)
-            return False
-
-        if not isinstance(qss_filepath, str):
-            qss_str = str(qss_filepath)
-        else:
-            qss_str = qss_filepath
-
-        try:
-            with open(qss_str, "r") as f:
-                style = f.read()
-                self.setStyleSheet(style)
-                log.info(f"Loaded Stylesheet: {qss_str}", silent=True)
-        except Exception as e:
-            log.error(f"Error setting Style for path: {qss_str}: {e}", silent=True)
 
     def load_settings(self):
         self._prev_app_version = SETTINGS.get_app_version()
         SETTINGS.set_app_version(f"{self._APP_VERSION}")
         updater.set_local_version(str(self._APP_VERSION))
+
+    def load_app_styles(self):
+        """Loads Styles, Icons and Fonts"""
+        # --- Styles---
+        stylesheet_content = self.resources.get_stylesheet(AppStyle.STELLARIS)
+        self.setStyleSheet(stylesheet_content)
+
+        # --- Icons ---
+        self.window_icon_win = self.resources.get_icon(AppIcon.WINDOW_WIN)
+        self.window_icon_unix = self.resources.get_icon(AppIcon.WINDOW_UNIX)
+
+        self.patch_icon = self.resources.get_icon(AppIcon.PATCH_ICON)
+        self.save_patch_icon = self.resources.get_icon(AppIcon.SAVE_PATCH_ICON)
+        self.configure_icon = self.resources.get_icon(AppIcon.CONFIGURE_ICON)
+
+        # --- Fonts ---
+        self.app_font = self.resources.load_font(AppFont.ORBITRON_BOLD)
+
+        # --- Set App Constraints ---
+        self.window_title = "Stellaris Checksum Patcher"
+        self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
+
+    def apply_app_style(self):
+        self.setWindowTitle(self.window_title_with_app_version)
+        if OS.WINDOWS:
+            self.setWindowIcon(self.window_icon_win)
+        else:
+            self.setWindowIcon(self.window_icon_unix)
+
+        # --- Label Title ---
+        self.lbl_title.setFont(QFont(self.app_font, 24))
+        self.lbl_title.setMinimumSize(QSize(24, 36))
+        self.lbl_title.setMaximumSize(QSize(16777215, 36))
+        self.lbl_title.setContentsMargins(5, 2, 5, 2)
+
+        # --- Fix Save Button ---
+        self.btn_fix_save_file.setIcon(self.save_patch_icon)
+        self.btn_fix_save_file.setIconSize(QSize(64, 64))
+        self.btn_fix_save_file.setFont(QFont(self.app_font, 12))
+
+        # --- Patch Button ---
+        self.btn_patch_executable.setIcon(self.patch_icon)
+        self.btn_patch_executable.setIconSize(QSize(64, 64))
+        self.btn_patch_executable.setFont(QFont(self.app_font, 14))
+
+        # --- Configure Button ---
+        self.btn_configure_patch_options.setIcon(self.configure_icon)
+        self.btn_configure_patch_options.setIconSize(QSize(64, 64))
+        self.btn_configure_patch_options.setFixedSize(QSize(64, 64))
+
+        # --- Show Game Folder Button ---
+        self.btn_show_game_folder.setFont(QFont(self.app_font, 14))
+        self.btn_show_game_folder.setMinimumSize(QSize(100, 48))
+        self.btn_show_game_folder.setMaximumSize(QSize(16777215, 64))
+
+        # --- Show App Config Dir Button ---
+        self.btn_show_app_config_dir.setFont(QFont(self.app_font, 14))
+        self.btn_show_app_config_dir.setFlat(False)
+        self.btn_show_app_config_dir.setMinimumSize(QSize(100, 48))
+        self.btn_show_app_config_dir.setMaximumSize(QSize(16777215, 64))
+
+        # --- Themed Button Exit ---
+        self.btn_themed_exit_app.setFont(self.app_font)
+        self.btn_themed_exit_app.setMinimumSize(QSize(32, 32))
 
     @Slot(str)
     def terminal_display_log(self, t_log):
@@ -730,7 +720,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         dialog = ConfigurePatchOptionsDialog(
             patcher=self.patcher,
             current_config=self.configuration,
-            font=QFont(self.orbitron_bold_font, 10),
+            font=QFont(self.app_font, 10),
             window_icon=self.windowIcon(),
             parent=self,
         )
@@ -788,7 +778,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             )
             html += '<span style=" font-weight:700;"> (UPDATE AVAILABLE)</span></p></body></html>'
             self.txt_browser_project_link.setHtml(html)
-            self.lbl_title.setFont(QFont(self.orbitron_bold_font, 20))
             self.lbl_title.setText(self.lbl_title.text() + " (UPDATE AVAILABLE)")
             SETTINGS.set_has_update(True)
 
