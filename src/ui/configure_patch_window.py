@@ -142,49 +142,84 @@ class ConfigurePatchOptionsDialog(QDialog):
             Qt.CheckState.Checked if use_local_patterns else Qt.CheckState.Unchecked
         )
 
+    def _create_default_config(self, game: str = None) -> PatchConfiguration:
+        games = self.patcher.get_available_games()
+
+        if not game and not games:
+            log.error(f"No available games")
+            return None
+
+        selected_game = game or games[0]
+
+        return PatchConfiguration(
+            game=selected_game,
+            version=patcher_models.CONST_VERSION_LATEST_KEY,
+            is_proton=(OS.WINDOWS or self._should_use_proton()),
+        )
+
+    def _should_use_proton(self) -> bool:
+        """Determine if Proton should be used for Linux"""
+        if OS.LINUX and hasattr(self, "linux_version_picker"):
+            return self.linux_version_picker.currentText().lower() == patcher_models.LINUX_VERSIONS_ENUM.PROTON.lower()
+        return False
+
+    def _get_current_platform(self) -> patcher_models.Platform:
+        if OS.LINUX and self._should_use_proton():
+            return patcher_models.Platform.WINDOWS
+        return patcher_models.Platform.LINUX_NATIVE if OS.LINUX else patcher_models.Platform.WINDOWS
+
+    def _validate_configuration(self, config: PatchConfiguration) -> bool:
+        if not config:
+            log.error("Configuration is None.")
+            return False
+
+        if not config.game:
+            log.error(f"No game selected in configuration")
+            return False
+
+        if not config.version:
+            log.error(f"No version selected in configuration")
+            return False
+
+        available_games = self.patcher.get_available_games()
+        if config.game not in available_games:
+            log.error(f"Game '{config.game}' not in available games: {available_games}")
+            return False
+
+        return True
+
     def _populate_options(self):
         log.info(f"Populating Options", silent=True)
 
-        if not self.current_config:
-            games = self.patcher.get_available_games()
-
-            if games:
-                initial_game = games[0]  # Pick first
-            else:
-                # Something is wrong here
-                log.warning(f"No available games from patcher.")
+        if not self.current_config or not self.current_config.game:
+            self.current_config = self._create_default_config()
+            if not self.current_config:
+                log.error(f"Failed to create a default configuration")
                 return
 
-            self.current_config = patcher_models.PatchConfiguration(
-                game=initial_game, version=patcher_models.CONST_VERSION_LATEST_KEY, is_proton=OS.WINDOWS
-            )
-
-        if OS.LINUX:
-            intial_linux_versions = (
-                patcher_models.LINUX_VERSIONS_ENUM.PROTON
-                if self.current_config.is_proton
-                else patcher_models.LINUX_VERSIONS_ENUM.NATIVE
-            )
-            self.linux_version_picker.setCurrentText(intial_linux_versions)
+        # Validate
+        if not self._validate_configuration(self.current_config):
+            log.error(f"Invalid configuration, creating default")
+            self.current_config = self._create_default_config()
+            if not self.current_config or not self._validate_configuration(self.current_config):
+                log.error(f"Failed to create valid configuration")
+                return
 
         available_games = self.patcher.get_available_games()
-
-        if not self.current_config.game and available_games:
-            log.warning(
-                f"No initial game selection in configuration: {self.current_config}. Defaulting to first found and updating configuration to match."
-            )
-            log.info(f"{available_games=}", silent=True)
-            log.info(f"{self.current_config.game=}", silent=True)
-            self.current_config = patcher_models.PatchConfiguration(
-                game=available_games[0],
-                version=patcher_models.CONST_VERSION_LATEST_KEY,
-                is_proton=self.current_config.is_proton,
-            )
-
         self.game_combobox.blockSignals(True)
         self.game_combobox.addItems(available_games)
         self.game_combobox.setCurrentText(self.current_config.game)
         self.game_combobox.blockSignals(False)
+
+        # Update platform UI
+        if OS.LINUX:
+            linux_version = (
+                patcher_models.LINUX_VERSIONS_ENUM.PROTON
+                if self.current_config.is_proton
+                else patcher_models.LINUX_VERSIONS_ENUM.NATIVE
+            )
+            self.linux_version_picker.setCurrentText(linux_version)
+
         self._on_game_changed(self.current_config.game)
 
     def _on_game_changed(self, game_name: str):
@@ -221,24 +256,21 @@ class ConfigurePatchOptionsDialog(QDialog):
             return
 
         # Determine platform from UI Widget
-        platform = None
-        if OS.LINUX:
-            if self.linux_version_picker.currentText().lower() == patcher_models.LINUX_VERSIONS_ENUM.PROTON.lower():
-                platform = patcher_models.Platform.WINDOWS
+        platform = self._get_current_platform()
+
+        # Determine if current UI selection matches intiial config
+        is_initial_config = (
+            game_name == self.current_config.game and version_name.lower() == self.current_config.version.lower()
+        )
+
+        # Only use saved selection if it's in the initial config and list is not empty
+        use_saved_selections = is_initial_config and self.current_config.selected_patches
 
         available_patches = patcher.get_available_patches(platform=platform)
         for patch_name, patch_info in available_patches.items():
             checkbox = QCheckBox(patch_info.display_name)
             checkbox.setToolTip(patch_info.description)
             checkbox.setFont(self.font)
-
-            # Determine if current UI selection matches intiial config
-            is_initial_config = (
-                game_name == self.current_config.game and version_name.lower() == self.current_config.version.lower()
-            )
-
-            # Only use saved selection if it's in the initial config and list is not empty
-            use_saved_selections = is_initial_config and self.current_config.selected_patches
 
             if use_saved_selections:
                 # Restore user's saved selections if inital config
@@ -280,15 +312,9 @@ class ConfigurePatchOptionsDialog(QDialog):
             if isinstance(checkbox, QCheckBox) and checkbox.isChecked():
                 selected_patches.append(checkbox.property("patch_name"))
 
-        is_proton_binary = False
-        if OS.LINUX:
-            is_proton_binary = (
-                self.linux_version_picker.currentText().lower() == patcher_models.LINUX_VERSIONS_ENUM.PROTON.lower()
-            )
-
         return PatchConfiguration(
             game=self.game_combobox.currentText(),
             version=self.version_combobox.currentText().lower(),
-            is_proton=is_proton_binary,
+            is_proton=self._should_use_proton(),
             selected_patches=selected_patches,
         )

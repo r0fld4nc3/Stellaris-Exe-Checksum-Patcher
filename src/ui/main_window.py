@@ -289,13 +289,20 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Cache Configuration ---
         self.configuration = patcher_models.PatchConfiguration(
-            game=self.game_to_patch, version=patcher_models.CONST_VERSION_LATEST_KEY, is_proton=OS.WINDOWS
-        )  # Can be None
+            game=self.game_to_patch,
+            version=patcher_models.CONST_VERSION_LATEST_KEY,
+            is_proton=(OS.WINDOWS or (OS.LINUX and OS.LINUX_PROTON)),
+        )
 
         # --- Cache available patches to display ---
-        self.available_patches: dict = self.multi_game_patcher.get_available_patches_for_game(
-            self.configuration.game, version=self.selected_version
-        )
+        self.available_patches: dict = {}
+        self.available_versions: List[str] = []
+
+        if self.configuration.game:
+            self.available_patches = self.multi_game_patcher.get_available_patches_for_game(
+                self.configuration.game, version=self.selected_version
+            )
+            self.available_versions = self.multi_game_patcher.get_available_versions(self.configuration.game)
 
         self.available_versions: List[str] = self.multi_game_patcher.get_available_versions(self.configuration.game)
 
@@ -435,6 +442,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.error(f"No configuration available.")
             return False
 
+        # Check for empty game
+        if not self.configuration.game:
+            log.error(f"Configuration game is empty")
+            return False
+
         # Get patcher
         patcher: pdx_patchers.GamePatcher = self.multi_game_patcher.get_game_patcher(
             self.configuration.game, self.configuration.version
@@ -456,7 +468,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             patches_to_apply = [
                 patch_name
                 for patch_name in self.multi_game_patcher.get_available_patches_for_game(
-                    self.configuration.game, self.configuration.version
+                    self.configuration.game, self.configuration.version, platform=platform
                 )
             ]
 

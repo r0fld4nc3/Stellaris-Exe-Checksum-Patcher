@@ -4,7 +4,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List
 
-from conf_globals import LOG_LEVEL
+from conf_globals import LOG_LEVEL, OS
 from logger import create_logger
 
 log = create_logger("Patcher Models", LOG_LEVEL)
@@ -23,6 +23,17 @@ class Platform(Enum):
     LINUX_NATIVE = "linux"
     LINUX_PROTON = "linux_proton"  # Maps to windows in patterns
     MACOS = "macos"
+
+    @classmethod
+    def detect_current(cls) -> "Platform":
+        if OS.LINUX:
+            return cls.LINUX_NATIVE
+        elif OS.WINDOWS:
+            return cls.WINDOWS
+        elif OS.MACOS:
+            return cls.MACOS
+        else:
+            return cls.WINDOWS  # Default
 
 
 @dataclass
@@ -49,6 +60,26 @@ class PatchConfiguration:
     version: str
     is_proton: bool
     selected_patches: List[str] = field(default_factory=list)
+
+    @classmethod
+    def create_default(cls, patcher, game: str = None) -> "PatchConfiguration":
+        games = patcher.get_available_games()
+        selected_game = game or (games[0] if games else None)
+
+        if not selected_game:
+            raise ValueError("No games available")
+
+        return cls(
+            game=selected_game,
+            version=CONST_VERSION_LATEST_KEY,
+            platform=(OS.WINDOWS or OS.LINUX_PROTON),
+            selected_patches=[],
+        )
+
+    def with_game(self, game: str) -> "PatchConfiguration":
+        return PatchConfiguration(
+            game=game, version=CONST_VERSION_LATEST_KEY, is_proton=self.is_proton, selected_patches=[]
+        )
 
 
 @dataclass
