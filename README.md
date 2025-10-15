@@ -30,16 +30,28 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 
 | OS       | Format                                                                                                                            |
 |----------|-----------------------------------------------------------------------------------------------------------------------------------|
-| Windows  | [.zip](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-win.zip)   |
-| Linux    | [.tar.xz](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher.tar.xz) |
-| macOS    | .tar.xz                                                                                                                           |
+| Windows  | [.zip]()   |
+| Linux    | [.tar.xz]() |
+| macOS    |                                                                                                                            |
 
 * Uncompress the archive and inside the extracted folder you will see a build-run script file.
 
-* ### build-run on Windows
-  * To add.
+* ### Windows
 
-* ### build-run on Linux
+Requirements: [Python 3.13](https://www.python.org/downloads/release/python-3139/)
+
+  * Uncompress the zip file.
+
+  * #### Method 1 - Non-terminal
+    * Double-click `build-run.bat` to launch.
+    * It should spawn a terminal window, update the required dependencies and launch.
+
+  * #### Method 2 - Terminal
+    * Open `Terminal` or `Console` and `cd` into the directory where `build-run.bat` is.
+    * Run `&"build-run.bat` or `build-run.bat`, whichever works.
+    * It should update the required dependencies and launch.
+
+* ### Linux
   * Uncompress the archive.
 
   * #### Method 1 - Non-terminal
