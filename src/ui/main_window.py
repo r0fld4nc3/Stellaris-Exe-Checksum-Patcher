@@ -281,7 +281,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 )
                 get_patterns_config_remote()
 
-        self.game_to_patch = ""  # Can be None or "" or pre-set with a game name
+        precached_game = "Stellaris"  # Can be None or "" or pre-set with a game name
 
         self.multi_game_patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
 
@@ -289,7 +289,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Cache Configuration ---
         self.configuration = patcher_models.PatchConfiguration(
-            game=self.game_to_patch,
+            game=precached_game,
             version=patcher_models.CONST_VERSION_LATEST_KEY,
             is_proton=(OS.WINDOWS or (OS.LINUX and OS.LINUX_PROTON)),
         )
