@@ -459,6 +459,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 platform = patcher_models.Platform.WINDOWS
             else:
                 platform = patcher_models.Platform.LINUX_NATIVE
+        elif OS.WINDOWS:
+            platform = patcher_models.Platform.WINDOWS
+        elif OS.MACOS:
+            platform = patcher_models.Platform.MACOS
+
+        SETTINGS.set_last_selected_platform(self.configuration.game, platform.value)
 
         log.info(f"Patches to apply: {patches_to_apply}", silent=True)
 
@@ -477,7 +483,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                     all_patches_success = False
                 log.warning(f"Failed patch: {patch}")
 
-        SETTINGS.set_patches_applied_to_game(self.game_to_patch, applied)
+        SETTINGS.set_patches_applied_to_game(self.configuration.game, applied)
 
         if all_patches_success:
             log.info("Finished. Close the patcher and go play!")
@@ -595,7 +601,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Trying out setting platform specific logic and binding it
         # to variables to call, to reduce code duplication
 
-        # TODO: In future, ensure we get the `self.game_to_patch` from settings
+        # TODO: In future, ensure we get the `self.game_to_patch` from somewhere else
 
         if OS.LINUX_PROTON:
             get_path = SETTINGS.get_proton_install_path

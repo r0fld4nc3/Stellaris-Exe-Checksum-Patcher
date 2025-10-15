@@ -32,8 +32,15 @@ class Settings:
         PATCHED_HASH = "patched-exe-hash"
         EXE_NAME = "exe-name"
         EXE_PROTON_NAME = "exe-proton-name"
+        LAST_PATCHED_PLATFORM = "last-patched-platform"
 
-        _DICT_DEFAULT_GAME_SETTINGS = {INSTALL_PATH: "", PROTON_INSTALL_PATH: "", SAVE_GAMES_PATH: "", PATCHES: []}
+        _DICT_DEFAULT_GAME_SETTINGS = {
+            LAST_PATCHED_PLATFORM: "",
+            INSTALL_PATH: "",
+            PROTON_INSTALL_PATH: "",
+            SAVE_GAMES_PATH: "",
+            PATCHES: [],
+        }
 
     def __init__(self):
         self.patcher_settings: dict = {
@@ -223,6 +230,24 @@ class Settings:
     def get_force_use_local_patterns(self):
         # self.load_config()
         return self.patcher_settings.get(self.ENUM.FORCE_LOCAL_PATTERNS, False)
+
+    def set_last_selected_platform(self, game: str, platform: str):
+        game_config = self.patcher_settings[self.ENUM.GAMES].get(game, None)
+
+        if not game_config:
+            return
+
+        log.info(f"Saving '{game}' last used platform: {platform}", silent=True)
+        self.patcher_settings[self.ENUM.GAMES][game][self.ENUM.LAST_PATCHED_PLATFORM] = platform
+
+    def get_last_selected_platorm(self, game_config: str) -> str:
+        games: dict = self.patcher_settings.get(self.ENUM.GAMES)
+        game_config: dict = games.get(game_config, None)
+
+        if not game_config:
+            return ""
+
+        return game_config.get(self.ENUM.LAST_PATCHED_PLATFORM, "")
 
     def clean_save_file(self):
         """
