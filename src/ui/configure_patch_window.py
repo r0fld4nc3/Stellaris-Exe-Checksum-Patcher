@@ -145,6 +145,20 @@ class ConfigurePatchOptionsDialog(QDialog):
     def _populate_options(self):
         log.info(f"Populating Options", silent=True)
 
+        if not self.current_config:
+            games = self.patcher.get_available_games()
+
+            if games:
+                initial_game = games[0]  # Pick first
+            else:
+                # Something is wrong here
+                log.warning(f"No available games from patcher.")
+                return
+
+            self.current_config = patcher_models.PatchConfiguration(
+                game=initial_game, version=patcher_models.CONST_VERSION_LATEST_KEY, is_proton=OS.WINDOWS
+            )
+
         if OS.LINUX:
             intial_linux_versions = (
                 patcher_models.LINUX_VERSIONS_ENUM.PROTON

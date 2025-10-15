@@ -281,21 +281,23 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 )
                 get_patterns_config_remote()
 
-        self.patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
+        self.game_to_patch = ""  # Can be None or "" or pre-set with a game name
 
-        # TODO: Defaults, turn into dynamic?
-        self.game_to_patch = "Stellaris"
+        self.multi_game_patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
+
         self.selected_version = patcher_models.CONST_VERSION_LATEST_KEY
-        self.available_versions: List[str] = self.patcher.get_available_versions(self.game_to_patch)
 
-        # --- Cache available patches to display---
-        self.available_patches: dict = self.patcher.get_available_patches_for_game(
-            self.game_to_patch, version=self.selected_version
-        )
-
+        # --- Cache Configuration ---
         self.configuration = patcher_models.PatchConfiguration(
             game=self.game_to_patch, version=patcher_models.CONST_VERSION_LATEST_KEY, is_proton=OS.WINDOWS
+        )  # Can be None
+
+        # --- Cache available patches to display ---
+        self.available_patches: dict = self.multi_game_patcher.get_available_patches_for_game(
+            self.configuration.game, version=self.selected_version
         )
+
+        self.available_versions: List[str] = self.multi_game_patcher.get_available_versions(self.configuration.game)
 
         self.load_settings()
 
@@ -428,13 +430,18 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         log.info(f"Proceeding to patch executable: {game_binary_path}")
 
+        # Configuration
+        if not self.configuration:
+            log.error(f"No configuration available.")
+            return False
+
         # Get patcher
-        patcher: pdx_patchers.GamePatcher = self.patcher.get_game_patcher(
+        patcher: pdx_patchers.GamePatcher = self.multi_game_patcher.get_game_patcher(
             self.configuration.game, self.configuration.version
         )
 
         if not patcher:
-            log.error(f"Failed to initialise patcher for {self.game_to_patch}")
+            log.error(f"Failed to initialise patcher for {self.configuration.game}")
             return False
 
         patches_to_apply = [patch_name for patch_name in self.configuration.selected_patches]
@@ -448,7 +455,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             )
             patches_to_apply = [
                 patch_name
-                for patch_name in self.patcher.get_available_patches_for_game(
+                for patch_name in self.multi_game_patcher.get_available_patches_for_game(
                     self.configuration.game, self.configuration.version
                 )
             ]
@@ -500,6 +507,23 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.active_threads.clear()
 
+        # Configuration
+        msgbox = QMessageBox(self)
+        if not self.configuration:
+            log.error(f"No configuration available.")
+            msgbox.setWindowTitle("No Configuration")
+            msgbox.setText("Please choose a configuration.")
+            msgbox.exec_()
+            self.enable_ui_elements()
+            return False
+        elif not self.configuration.game:
+            log.error(f"Configuration does not provide a game.")
+            msgbox.setWindowTitle("No Game Selected")
+            msgbox.setText("Please select a game to patch.")
+            msgbox.exec_()
+            self.enable_ui_elements()
+            return False
+
         # STEP: Attempt to find and establish paths
         self.path_finder_thread = Threader(target=self._find_game_path_worker_thread)
         self.path_finder_thread.signals.result.connect(self._path_found_or_failed)
@@ -512,7 +536,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         Returns the path if found, otherwise None.
         """
 
-        patcher = self.patcher.get_game_patcher(self.game_to_patch)
+        patcher = self.multi_game_patcher.get_game_patcher(self.configuration.game)
         if not patcher:
             return None
 
@@ -527,7 +551,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         log.info(f"{exe_info=}", silent=True)
 
         # Check for saved path in settings first
-        saved_install_path_str: str = SETTINGS.get_install_path(self.game_to_patch)
+        saved_install_path_str: str = SETTINGS.get_install_path(self.configuration.game)
         if saved_install_path_str:
             game_install_dir = Path(saved_install_path_str)
             if game_install_dir.exists() and game_install_dir.is_file():
@@ -573,7 +597,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 return
 
         if game_binary_path:
-            SETTINGS.set_install_path(self.game_to_patch, game_binary_path)
+            SETTINGS.set_install_path(self.configuration.game, game_binary_path)
             self._run_patcher_worker_thread(game_binary_path)
 
     def _run_patcher_worker_thread(self, game_binary_path: Path):
@@ -601,8 +625,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Trying out setting platform specific logic and binding it
         # to variables to call, to reduce code duplication
 
-        # TODO: In future, ensure we get the `self.game_to_patch` from somewhere else
-
         if OS.LINUX_PROTON:
             get_path = SETTINGS.get_proton_install_path
             set_path = SETTINGS.set_proton_install_path
@@ -613,7 +635,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         executable_path = None
 
         # Attempt to find a valid executable from settings
-        saved_path_str: str = get_path(self.game_to_patch)
+        saved_path_str: str = get_path(self.configuration.game)
         if saved_path_str:
             log.debug(f"Saved path str: {saved_path_str}")
             # Path can be file or folder (due to older versions of the app)
@@ -631,7 +653,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 log.debug(f"{found_exe=}")
                 executable_path = Path(found_exe)
                 # Save the path
-                set_path(self.game_to_patch, str(executable_path))
+                set_path(self.configuration.game, str(executable_path))
 
         # If valid exe was found
         log.debug(f"{executable_path=}")
@@ -640,8 +662,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.info(f"Derived Game Folder: {game_folder}", silent=True)
 
             # Save if mismatch
-            if Path(get_path(self.game_to_patch)) != executable_path:
-                set_path(self.game_to_patch, str(executable_path))
+            if Path(get_path(self.configuration.game)) != executable_path:
+                set_path(self.configuration.game, str(executable_path))
 
             try:
                 if OS.WINDOWS:
@@ -708,7 +730,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         save_games_dir = Path(save_file_path).parent.parent
         log.info(f"Save games directory: {os.path.normpath(save_games_dir)}")
-        SETTINGS.set_save_games_dir(self.game_to_patch, save_games_dir)
+        SETTINGS.set_save_games_dir(self.configuration.game, save_games_dir)
 
         thread_repair_save = Threader(target=lambda save_file=save_file_path: repair_save(save_file))
         thread_id = thread_repair_save.currentThread()
@@ -724,7 +746,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         log.info("Opening patch configuration window", silent=True)
 
         dialog = ConfigurePatchOptionsDialog(
-            patcher=self.patcher,
+            patcher=self.multi_game_patcher,
             current_config=self.configuration,
             font=QFont(self.app_font, 10),
             window_icon=self.windowIcon(),
