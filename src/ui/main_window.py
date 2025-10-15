@@ -435,6 +435,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         Attemps to perform all necessary steps to patch the given game binary.
         """
 
+        self.is_patching = True
+
         log.info(f"Proceeding to patch executable: {game_binary_path}")
 
         # Configuration
@@ -514,7 +516,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             return
 
         self.terminal_display.clear()
-        self.is_patching = True
         self.disable_ui_elements()
 
         self.active_threads.clear()
