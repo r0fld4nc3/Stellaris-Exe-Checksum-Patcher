@@ -6,7 +6,7 @@
 
 # ❗ Note ❗
 
-Please see [the updated guide and README on the 2.0 branch!](github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/tree/road-to-2.0.0)
+Please see [the updated guide and README on the 2.0 branch!](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/tree/road-to-2.0.0)
 
 ## 📣 Summary
 
