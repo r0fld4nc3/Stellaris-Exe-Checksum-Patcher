@@ -4,11 +4,9 @@
 [![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher-linux?style=for-the-badge&logo=linux&label=Linux)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher-linux)
 [![Release Version Badge](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
 
-> [!IMPORTANT] Please see [the updated guide and README on the 2.0 branch!](github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/tree/road-to-2.0.0)
-
 # ❗ Note ❗
 
-The cause of the issue where after an update achievements were no longer being triggered has been identified. The issue is not that anything has changed from Paradox's side or that the Patcher needed adjusting to any potential new changes. The issue is with game updates and save games where sometimes saves can lose their trait of being elligible for achievements across patches. I will be working on a "Fix Save Game" patch option as well to include in the Patcher in the future, to fix this issue.
+Please see [the updated guide and README on the 2.0 branch!](github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/tree/road-to-2.0.0)
 
 ## 📣 Summary
 
