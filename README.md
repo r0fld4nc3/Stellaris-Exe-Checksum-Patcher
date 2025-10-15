@@ -19,8 +19,8 @@ An easy and painless way to patch the game's executable to enable Achievements b
 
 | Platform                                                                                                                         | Version              |
 |----------------------------------------------------------------------------------------------------------------------------------|----------------------|
-| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher.exe)   | v2.0.0 (pre-release) |
-| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-linux)   | v2.0.0 (pre-release) |
+| [Windows]()   | v2.0.0 (pre-release) |
+| [Linux]()   | v2.0.0 (pre-release) |
 | macOS                                                                                                                            | Currently none       |
 
 Please refer to the below **Build & Run From Source** section if you don't wish to run the binary file.
@@ -30,8 +30,8 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 
 | OS       | Format                                                                                                                            |
 |----------|-----------------------------------------------------------------------------------------------------------------------------------|
-| Windows  | [.zip]()   |
-| Linux    | [.tar.xz]() |
+| Windows  | [.zip](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher_road-to-2.0.0_01.zip)   |
+| Linux    | [.tar.xz](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher_road-to-2.0.0_01.tar.xz) |
 | macOS    |                                                                                                                            |
 
 * Uncompress the archive and inside the extracted folder you will see a build-run script file.
