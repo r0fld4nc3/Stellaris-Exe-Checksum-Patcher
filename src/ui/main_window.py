@@ -31,7 +31,7 @@ from typing import List, Optional, Union
 from patchers import models as patcher_models
 
 from .configure_patch_window import ConfigurePatchOptionsDialog
-from .resources import AppFont, AppIcon, AppStyle, ResourceManager
+from .resources import AppFont, AppIcon, AppStyle, IconAchievementState, ResourceManager
 
 from conf_globals import (  # isort: skip
     APP_VERSION,
@@ -329,7 +329,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.window_icon_win = self.resources.get_icon(AppIcon.WINDOW_WIN)
         self.window_icon_unix = self.resources.get_icon(AppIcon.WINDOW_UNIX)
 
-        self.patch_icon = self.resources.get_icon(AppIcon.PATCH_ICON)
+        self.random_achievement = self.resources.get_random_icon_achievement()
+        self.patch_icon = self.random_achievement.get(IconAchievementState.LOCKED.value)
         self.save_patch_icon = self.resources.get_icon(AppIcon.SAVE_PATCH_ICON)
         self.configure_icon = self.resources.get_icon(AppIcon.CONFIGURE_ICON)
 
@@ -510,6 +511,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         SETTINGS.set_patches_applied_to_game(self.configuration.game, applied)
 
         if all_patches_success:
+            self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.UNLOCKED.value))
             log.info("Finished. Close the patcher and go play!")
 
         return all_patches_success

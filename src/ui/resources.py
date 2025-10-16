@@ -1,3 +1,4 @@
+import random
 from enum import Enum
 from pathlib import Path
 
@@ -15,6 +16,13 @@ BASE_PATH = Path(__file__).parent
 ICONS_PATH = BASE_PATH / "icons"
 FONTS_PATH = BASE_PATH / "fonts"
 STYLES_PATH = BASE_PATH / "styles"
+ACHIEVEMENTS_LOCKED_PATH = ICONS_PATH / "achievements" / "locked"
+ACHIEVEMENTS_UNLOCKED_PATH = ICONS_PATH / "achievements" / "unlocked"
+
+
+class IconAchievementState(Enum):
+    LOCKED = "locked"
+    UNLOCKED = "unlocked"
 
 
 class AppIcon(Enum):
@@ -36,7 +44,10 @@ class AppStyle(Enum):
 class ResourceManager:
     def __init__(self):
         self._icon_cache = {}
+        self._icon_achievement_cache = {}
         self._font_cache = {}
+
+        self.cache_startup()
 
     def get_icon(self, icon: AppIcon) -> QIcon:
         if icon in self._icon_cache:
@@ -50,6 +61,29 @@ class ResourceManager:
         q_icon = QIcon(str(file_path))
         self._icon_cache[icon] = q_icon
         return q_icon
+
+    def cache_startup(self):
+        for icon_path in ACHIEVEMENTS_LOCKED_PATH.iterdir():
+            icon_name_locked = icon_path.name
+            icon_name_unlocked = icon_name_locked.replace("_locked", "")
+            icon_path_unlocked = ACHIEVEMENTS_UNLOCKED_PATH / icon_name_unlocked
+
+            q_icon_locked = QIcon((str(icon_path)))
+            q_icon_unlocked = QIcon(str(icon_path_unlocked))
+
+            self._icon_achievement_cache.setdefault(
+                icon_name_unlocked,
+                {
+                    IconAchievementState.LOCKED.value: q_icon_locked,
+                    IconAchievementState.UNLOCKED.value: q_icon_unlocked,
+                },
+            )
+
+    def get_random_icon_achievement(self) -> dict[IconAchievementState, QIcon]:
+        """Get an achievement icon cache entry that supports picked from `locked` and `unlocked` keys"""
+        achievment_name = random.choice(tuple(self._icon_achievement_cache.keys()))
+
+        return self._icon_achievement_cache.get(achievment_name)
 
     def load_font(self, font: AppFont) -> str:
         if font in self._font_cache:
