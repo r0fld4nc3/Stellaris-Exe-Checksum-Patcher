@@ -81,14 +81,14 @@ class ConfigurePatchOptionsDialog(QDialog):
         content_layout.addLayout(selection_layout)
 
         # --- Linux Version Dropdown ---
-        self.linux_version_picker = QComboBox()
+        self.use_proton_picker = QComboBox()
         if OS.LINUX:
-            self.linux_version_picker.addItems(
+            self.use_proton_picker.addItems(
                 [patcher_models.LINUX_VERSIONS_ENUM.NATIVE, patcher_models.LINUX_VERSIONS_ENUM.PROTON]
             )
-            self.linux_version_picker.setFont(self.font)
-            selection_layout.addWidget(self.linux_version_picker)
-            self.linux_version_picker.currentTextChanged.connect(self._on_binary_type_changed)
+            self.use_proton_picker.setFont(self.font)
+            selection_layout.addWidget(self.use_proton_picker)
+            self.use_proton_picker.currentTextChanged.connect(self._on_binary_type_changed)
 
         # --- Patches Area (Scrollable) ---
         self.patches_scroll_area = QScrollArea()
@@ -159,8 +159,8 @@ class ConfigurePatchOptionsDialog(QDialog):
 
     def _should_use_proton(self) -> bool:
         """Determine if Proton should be used for Linux"""
-        if OS.LINUX and hasattr(self, "linux_version_picker"):
-            return self.linux_version_picker.currentText().lower() == patcher_models.LINUX_VERSIONS_ENUM.PROTON.lower()
+        if OS.LINUX and hasattr(self, "use_proton_picker"):
+            return self.use_proton_picker.currentText().lower() == patcher_models.LINUX_VERSIONS_ENUM.PROTON.lower()
         return False
 
     def _get_current_platform(self) -> patcher_models.Platform:
@@ -218,7 +218,7 @@ class ConfigurePatchOptionsDialog(QDialog):
                 if self.current_config.is_proton
                 else patcher_models.LINUX_VERSIONS_ENUM.NATIVE
             )
-            self.linux_version_picker.setCurrentText(linux_version)
+            self.use_proton_picker.setCurrentText(linux_version)
 
         self._on_game_changed(self.current_config.game)
 
@@ -236,6 +236,14 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         if target_version:
             self.version_combobox.setCurrentText(self.current_config.version.capitalize())
+
+        last_platform = SETTINGS.get_last_selected_platorm(self.current_config.game)
+        if last_platform:
+            if OS.LINUX or OS.MACOS:
+                use_proton = last_platform.lower() == patcher_models.Platform.WINDOWS.value
+
+                if use_proton and hasattr(self, "use_proton_picker"):
+                    self.use_proton_picker.setCurrentText(patcher_models.LINUX_VERSIONS_ENUM.PROTON)
 
         self.version_combobox.blockSignals(False)
         self._on_version_changed(self.version_combobox.currentText())
