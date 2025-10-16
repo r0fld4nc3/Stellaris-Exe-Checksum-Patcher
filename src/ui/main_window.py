@@ -145,7 +145,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.main_frame.setLineWidth(5)
         self.main_frame.setMidLineWidth(0)
 
-        self.lbl_title = QLabel(self.window_title)
+        self.lbl_title = QLabel("Checksum Patcher")
         self.lbl_title.setObjectName("TitleLabel")
         self.lbl_title.setSizePolicy(size_policy_app_version_label)
 
@@ -321,34 +321,33 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
     def load_app_styles(self):
         """Loads Styles, Icons and Fonts"""
-        # --- Styles---
-        stylesheet_content = self.resources.get_stylesheet(AppStyle.STELLARIS)
-        self.setStyleSheet(stylesheet_content)
-
         # --- Icons ---
         self.window_icon_win = self.resources.get_icon(AppIcon.WINDOW_WIN)
         self.window_icon_unix = self.resources.get_icon(AppIcon.WINDOW_UNIX)
 
-        self.random_achievement = self.resources.get_random_icon_achievement()
-        self.patch_icon = self.random_achievement.get(IconAchievementState.LOCKED.value)
         self.save_patch_icon = self.resources.get_icon(AppIcon.SAVE_PATCH_ICON)
         self.configure_icon = self.resources.get_icon(AppIcon.CONFIGURE_ICON)
 
         # --- Fonts ---
         self.app_font = self.resources.load_font(AppFont.ORBITRON_BOLD)
 
+    def apply_app_style(self):
         # --- Set App Constraints ---
-        self.window_title = "Stellaris Checksum Patcher"
+        self.window_title = f"{self.configuration.game.title()} Checksum Patcher"
         self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
 
-    def apply_app_style(self):
         self.setWindowTitle(self.window_title_with_app_version)
         if OS.WINDOWS:
             self.setWindowIcon(self.window_icon_win)
         else:
             self.setWindowIcon(self.window_icon_unix)
 
+        # --- Styles---
+        stylesheet_content = self.resources.get_stylesheet(self.configuration.game)
+        self.setStyleSheet(stylesheet_content)
+
         # --- Label Title ---
+        self.lbl_title.setText(self.window_title)
         self.lbl_title.setFont(QFont(self.app_font, 24))
         self.lbl_title.setMinimumSize(QSize(24, 36))
         self.lbl_title.setMaximumSize(QSize(16777215, 36))
@@ -358,6 +357,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_fix_save_file.setIcon(self.save_patch_icon)
         self.btn_fix_save_file.setIconSize(QSize(64, 64))
         self.btn_fix_save_file.setFont(QFont(self.app_font, 12))
+
+        # --- Patch Icon ---
+        self.random_achievement = self.resources.get_random_achievement_icon(self.configuration.game)
+        self.patch_icon = self.random_achievement.get(IconAchievementState.LOCKED)
 
         # --- Patch Button ---
         self.btn_patch_executable.setIcon(self.patch_icon)
@@ -511,7 +514,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         SETTINGS.set_patches_applied_to_game(self.configuration.game, applied)
 
         if all_patches_success:
-            self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.UNLOCKED.value))
+            self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.UNLOCKED))
             log.info("Finished. Close the patcher and go play!")
 
         return all_patches_success
