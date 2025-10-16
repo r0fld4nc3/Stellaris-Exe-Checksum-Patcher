@@ -127,7 +127,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Layout After Terminal ---
         self.hlayout_after_terminal_display = QHBoxLayout()
 
-        # --- Patch Buttons Laytout ---
+        # --- Patch Buttons Layout ---
         self.hlayout_patch_buttons = QHBoxLayout()
         # self.hlayout_patch_buttons.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignHCenter)
 
@@ -195,7 +195,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_fix_save_file.setDisabled(True)  # TODO: Delete line when it is time
 
         # --- Patch Button---
-        self.btn_patch_executable = QPushButton("Patch Executable")
+        self.btn_patch_executable = QPushButton()
         self.btn_patch_executable.clicked.connect(self.start_patch_game_executable_thread)
         self.btn_patch_executable.setFlat(False)
 
@@ -224,13 +224,16 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.hlayout_after_terminal_display.addWidget(self.txt_browser_project_link)
 
         # --- Patch Buttons Layout---
-        self.hlayout_patch_buttons.addWidget(self.btn_fix_save_file)
-        self.hlayout_patch_buttons.addWidget(self.btn_patch_executable)
-        self.hlayout_patch_buttons.addWidget(self.btn_configure_patch_options)
+        # TODO: Add button when functionality is ready
+        # Add with stretch. The second argument is the "stretch factor".
+        # The layout will be divided into 1 + 3 = 4 parts or 25 + 75 = 100 parts
+        self.hlayout_patch_buttons.addWidget(self.btn_fix_save_file, 30)
+        self.hlayout_patch_buttons.addWidget(self.btn_patch_executable, 70)
 
         # --- Misc Layout---
         self.hlayout_misc_functions.addWidget(self.btn_show_app_config_dir)
         self.hlayout_misc_functions.addWidget(self.btn_show_game_folder)
+        self.hlayout_misc_functions.addWidget(self.btn_configure_patch_options)
 
         # --- Main Layout---
         self.setCentralWidget(self.main_frame)
@@ -363,9 +366,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.patch_icon = self.random_achievement.get(IconAchievementState.LOCKED)
 
         # --- Patch Button ---
+        # self.btn_patch_executable.setText("Patch Executable")
         self.btn_patch_executable.setIcon(self.patch_icon)
         self.btn_patch_executable.setIconSize(QSize(64, 64))
         self.btn_patch_executable.setFont(QFont(self.app_font, 14))
+        # self.btn_patch_executable.setMaximumSize(QSize(80, 80))
 
         # --- Configure Button ---
         self.btn_configure_patch_options.setIcon(self.configure_icon)
