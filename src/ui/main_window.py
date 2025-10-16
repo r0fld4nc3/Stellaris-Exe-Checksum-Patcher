@@ -19,7 +19,8 @@ from PySide6.QtWidgets import (  # isort: skip
     QMessageBox,
     QMainWindow,
 )
-from PySide6.QtCore import Qt, QUrl  # isort: skip
+from PySide6.QtCore import Qt, QUrl, QSize, QThreadPool, Slot  # isort: skip
+from PySide6.QtGui import QFont  # isort: skip
 
 from patchers import (  # isort: skip
     pdx_patchers,
@@ -31,10 +32,6 @@ from patchers import models as patcher_models
 
 from .configure_patch_window import ConfigurePatchOptionsDialog
 from .resources import AppFont, AppIcon, AppStyle, ResourceManager
-
-from PySide6.QtCore import Qt, QSize, QThreadPool, Slot  # isort: skip
-from PySide6.QtGui import QIcon, QFont, QFontDatabase  # isort: skip
-
 
 from conf_globals import (  # isort: skip
     APP_VERSION,
@@ -465,6 +462,18 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         patches_to_apply = [patch_name for patch_name in self.configuration.selected_patches]
 
+        # --- Determine platform ---
+        platform = None
+        if OS.LINUX:
+            if self.configuration.is_proton:
+                platform = patcher_models.Platform.WINDOWS
+            else:
+                platform = patcher_models.Platform.LINUX_NATIVE
+        elif OS.WINDOWS:
+            platform = patcher_models.Platform.WINDOWS
+        elif OS.MACOS:
+            platform = patcher_models.Platform.MACOS
+
         if not patches_to_apply:
             log.warning(
                 f"Aborting Patch process. No patches selected for configuration: {self.configuration}", silent=True
@@ -478,17 +487,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                     self.configuration.game, self.configuration.version, platform=platform
                 )
             ]
-
-        platform = None
-        if OS.LINUX:
-            if self.configuration.is_proton:
-                platform = patcher_models.Platform.WINDOWS
-            else:
-                platform = patcher_models.Platform.LINUX_NATIVE
-        elif OS.WINDOWS:
-            platform = patcher_models.Platform.WINDOWS
-        elif OS.MACOS:
-            platform = patcher_models.Platform.MACOS
 
         SETTINGS.set_last_selected_platform(self.configuration.game, platform.value)
 
