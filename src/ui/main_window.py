@@ -317,6 +317,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         SETTINGS.set_app_version(f"{self._APP_VERSION}")
         updater.set_local_version(str(self._APP_VERSION))
 
+        _last_platform = SETTINGS.get_last_selected_platorm(self.configuration.game)
+        if _last_platform:
+            if OS.LINUX or OS.MACOS:
+                self.configuration.is_proton = _last_platform.lower() == patcher_models.Platform.WINDOWS.value
+
     def load_app_styles(self):
         """Loads Styles, Icons and Fonts"""
         # --- Styles---
