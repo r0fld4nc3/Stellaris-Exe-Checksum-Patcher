@@ -150,5 +150,29 @@
                 }
             }
         }
+    },
+    "CK3 [experimental]": {
+        "latest [experimental]": {
+            "windows": {
+                "description": "Settings for native Windows and Linux Proton.",
+                "exe_filename": "ck3.exe",
+                "path_postfix": "",
+                "patches": {}
+            },
+            "linux": {
+                "description": "Settings for native Linux builds.",
+                "exe_filename": "ck3",
+                "path_postfix": "",
+                "patches": {
+                    "checksum_patch [experimental]": {
+                        "display_name": "Checksum [experimental]",
+                        "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
+                        "hex_find": "8A80F1000000",
+                        "hex_replace": "B001C3909090",
+                        "patch_pattern": "50E87A855E.{0,8}%s"
+                    }
+                }
+            }
+        }
     }
 }

@@ -18,7 +18,7 @@ from logger import create_logger  # isort: skip
 log = create_logger("Patterns", LOG_LEVEL)  # isort: skip
 
 PATTERNS_FILE_NAME = "patterns.json"
-PATTERNS_FILE_BRANCH = "road-to-2.0.0"
+PATTERNS_FILE_BRANCH = "test-ck3-patterns"
 PATTERNS_URL = f"https://raw.githubusercontent.com/{updater.repo}/refs/heads/{PATTERNS_FILE_BRANCH}/src/patch_patterns/{PATTERNS_FILE_NAME}"  # TODO: Change this to main repo
 PATTERNS_LOCAL = SETTINGS.get_config_dir() / PATTERNS_FILE_NAME
 
