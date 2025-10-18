@@ -164,6 +164,13 @@
                 "exe_filename": "ck3",
                 "path_postfix": "",
                 "patches": {
+                    "can_get_achievements_patch [experimental]": {
+                        "display_name": "Can Get Achievements [Experimental]",
+                        "description": "Force return True when checking if can get achievements.",
+                        "hex_find": "E8AA98FEFF",
+                        "hex_replace": "B001C39090",
+                        "patch_pattern": "53.{0,15}%s"
+                    },
                     "checksum_patch [experimental]": {
                         "display_name": "Checksum [Experimental]",
                         "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
