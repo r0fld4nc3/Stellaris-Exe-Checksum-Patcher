@@ -167,9 +167,9 @@
                     "can_get_achievements_patch [experimental]": {
                         "display_name": "Can Get Achievements [Experimental]",
                         "description": "Force return True when checking if can get achievements.",
-                        "hex_find": "E8AA98FEFF",
-                        "hex_replace": "B001C39090",
-                        "patch_pattern": "53.{0,15}%s"
+                        "hex_find": "53E8AA98FEFF",
+                        "hex_replace": "B001C3909090",
+                        "patch_pattern": "1F4000.{0,32}%s"
                     },
                     "checksum_patch [experimental]": {
                         "display_name": "Checksum [Experimental]",
