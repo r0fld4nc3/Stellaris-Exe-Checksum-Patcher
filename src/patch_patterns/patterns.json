@@ -167,9 +167,9 @@
                     "checksum_patch [experimental]": {
                         "display_name": "Checksum [Experimental]",
                         "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
-                        "hex_find": "8A80F1000000",
-                        "hex_replace": "B001C3909090",
-                        "patch_pattern": "50E87A855E.{0,8}%s"
+                        "hex_find": "E87A855E038A80F1000000",
+                        "hex_replace": "B001855E03C380F1000000",
+                        "patch_pattern": "50.{0,5}%s"
                     },
                     "blocking_gamerules_patch [experimental]": {
                         "display_name": "Game Rules Patch [Experimental]",
