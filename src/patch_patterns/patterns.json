@@ -151,7 +151,7 @@
             }
         }
     },
-    "CK3 [experimental]": {
+    "Crusader Kings III": {
         "latest [experimental]": {
             "windows": {
                 "description": "Settings for native Windows and Linux Proton.",
@@ -165,11 +165,18 @@
                 "path_postfix": "",
                 "patches": {
                     "checksum_patch [experimental]": {
-                        "display_name": "Checksum [experimental]",
+                        "display_name": "Checksum [Experimental]",
                         "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
                         "hex_find": "8A80F1000000",
                         "hex_replace": "B001C3909090",
                         "patch_pattern": "50E87A855E.{0,8}%s"
+                    },
+                    "blocking_gamerules_patch [experimental]": {
+                        "display_name": "Game Rules Patch [Experimental]",
+                        "description": "Patch the game rules test such that there are no rules blocking achievements.",
+                        "hex_find": "0F95C0",
+                        "hex_replace": "40B000",
+                        "patch_pattern": "4883B82808.{0,8}%s"
                     }
                 }
             }
