@@ -281,7 +281,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 )
                 get_patterns_config_remote()
 
-        precached_game = "Stellaris"  # Can be None or "" or pre-set with a game name
+        precached_game = SETTINGS.get_last_selected_game()  # Can be None or "" or pre-set with a game name
+        if not precached_game:
+            precached_game = "Stellaris"
 
         self.multi_game_patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
 
@@ -785,6 +787,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.info(f"Configuration updated: {self.configuration}", silent=True)
             selected_patches_str = ", ".join(self.configuration.selected_patches)
             log.info(f"Selected patches: {selected_patches_str}")
+            SETTINGS.set_last_selected_game(self.configuration.game)
         else:
             log.info("Configuration unchanged.", silent=True)
 

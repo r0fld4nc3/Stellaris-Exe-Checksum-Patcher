@@ -147,7 +147,12 @@ class ResourceManager:
         game_achievements = self._icon_achievement_cache.get(target_game, {})
         if not game_achievements:
             log.warning(f"No achievement icons available for {target_game}.", silent=True)
-            return {IconAchievementState.LOCKED: QIcon(), IconAchievementState.UNLOCKED: QIcon()}
+
+            # Fallback
+            game_achievements = self._icon_achievement_cache.get(AppStyle.STELLARIS.value, {})
+
+            if not game_achievements:
+                return {IconAchievementState.LOCKED: QIcon(), IconAchievementState.UNLOCKED: QIcon()}
 
         achievement_name = random.choice(list(game_achievements.keys()))
         return game_achievements[achievement_name]
@@ -194,7 +199,11 @@ class ResourceManager:
         file_path = STYLES_PATH / f"{target_game}.qss"
         if not file_path.exists():
             log.warning(f"Stylesheet not found: {file_path}", silent=True)
-            return ""
+
+            # Fallback
+            file_path = STYLES_PATH / f"{AppStyle.STELLARIS.value}.qss"
+            if not file_path.exists():
+                return ""
 
         with open(file_path, "r", encoding="UTF-8") as f:
             stylesheet = f.read()

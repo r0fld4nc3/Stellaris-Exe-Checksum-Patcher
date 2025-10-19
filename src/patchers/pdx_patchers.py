@@ -460,13 +460,15 @@ class MultiGamePatcher:
         self.logger.info(f"Available games: {self.games}", silent=True)
         return self.games
 
-    def get_available_versions(self, game_name: str) -> List[str]:
+    def get_available_versions(self, game_name: str, version: str = CONST_VERSION_LATEST_KEY) -> List[str]:
         """Get available versions for a specific game"""
         game_config: dict = self.patterns_config.get(game_name)
 
         if game_config:
-            self.logger.info(f"Available versions for '{game_name}': {json.dumps(game_config, indent=2)}", silent=True)
-            return list(game_config.keys())
+            versions = list(game_config.keys())
+            if versions:
+                self.logger.info(f"Available versions for '{game_name}': {versions}", silent=True)
+                return versions
         return []
 
     def get_game_patcher(self, game_name: str, version: str = CONST_VERSION_LATEST_KEY) -> Optional[GamePatcher]:
@@ -478,6 +480,15 @@ class MultiGamePatcher:
 
         game_config: dict = self.patterns_config.get(game_name, {})
         version_config = game_config.get(version)
+
+        # Let's fallback to first version we see
+        if not version_config:
+            self.logger.error(f"Version '{version}' not found for game '{game_name}'. Using fallback.")
+            versions = self.get_available_versions(game_name, version)
+            if versions:
+                log.info(f"Got available versions for '{game_name}': {versions}")
+                version = versions[0]  # Override
+                version_config = game_config.get(versions[0])
 
         if not version_config:
             self.logger.error(f"Version '{version}' not found for game '{game_name}'.")
@@ -498,55 +509,3 @@ class MultiGamePatcher:
         if patcher:
             return patcher.get_available_patches(platform)
         return {}
-
-
-def update_patcher_globals2():
-    """
-    Update Patcher Globals to patch modifier checksum warning
-    """
-    log.info("Updating Patcher Globals for 2nd patch...", silent=True)
-    global EXE_DEFAULT_FILENAME, HEX_FIND, HEX_REPLACE, PATCH_PATTERN, BIN_PATH_POSTPEND
-
-    if OS.WINDOWS:
-        log.info("Setting globals to Windows", silent=True)
-        # Windows and Proton Linux
-        EXE_DEFAULT_FILENAME = "stellaris.exe"  # Game executable name plus extension
-        HEX_FIND = "85C0"
-        HEX_REPLACE = "31C0"
-        PATCH_PATTERN = re.compile(r"3401E8C9971501%s" % HEX_FIND, re.IGNORECASE)
-    elif OS.LINUX:
-        if not OS.LINUX_PROTON:
-            log.info("Setting globals to Linux Native", silent=True)
-            # Native Linux
-            EXE_DEFAULT_FILENAME = "stellaris"
-            HEX_FIND = "85C0"
-            HEX_REPLACE = "31C0"
-            PATCH_PATTERN = re.compile(r"8B30BF13219D03E86400DAFE%s" % HEX_FIND, re.IGNORECASE)
-        else:
-            log.info("Setting globals to Linux Proton", silent=True)
-            # Linux Proton (Windows equivalent?)
-            EXE_DEFAULT_FILENAME = "stellaris.exe"
-            HEX_FIND = "85C0"
-            HEX_REPLACE = "31C0"
-            PATCH_PATTERN = re.compile(r"3401E8C9971501%s" % HEX_FIND, re.IGNORECASE)
-    elif OS.MACOS:
-        log.info("Setting globals to Linux macOS", silent=True)
-        # The actual executable is inside the .app -> /.../stellaris.app/Contents/MacOS/stellaris
-        # TODO: Add Mac Patch2
-        EXE_DEFAULT_FILENAME = "stellaris.app"
-        BIN_PATH_POSTPEND = "Contents/MacOS/stellaris"
-        HEX_FIND = "85DB"
-        HEX_REPLACE = "31DB"
-        PATCH_PATTERN = re.compile(r"89C3E851.{8,10}%s" % HEX_FIND, re.IGNORECASE)
-    else:
-        log.warning("Setting globals to we shouldn't be here, but here we are...", silent=True)
-        EXE_DEFAULT_FILENAME = "stellaris.wtf"
-        HEX_FIND = "85C0"
-        HEX_REPLACE = "31C0"
-        PATCH_PATTERN = re.compile(r"3401E8C9971501%s" % HEX_FIND, re.IGNORECASE)
-
-    log.info(f"{EXE_DEFAULT_FILENAME=}", silent=True)
-    log.info(f"{BIN_PATH_POSTPEND=}", silent=True)
-    log.info(f"{HEX_FIND=}", silent=True)
-    log.info(f"{HEX_REPLACE=}", silent=True)
-    log.info(f"{PATCH_PATTERN=}", silent=True)

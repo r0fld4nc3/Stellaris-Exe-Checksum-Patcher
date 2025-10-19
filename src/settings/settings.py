@@ -33,6 +33,7 @@ class Settings:
         EXE_NAME = "exe-name"
         EXE_PROTON_NAME = "exe-proton-name"
         LAST_PATCHED_PLATFORM = "last-patched-platform"
+        LAST_SELECTED_GAME = "last-selected-game"
 
         _DICT_DEFAULT_GAME_SETTINGS = {
             LAST_PATCHED_PLATFORM: "",
@@ -50,6 +51,7 @@ class Settings:
             self.ENUM.UPDATE_AVAILABLE: False,
             self.ENUM.WINDOW_WIDTH: 0,
             self.ENUM.WINDOW_HEIGHT: 0,
+            self.ENUM.LAST_SELECTED_GAME: "",
             self.ENUM.GAMES: {},
             self.ENUM.STEAM_INSTALL_PATH: "",
         }
@@ -248,6 +250,15 @@ class Settings:
             return ""
 
         return game_config.get(self.ENUM.LAST_PATCHED_PLATFORM, "")
+
+    def set_last_selected_game(self, game_name: str):
+        self.patcher_settings[self.ENUM.LAST_SELECTED_GAME] = game_name
+        log.info(f"Saving last selected game: {game_name}")
+        self.save_config()
+
+    def get_last_selected_game(self) -> str:
+        """Return name of last selected game"""
+        return self.patcher_settings.get(self.ENUM.LAST_SELECTED_GAME, "")
 
     def clean_save_file(self):
         """
