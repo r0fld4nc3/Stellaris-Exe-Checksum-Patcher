@@ -237,13 +237,16 @@ class ConfigurePatchOptionsDialog(QDialog):
         if target_version:
             self.version_combobox.setCurrentText(self.current_config.version.capitalize())
 
-        last_platform = SETTINGS.get_last_selected_platorm(self.current_config.game)
+        last_platform = SETTINGS.get_last_selected_platorm(game_name)
         if last_platform:
             if OS.LINUX or OS.MACOS:
                 use_proton = last_platform.lower() == patcher_models.Platform.WINDOWS.value
+                log.info(f"{use_proton=}")
 
                 if use_proton and hasattr(self, "use_proton_picker"):
                     self.use_proton_picker.setCurrentText(patcher_models.LINUX_VERSIONS_ENUM.PROTON)
+                elif not use_proton and hasattr(self, "use_proton_picker"):
+                    self.use_proton_picker.setCurrentText(patcher_models.LINUX_VERSIONS_ENUM.NATIVE)
 
         self.version_combobox.blockSignals(False)
         self._on_version_changed(self.version_combobox.currentText())

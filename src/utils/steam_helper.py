@@ -34,7 +34,9 @@ VDF_PATH_KEY = "path"
 LINUX_DISTRO_PATHS = [
     # Standard location
     Path.home() / ".steam" / "steam",
+    Path.home() / ".steam" / "steam" / "steamapps",
     Path.home() / ".local" / "share" / "Steam",
+    Path.home() / ".local" / "share" / "Steam" / "config",
     # Flatpak
     Path.home() / ".var" / "app" / "com.valvesoftware.Steam" / ".local" / "share" / "Steam",
 ]

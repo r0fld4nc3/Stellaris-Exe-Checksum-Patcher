@@ -562,7 +562,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         Returns the path if found, otherwise None.
         """
 
-        patcher = self.multi_game_patcher.get_game_patcher(self.configuration.game)
+        patcher = self.multi_game_patcher.get_game_patcher(self.configuration.game, self.configuration.version)
+
         if not patcher:
             return None
 
