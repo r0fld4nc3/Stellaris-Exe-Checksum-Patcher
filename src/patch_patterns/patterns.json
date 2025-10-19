@@ -171,6 +171,13 @@
                         "hex_replace": "B001C3909090",
                         "patch_pattern": "1F4000.{0,32}%s"
                     },
+                    "save_achievements_patch [experimental]": {
+                        "display_name": "Save Games [Experimental]",
+                        "description": "Force game to always set achievements to be earnable on save.",
+                        "hex_find": "8844240F",
+                        "hex_replace": "C644240F01",
+                        "patch_pattern": "E873FFFFFF.{0,12}%s"
+                    },
                     "checksum_patch [experimental]": {
                         "display_name": "Checksum [Experimental]",
                         "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
