@@ -174,9 +174,9 @@
                     "save_achievements_patch [experimental]": {
                         "display_name": "Save Games [Experimental]",
                         "description": "Force game to always set achievements to be earnable on save.",
-                        "hex_find": "8844240F",
-                        "hex_replace": "C644240F01",
-                        "patch_pattern": "E873FFFFFF.{0,12}%s"
+                        "hex_find": "4889DF",
+                        "hex_replace": "C60601",
+                        "patch_pattern": "488D74240F.{0,32}%s"
                     },
                     "checksum_patch [experimental]": {
                         "display_name": "Checksum [Experimental]",
