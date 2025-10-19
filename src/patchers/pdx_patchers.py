@@ -26,6 +26,7 @@ class GamePatcher:
         self.logger = logger
         self.config: dict = version_config
         self.platforms: dict = self._parse_platforms()
+        self.exe_info: GameExecutable = None
 
     def _parse_platforms(self) -> Dict[Platform, PlatformConfig]:
         """Parse platform configurations from config"""
@@ -99,7 +100,15 @@ class GamePatcher:
 
         platform_config = self.get_platform_config(platform)
         if platform_config:
-            return GameExecutable(filename=platform_config.exe_filename, path_postfix=platform_config.path_postfix)
+            game_executable = GameExecutable(
+                filename=platform_config.exe_filename, path_postfix=platform_config.path_postfix
+            )
+
+            self.exe_info = game_executable
+
+            return game_executable
+
+        self.exe_info = None
         return None
 
     def detect_platform(self) -> Platform:
@@ -143,8 +152,23 @@ class GamePatcher:
 
         log.debug(f"{game_install_path=}")
 
-        if game_install_path:
-            return game_install_path
+        if not game_install_path.exists():
+            return None
+
+        # Check the executable actually exists
+        speculative_exe_path = game_install_path / self.exe_info.filename
+
+        if speculative_exe_path.is_file() and speculative_exe_path.exists():
+            log.info(f"Auto-located path: {speculative_exe_path}")
+            return speculative_exe_path
+
+        # Doesn't exist, glob for it
+        for item in game_install_path.rglob("*"):
+            if item.name == self.exe_info.filename:
+                log.info(f"Auto-located path: {item}")
+                return item.resolve()
+
+        log.warning(f"Unable to auto-locate game binary. Automatic path detection failed.")
 
         return None
 

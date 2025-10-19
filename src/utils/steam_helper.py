@@ -95,7 +95,7 @@ class SteamHelper:
                 # Value to look for seems to always be in index 3
                 # title = line_name[3]
                 # app_id = line_app_id[3]
-                log.debug(f"{app_id}: {title}")
+                log.debug(f"{app_id}: {title}", silent=True)
                 if title == game_name:
                     log.debug(f"Found title match: {title} with App Id {app_id} in {file.name} in library {lib}")
                     game_path: Path = lib / STEAM_COMMON_FOLDER / title
@@ -225,6 +225,8 @@ class SteamHelper:
 
         if not install_details:
             return None
+
+        log.info(f"{install_details=}", silent=True)
 
         title_name = install_details.get("title")
         library = install_details.get("steam-library")

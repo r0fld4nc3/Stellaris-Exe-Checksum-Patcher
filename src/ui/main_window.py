@@ -145,7 +145,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.main_frame.setLineWidth(5)
         self.main_frame.setMidLineWidth(0)
 
-        self.lbl_title = QLabel("Checksum Patcher")
+        self.lbl_title = QLabel("Patcher")
         self.lbl_title.setObjectName("TitleLabel")
         self.lbl_title.setSizePolicy(size_policy_app_version_label)
 
@@ -155,7 +155,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Themed Exit Button ---
         self.btn_themed_exit_app = QPushButton("X")
         self.btn_themed_exit_app.setObjectName("ExitButton")
-        self.btn_themed_exit_app.setSizePolicy(size_policy_button)
+        # self.btn_themed_exit_app.setSizePolicy(size_policy_button)
         self.btn_themed_exit_app.clicked.connect(self.app_quit)
 
         # --- Terminal Display---
@@ -207,17 +207,18 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Show Game Folder Button---
         self.btn_show_game_folder = QPushButton("Show Game Folder")
         self.btn_show_game_folder.setFlat(False)
-        self.btn_show_game_folder.setSizePolicy(size_policy_button)
+        # self.btn_show_game_folder.setSizePolicy(size_policy_button)
         self.btn_show_game_folder.clicked.connect(self.show_game_folder)
 
         # --- Open Config Directory Button---
         self.btn_show_app_config_dir = QPushButton("Show Config Folder")
-        self.btn_show_app_config_dir.setSizePolicy(size_policy_button)
+        # self.btn_show_app_config_dir.setSizePolicy(size_policy_button)
         self.btn_show_app_config_dir.clicked.connect(self.show_app_config_folder)
 
         # ---Add Widgets to Layouts---
         # --- Window Functions---
-        self.hlayout_window_functions.addWidget(self.lbl_title, 0, Qt.AlignmentFlag.AlignLeft)
+        self.hlayout_window_functions.addWidget(self.lbl_title, 1, Qt.AlignmentFlag.AlignLeft)
+        self.hlayout_window_functions.addWidget(self.btn_configure_patch_options, 0, Qt.AlignmentFlag.AlignRight)
         self.hlayout_window_functions.addWidget(self.btn_themed_exit_app, 0, Qt.AlignmentFlag.AlignRight)
 
         # --- After Terminal Layout---
@@ -231,9 +232,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.hlayout_patch_buttons.addWidget(self.btn_patch_executable, 70)
 
         # --- Misc Layout---
-        self.hlayout_misc_functions.addWidget(self.btn_show_app_config_dir)
-        self.hlayout_misc_functions.addWidget(self.btn_show_game_folder)
-        self.hlayout_misc_functions.addWidget(self.btn_configure_patch_options)
+        self.hlayout_misc_functions.addWidget(self.btn_show_app_config_dir, 1)
+        self.hlayout_misc_functions.addWidget(self.btn_show_game_folder, 1)
 
         # --- Main Layout---
         self.setCentralWidget(self.main_frame)
@@ -334,11 +334,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.configure_icon = self.resources.get_icon(AppIcon.CONFIGURE_ICON)
 
         # --- Fonts ---
-        self.app_font = self.resources.load_font(AppFont.ORBITRON_BOLD)
+        self.app_font_bold = self.resources.load_font(AppFont.ORBITRON_BOLD)
 
     def apply_app_style(self):
         # --- Set App Constraints ---
-        self.window_title = f"{self.configuration.game.title()} Checksum Patcher"
+        self.window_title = f"{self.configuration.game} Patcher"
         self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
 
         self.setWindowTitle(self.window_title_with_app_version)
@@ -353,15 +353,20 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Label Title ---
         self.lbl_title.setText(self.window_title)
-        self.lbl_title.setFont(QFont(self.app_font, 24))
+        self.lbl_title.setFont(QFont(self.app_font_bold, 24))
         self.lbl_title.setMinimumSize(QSize(24, 36))
         self.lbl_title.setMaximumSize(QSize(16777215, 36))
         self.lbl_title.setContentsMargins(5, 2, 5, 2)
 
+        # --- Themed Exit Button ---
+        self.btn_themed_exit_app.setFont(self.app_font_bold)
+        self.btn_themed_exit_app.setFont(QFont(self.app_font_bold, 20))
+        self.btn_themed_exit_app.setFixedSize(QSize(48, 48))
+
         # --- Fix Save Button ---
         self.btn_fix_save_file.setIcon(self.save_patch_icon)
         self.btn_fix_save_file.setIconSize(QSize(64, 64))
-        self.btn_fix_save_file.setFont(QFont(self.app_font, 12))
+        self.btn_fix_save_file.setFont(QFont(self.app_font_bold, 12))
 
         # --- Patch Icon ---
         self.random_achievement = self.resources.get_random_achievement_icon(self.configuration.game)
@@ -371,28 +376,24 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # self.btn_patch_executable.setText("Patch Executable")
         self.btn_patch_executable.setIcon(self.patch_icon)
         self.btn_patch_executable.setIconSize(QSize(64, 64))
-        self.btn_patch_executable.setFont(QFont(self.app_font, 14))
+        self.btn_patch_executable.setFont(QFont(self.app_font_bold, 14))
         # self.btn_patch_executable.setMaximumSize(QSize(80, 80))
 
         # --- Configure Button ---
         self.btn_configure_patch_options.setIcon(self.configure_icon)
-        self.btn_configure_patch_options.setIconSize(QSize(64, 64))
-        self.btn_configure_patch_options.setFixedSize(QSize(64, 64))
+        self.btn_configure_patch_options.setIconSize(QSize(48, 48))
+        self.btn_configure_patch_options.setFixedSize(QSize(48, 48))
 
         # --- Show Game Folder Button ---
-        self.btn_show_game_folder.setFont(QFont(self.app_font, 14))
+        self.btn_show_game_folder.setFont(QFont(self.app_font_bold, 14))
         self.btn_show_game_folder.setMinimumSize(QSize(100, 48))
         self.btn_show_game_folder.setMaximumSize(QSize(16777215, 64))
 
         # --- Show App Config Dir Button ---
-        self.btn_show_app_config_dir.setFont(QFont(self.app_font, 14))
+        self.btn_show_app_config_dir.setFont(QFont(self.app_font_bold, 14))
         self.btn_show_app_config_dir.setFlat(False)
         self.btn_show_app_config_dir.setMinimumSize(QSize(100, 48))
         self.btn_show_app_config_dir.setMaximumSize(QSize(16777215, 64))
-
-        # --- Themed Button Exit ---
-        self.btn_themed_exit_app.setFont(self.app_font)
-        self.btn_themed_exit_app.setMinimumSize(QSize(32, 32))
 
     @Slot(str)
     def terminal_display_log(self, t_log):
@@ -415,7 +416,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_show_app_config_dir.setDisabled(False)
         self.btn_configure_patch_options.setDisabled(False)
         self.btn_show_game_folder.setDisabled(False)
-        self.set_terminal_clickable(True)
+        self.terminal_display.setDisabled(False)
 
     def disable_ui_elements(self):
         self.btn_patch_executable.setDisabled(True)
@@ -423,7 +424,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_show_app_config_dir.setDisabled(True)
         self.btn_configure_patch_options.setDisabled(True)
         self.btn_show_game_folder.setDisabled(True)
-        self.set_terminal_clickable(False)
+        self.terminal_display.setDisabled(True)
 
     def remove_thread(self, thread_id_remove):
         # Iterates through active threads, checks for ID and stops then removes thread
@@ -594,14 +595,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         game_install_dir = patcher.locate_game_install()
 
         if game_install_dir:
-            game_install_dir = game_install_dir.resolve() / exe_info.filename
-            if game_install_dir.exists() and game_install_dir.is_file():
-                log.info(f"Auto-located path: {game_install_dir}")
-                return game_install_dir
-            else:
-                log.warning(f"Unable to auto-locate game binary: {game_install_dir}")
+            return game_install_dir
 
-        log.warning(f"Automatic path detection failed")
         return None  # Signal failure
 
     def _path_found_or_failed(self, found_path: Optional[Path]):
@@ -777,15 +772,22 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         dialog = ConfigurePatchOptionsDialog(
             patcher=self.multi_game_patcher,
             current_config=self.configuration,
-            font=QFont(self.app_font, 10),
+            font=QFont(self.app_font_bold, 10),
             window_icon=self.windowIcon(),
             parent=self,
         )
 
+        # Show Configure Dialog and handle returns
         if dialog.exec_() == QFileDialog.DialogCode.Accepted:
             self.configuration = dialog.get_configuration()
-            log.info(f"Configuration updated: {self.configuration}", silent=True)
             selected_patches_str = ", ".join(self.configuration.selected_patches)
+
+            # Also update app style
+            self.apply_app_style()
+
+            SETTINGS.set_last_selected_game(self.configuration.game)
+
+            log.info(f"Configuration updated: {self.configuration}", silent=True)
             log.info(f"Selected patches: {selected_patches_str}")
             SETTINGS.set_last_selected_game(self.configuration.game)
         else:
