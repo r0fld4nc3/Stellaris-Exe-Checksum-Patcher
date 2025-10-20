@@ -164,13 +164,6 @@
                 "exe_filename": "ck3",
                 "path_postfix": "",
                 "patches": {
-                    "can_get_achievements_patch": {
-                        "display_name": "Can Get Achievements [Experimental]",
-                        "description": "Force return True when checking if can get achievements.",
-                        "hex_find": "53E8AA98FEFF",
-                        "hex_replace": "B001C3909090",
-                        "patch_pattern": "1F4000.{0,32}%s"
-                    },
                     "patch_01": {
                         "display_name": "Blocks Achievements",
                         "description": "",
@@ -184,6 +177,13 @@
                         "hex_find": "0F95C0",
                         "hex_replace": "31C090",
                         "patch_pattern": "4839DA0F95C1.{0,8}%s"
+                    },
+                    "can_get_achievements_patch": {
+                        "display_name": "Can Get Achievements [Visual]",
+                        "description": "Visually indicate achievements are enabled.",
+                        "hex_find": "53E8AA98FEFF",
+                        "hex_replace": "B001C3909090",
+                        "patch_pattern": "1F4000.{0,32}%s"
                     }
                 }
             }
