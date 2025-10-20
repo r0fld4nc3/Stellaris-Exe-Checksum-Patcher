@@ -171,19 +171,19 @@
                         "hex_replace": "B001C3909090",
                         "patch_pattern": "1F4000.{0,32}%s"
                     },
-                    "jomini_achievements_available": {
-                        "display_name": "Jomini Achievements Available [Experimental]",
-                        "description": "Patch engine to always set achievements available.",
+                    "patch_01": {
+                        "display_name": "Blocks Achievements",
+                        "description": "",
                         "hex_find": "31C0",
                         "hex_replace": "B001",
-                        "patch_pattern": "4889DF5BE9AA00.{0,16}%s"
+                        "patch_pattern": "E82DD1030334015BC3%s"
                     },
-                    "blocking_gamerules_patch": {
-                        "display_name": "Game Rules Patch [Experimental]",
-                        "description": "Patch the game rules test such that there are no rules blocking achievements.",
-                        "hex_find": "0F95C0C3",
-                        "hex_replace": "40B00090",
-                        "patch_pattern": "4883B82808.{0,8}%s"
+                    "patch_02": {
+                        "display_name": "Blocks Achievements 2",
+                        "description": "",
+                        "hex_find": "0F95C0",
+                        "hex_replace": "31C090",
+                        "patch_pattern": "4839DA0F95C1.{0,8}%s"
                     }
                 }
             }
