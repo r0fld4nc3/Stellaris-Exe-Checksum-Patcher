@@ -164,40 +164,33 @@
                 "exe_filename": "ck3",
                 "path_postfix": "",
                 "patches": {
-                    "can_get_achievements_patch [experimental]": {
+                    "can_get_achievements_patch": {
                         "display_name": "Can Get Achievements [Experimental]",
                         "description": "Force return True when checking if can get achievements.",
                         "hex_find": "53E8AA98FEFF",
                         "hex_replace": "B001C3909090",
                         "patch_pattern": "1F4000.{0,32}%s"
                     },
-                    "jomini_achievements_available [experimental]": {
+                    "jomini_achievements_available": {
                         "display_name": "Jomini Achievements Available [Experimental]",
                         "description": "Patch engine to always set achievements available.",
                         "hex_find": "31C0",
                         "hex_replace": "B001",
                         "patch_pattern": "4889DF5BE9AA00.{0,16}%s"
                     },
-                    "save_achievements_patch [experimental]": {
-                        "display_name": "Save Games [Experimental]",
-                        "description": "Force game to always set achievements to be earnable on save.",
-                        "hex_find": "4889DF",
-                        "hex_replace": "C60601",
-                        "patch_pattern": "488D74240F.{0,32}%s"
-                    },
-                    "checksum_patch [experimental]": {
-                        "display_name": "Checksum [Experimental]",
-                        "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
-                        "hex_find": "E87A855E038A80F1000000",
-                        "hex_replace": "B001855E03C380F1000000",
-                        "patch_pattern": "50.{0,5}%s"
-                    },
-                    "blocking_gamerules_patch [experimental]": {
+                    "blocking_gamerules_patch": {
                         "display_name": "Game Rules Patch [Experimental]",
                         "description": "Patch the game rules test such that there are no rules blocking achievements.",
                         "hex_find": "0F95C0C3",
                         "hex_replace": "40B00090",
                         "patch_pattern": "4883B82808.{0,8}%s"
+                    },
+                    "blocking_gamerules_info_patch": {
+                        "display_name": "Game Rules Info Patch [Experimental]",
+                        "description": "",
+                        "hex_find": "48034730",
+                        "hex_replace": "48034731",
+                        "patch_pattern": "B820080000%s"
                     }
                 }
             }
