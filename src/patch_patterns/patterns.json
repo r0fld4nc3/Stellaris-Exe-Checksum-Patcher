@@ -184,13 +184,6 @@
                         "hex_find": "0F95C0C3",
                         "hex_replace": "40B00090",
                         "patch_pattern": "4883B82808.{0,8}%s"
-                    },
-                    "blocking_gamerules_info_patch": {
-                        "display_name": "Game Rules Info Patch [Experimental]",
-                        "description": "",
-                        "hex_find": "48034730",
-                        "hex_replace": "48034731",
-                        "patch_pattern": "B820080000%s"
                     }
                 }
             }
