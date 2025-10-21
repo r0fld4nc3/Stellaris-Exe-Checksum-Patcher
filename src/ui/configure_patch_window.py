@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from conf_globals import LOG_LEVEL, OS, SETTINGS, USE_LOCAL_PATTERNS
+from conf_globals import IS_DEBUG, LOG_LEVEL, OS, SETTINGS, USE_LOCAL_PATTERNS
 from logger import create_logger
 from patchers import MultiGamePatcher, PatchConfiguration
 from patchers import models as patcher_models
@@ -107,10 +107,10 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         # --- Use Local Patterns CheckBox---
         self.chkbox_use_local_patterns = QCheckBox("Force Local Patterns")
-        self.chkbox_use_local_patterns.stateChanged.connect(self.callback_use_local_patterns)
         self.chkbox_use_local_patterns.setToolTip(
             "When toggled, application will not longer pull updated patterns from remote and will only strictly use the patterns file present on disk.\nThis is mainly useful for testing purposes, for trying out different patterns to prevent the local file from being overwritten on application startup."
         )
+        self.chkbox_use_local_patterns.stateChanged.connect(self.callback_use_local_patterns)
         # Force update state when global enforcement rule is applied
         if USE_LOCAL_PATTERNS:
             self.chkbox_use_local_patterns.setEnabled(False)

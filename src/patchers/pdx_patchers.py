@@ -323,6 +323,8 @@ class GamePatcher:
                 return binary_hex, False
 
             matched_line = binary_hex[match.start() : match.end()]
+            log.info(f"MATCHED BYTES: {matched_line.upper()}", silent=True)
+            log.info(f"MATCH POSITION: {match.start()}", silent=True)
             hex_index = matched_line.upper().rfind(pattern.hex_find.upper())
 
             if hex_index == -1:

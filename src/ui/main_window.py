@@ -295,6 +295,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             version=patcher_models.CONST_VERSION_LATEST_KEY,
             is_proton=(OS.WINDOWS or (OS.LINUX and OS.LINUX_PROTON)),
         )
+        self.last_conf_game = self.configuration.game
 
         # --- Cache available patches to display ---
         self.available_patches: dict = {}
@@ -338,7 +339,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
     def apply_app_style(self):
         # --- Set App Constraints ---
-        self.window_title = f"{self.configuration.game} Patcher"
+        conf_game = self.configuration.game
+
+        self.window_title = f"{conf_game} Patcher"
         self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}){'-debug' if IS_DEBUG else ''}"
 
         self.setWindowTitle(self.window_title_with_app_version)
@@ -348,7 +351,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             self.setWindowIcon(self.window_icon_unix)
 
         # --- Styles---
-        stylesheet_content = self.resources.get_stylesheet(self.configuration.game)
+        stylesheet_content = self.resources.get_stylesheet(conf_game)
         self.setStyleSheet(stylesheet_content)
 
         # --- Label Title ---
@@ -369,8 +372,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_fix_save_file.setFont(QFont(self.app_font_bold, 12))
 
         # --- Patch Icon ---
-        self.random_achievement = self.resources.get_random_achievement_icon(self.configuration.game)
-        self.patch_icon = self.random_achievement.get(IconAchievementState.LOCKED)
+        # Only update if we're in __init__ or games differ
+        if not hasattr(self, "patch_icon") or conf_game != self.last_conf_game:
+            self.random_achievement = self.resources.get_random_achievement_icon(conf_game)
+            self.patch_icon = self.random_achievement.get(IconAchievementState.LOCKED)
 
         # --- Patch Button ---
         # self.btn_patch_executable.setText("Patch Executable")
@@ -776,6 +781,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             window_icon=self.windowIcon(),
             parent=self,
         )
+
+        # Set current game as last selected
+        self.last_conf_game = self.configuration.game
 
         # Show Configure Dialog and handle returns
         if dialog.exec_() == QFileDialog.DialogCode.Accepted:
