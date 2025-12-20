@@ -127,8 +127,8 @@ git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher.git
 
 | File                               | SHA256                                                                                 | MD5                                                    |
 |------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
-| Stellaris-Checksum-Patcher-linux   | <sub><sup>bb603915a55d8ab7103e7e6b3e796f685ff9dddbaba818c1420db0e556ea6b12</sup></sub> | <sub><sup>35dc80777cc7c14720ea586fe85f41ae</sup></sub> |
-| Stellaris-Checksum-Patcher-win.exe | <sub><sup>1eaa73b03e3a011d1cc2877b014137ee013d0d4850f649c63bd85f3d737bac45</sup></sub> | <sub><sup>62a4b3f834fe314ef2de9ef27a143853</sup></sub> |
+| Stellaris-Checksum-Patcher-linux   | <sub><sup>15bfc34e73744a9c7f530e4db0a9621ed7fdfec5c647d18f33cfaca24bb3f49d</sup></sub> | <sub><sup>73eb3fb94b2994a3711b3e82f5e5cb52</sup></sub> |
+| Stellaris-Checksum-Patcher-win.exe | <sub><sup>207cf543844bacdf2440e514022b2998842c89c07b9545a082ac9456bc4721f3</sup></sub> | <sub><sup>9415f8c822ddd87197a23434b1564443</sup></sub> |
 
 
 # 🔎 My Stance
