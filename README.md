@@ -1,16 +1,8 @@
-# Stellaris Checksum Patcher (Enable Achievements)
+# Stellaris Checksum Patcher (Enable Achievements w/ Mods!)
 
 [![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher.exe?style=for-the-badge&logo=square&logoColor=blue&label=Windows)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher.exe)
 [![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher-linux?style=for-the-badge&logo=linux&label=Linux)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher-linux)
 [![Release Version Badge](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
-
-## ❗ Note - I stopped receiving achivements!!11! ❗
-
-If you've stopped receiving achievements on a save where you should or previously have, it is because the save file itself was altered to remove a line that allows that playthrough to be elligible for achievements. I am working on a fix for this as well.
-
-## 📣 Summary
-
-❗ Still working on save fixing.
 
 An easy and painless way to patch the game's executable to enable Achievements being earnable with mods that change the game's Checksum.
 
@@ -19,26 +11,56 @@ An easy and painless way to patch the game's executable to enable Achievements b
 
 | Platform                                                                                                                         | Version              |
 |----------------------------------------------------------------------------------------------------------------------------------|----------------------|
-| [Windows]()   | v2.0.0 (pre-release) |
-| [Linux]()   | v2.0.0 (pre-release) |
-| macOS                                                                                                                            | Currently none       |
+| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-win_pr1.exe)   | v2.0.0_pr1 |
+| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-linux_pr1)   | v2.0.0_pr1 |
+| macOS                                                                                                                            | Currently None       |
 
 Please refer to the below **Build & Run From Source** section if you don't wish to run the binary file.
 
+## ⚙️ Compile Source
+
+The following describes the steps needed to compile the source code to a one-file distributable binary/executable. The result should be a single file that is the packaged application into a runnable binary.
+
+> [!Note] Compiling to a target platform requires the process to be started from that same platform, i.e.: Compiling to Windows must be done in Windows, to Linux in Lunux, etc.
+
+### Requirements:
+
+* [Python 3.13](https://www.python.org/downloads/release/python-3139/)
+* [UV](https://docs.astral.sh/uv/)
+
+### Compile
+
+* In a terminal, navigate to the main project directory
+* Run `uv run ./nuitka-builds/build.py`
+
 ## ⚙️ Build & Run From Source
-* Go to [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases) and download the appropriate archive file for your system:
 
-| OS       | Format                                                                                                                            |
-|----------|-----------------------------------------------------------------------------------------------------------------------------------|
-| Windows  | [.zip](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher_road-to-2.0.0_01.zip)   |
-| Linux    | [.tar.xz](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher_road-to-2.0.0_01.tar.xz) |
-| macOS    |                                                                                                                            |
+The following describes the steps needed to run the source code without the need to compile a binary/executable. This is useful for fast development iteration as it offsets the burden to each user.
 
-* Uncompress the archive and inside the extracted folder you will see a build-run script file.
+As a side-effect, each user must meet the configuration requirements.
+
+This will sync the project's requirements, create a virtual environment and run the project via the System/Venv python.
+
+### Building
+
+Requirements: 
+* [Python 3.13](https://www.python.org/downloads/release/python-3139/)
+* [UV](https://docs.astral.sh/uv/)
+
+#### git clone
+For a more in-depth explanation, look into _[How To](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository?platform=linux&tool=webui)_
+
+* In a terminal, navigate to the desired location in the filesystem.
+* Run:
+```shell
+git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher.git
+```
+
+#### Without git clone
+* Go to the [Code Section](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher) and download the [source code](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/archive/refs/heads/main.zip) from the target branch.
+* Optionally, choose a specific branch first and then download the source code through the green button at the top (`<> Code`).
 
 * ### Windows
-
-Requirements: [Python 3.13](https://www.python.org/downloads/release/python-3139/)
 
   * Uncompress the zip file.
 
@@ -69,20 +91,25 @@ Requirements: [Python 3.13](https://www.python.org/downloads/release/python-3139
 * Clarification of my stance on this further down.
 
 <p align="center">
-<img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-06.png" width="762">
+<img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-07-01.png" width="762">
+</p>
+
+<p align="center">
+<img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-07-02.png" width="762">
 </p>
 
 ## 🟢 Patches
 * **Patch Executable**
   * This method will automatically check for a Steam installation and patch the executable.
-  * It will create a backup of the original adding a `.orig` to the end of the file name.
+  * It will create a versioned backup of the current game binary.
   * If it cannot find the installation, will prompt via dialog for the installation folder.
   * Will remember the installation location for next time.
 
-* **Fix Save Achievements**
-  * Will ask for the save file to work on
-  * Attempts to fix achievements not being present.
-  * Sets Ironman flag(s) to "yes".
+* **Fix Save**
+  * Prompt for a save file to work on.
+  * Select desired fixes/changes to apply to the save file.
+  * A backup is created in the Application's cofiguration directory under "save games".
+  * Attempts to apply the selected fixes.
 
 # 🗒️ Notes
 * **This tool is currently only hosted on this GitHub project. In doubt, please compare your file and version/date to the SHA256 and MD5 table. I will try to keep it as up to date as possible with the current release**
@@ -92,6 +119,9 @@ Requirements: [Python 3.13](https://www.python.org/downloads/release/python-3139
 
 
 # 🔐 SHA256
+
+> [!Note] The current checksums are not yet updated to the 2.0 release.
+
 | File                               | SHA256                                                                                 | MD5                                                    |
 |------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
 | Stellaris-Checksum-Patcher-linux   | <sub><sup>a9f26f9b4e86c3533b83e7e16af48dc79e8eac45a45c5752e9cb0b365a15d6de</sup></sub> | <sub><sup>eca776501d4c0e634f95b438e6e8b8d6</sup></sub> |
