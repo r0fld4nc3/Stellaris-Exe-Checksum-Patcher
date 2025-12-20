@@ -58,7 +58,7 @@ For a more in-depth explanation, look into _[How To](https://docs.github.com/en/
 * In a terminal, navigate to the desired location in the filesystem.
 * Run:
 ```shell
-git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher.git
+git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher
 ```
 
 #### Without git clone
