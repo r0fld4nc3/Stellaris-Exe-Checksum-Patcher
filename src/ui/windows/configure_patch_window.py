@@ -18,7 +18,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from conf_globals import IS_DEBUG, LOG_LEVEL, OS, SETTINGS, STEAM, USE_LOCAL_PATTERNS
+from conf_globals import (
+    IS_DEBUG,
+    LOG_LEVEL,
+    OS,
+    PREVENT_CONN,
+    SETTINGS,
+    STEAM,
+    USE_LOCAL_PATTERNS,
+)
 from logger import create_logger
 from patchers import MultiGamePatcher, PatchConfiguration
 from patchers import models as patcher_models
@@ -104,7 +112,7 @@ class ConfigurePatchOptionsDialog(QDialog):
     def _load_settings(self):
         log.info("Load Settings")
         # Reflect settings in UI
-        use_local_patterns = any([USE_LOCAL_PATTERNS, SETTINGS.get_force_use_local_patterns()])
+        use_local_patterns = any([USE_LOCAL_PATTERNS, PREVENT_CONN, SETTINGS.get_force_use_local_patterns()])
         print(hasattr(self, "chkbox_use_local_patterns"))
         self.chkbox_use_local_patterns.setCheckState(
             Qt.CheckState.Checked if use_local_patterns else Qt.CheckState.Unchecked
@@ -233,9 +241,9 @@ class ConfigurePatchOptionsDialog(QDialog):
         )
         self.chkbox_use_local_patterns.stateChanged.connect(self.callback_use_local_patterns)
         # Force update state when global enforcement rule is applied
-        if USE_LOCAL_PATTERNS:
+        if any((USE_LOCAL_PATTERNS, PREVENT_CONN)):
             self.chkbox_use_local_patterns.setEnabled(False)
-            SETTINGS.set_force_use_local_patterns(Qt.CheckState.Unchecked.value)
+            # SETTINGS.set_force_use_local_patterns(Qt.CheckState.Unchecked.value)
         utilities_layout.addWidget(self.chkbox_use_local_patterns)
 
         # --- Spacer ---
@@ -456,7 +464,9 @@ class ConfigurePatchOptionsDialog(QDialog):
 
     def callback_use_local_patterns(self, state):
         if state in (Qt.CheckState.Checked.value, Qt.CheckState.Unchecked.value):
-            SETTINGS.set_force_use_local_patterns(state)
+            # We don't need to set for --no-conn
+            if not PREVENT_CONN:
+                SETTINGS.set_force_use_local_patterns(state)
         else:
             log.warning("Checkbox in Partially Checked state. We shouldn't be here.", silent=True)
 
