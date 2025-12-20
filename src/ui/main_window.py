@@ -549,46 +549,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.active_threads.append(self.path_finder_thread)
         self.path_finder_thread.start()
 
-    def _find_game_path_worker_thread(self) -> Optional[Path]:
-        """
-        WORKER FUNCTION: Tries to find the game path automatically.
-        Returns the path if found, otherwise None.
-        """
-
-        patcher = self.multi_game_patcher.get_game_patcher(self.configuration.game, self.configuration.version)
-
-        if not patcher:
-            return None
-
-        is_proton = self.configuration.is_proton
-
-        if is_proton:
-            exe_info = patcher.get_executable_info(patcher_models.Platform.WINDOWS)
-        else:
-            # Get native exe info
-            exe_info = patcher.get_executable_info()
-
-        log.info(f"{exe_info=}", silent=True)
-
-        # Check for saved path in settings first
-        saved_install_path_str: str = SETTINGS.get_install_path(self.configuration.game)
-        if saved_install_path_str:
-            game_install_dir = Path(saved_install_path_str)
-            if game_install_dir.exists() and game_install_dir.is_file():
-                log.info(f"Retrieved game executable from settings: {game_install_dir}")
-                return game_install_dir
-            else:
-                log.warning(f"Saved game path found, but executable is invalid.")
-
-        # Auto-locate
-        log.info("Attempting to auto-locate game installation...")
-        game_install_dir = patcher.locate_game_install()
-
-        if game_install_dir:
-            return game_install_dir
-
-        return None  # Signal failure
-
     def _path_found_or_failed(self, found_path: Optional[Path]):
         """
         SLOT FUNCTION: Runs on the main thread after _find_game_path_worker_thread

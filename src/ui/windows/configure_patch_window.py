@@ -49,6 +49,8 @@ class ConfigurePatchOptionsDialog(QDialog):
     ):
         super().__init__(parent)
 
+        self.active_threads = []
+
         self.patcher = patcher
         self.current_config = current_config
         self.font = font
@@ -486,8 +488,6 @@ class ConfigurePatchOptionsDialog(QDialog):
         )
 
     def show_game_folder(self, auto_located_path: Optional[Path] = None):
-        from ..main_window import StellarisChecksumPatcherGUI
-
         paths = [
             SETTINGS.get_install_path(self.current_config.game),
             SETTINGS.get_proton_install_path(self.current_config.game),
@@ -535,14 +535,61 @@ class ConfigurePatchOptionsDialog(QDialog):
 
             if not auto_located_path:
                 # Attempt to auto locate and re-run the function
-                # TODO: SUPER SCUFF EDITION: Import UI Class and canibalise the method
-                # In case this proves problematic, just copy paste the method from the UI
-                # to below this method and replace `self.configuration` with `self.current_config`
-                path_finder_thread = Threader(target=StellarisChecksumPatcherGUI._find_game_path_worker_thread)
+                path_finder_thread = Threader(target=self._find_game_path_worker_thread)
                 path_finder_thread.signals.result.connect(self.show_game_folder)
+                path_finder_thread.signals.finished.connect(lambda: self._cleanup_thread(path_finder_thread))
+                self.active_threads.append(path_finder_thread)
                 path_finder_thread.start()
             else:
                 log.info("Auto-location already attempted and failed.", silent=True)
+
+    def _find_game_path_worker_thread(self) -> Optional[Path]:
+        """
+        WORKER FUNCTION: Tries to find the game path automatically.
+        Returns the path if found, otherwise None.
+        """
+
+        patcher = self.patcher.get_game_patcher(self.current_config.game, self.current_config.version)
+
+        if not patcher:
+            return None
+
+        is_proton = self.current_config.is_proton
+
+        if is_proton:
+            exe_info = patcher.get_executable_info(patcher_models.Platform.WINDOWS)
+        else:
+            # Get native exe info
+            exe_info = patcher.get_executable_info()
+
+        log.info(f"{exe_info=}", silent=True)
+
+        # Check for saved path in settings first
+        saved_install_path_str: str = SETTINGS.get_install_path(self.current_config.game)
+        if saved_install_path_str:
+            game_install_dir = Path(saved_install_path_str)
+            if game_install_dir.exists() and game_install_dir.is_file():
+                log.info(f"Retrieved game executable from settings: {game_install_dir}")
+                return game_install_dir
+            else:
+                log.warning(f"Saved game path found, but executable is invalid.")
+
+        # Auto-locate
+        log.info("Attempting to auto-locate game installation...")
+        game_install_dir = patcher.locate_game_install()
+
+        if game_install_dir:
+            return game_install_dir
+
+        return None  # Signal failure
+
+    def _cleanup_thread(self, thread: Threader):
+        """Remove finished thread from active list."""
+
+        if thread in self.active_threads:
+            self.active_threads.remove(thread)
+            thread.deleteLater()
+            log.info(f"Cleaned up worker thread. Active threads: {len(self.active_threads)}", silent=True)
 
     def show_app_config_folder(self):
         config_dir = SETTINGS.get_config_dir()
@@ -556,3 +603,14 @@ class ConfigurePatchOptionsDialog(QDialog):
         # --- Show welcome dialog ---
         welcome_dialog = WelcomeDialog(self.font, window_icon=self.windowIcon(), parent=self)
         welcome_dialog.show()
+
+    def closeEvent(self, event):
+        """Cleanup all active threads when dialog closes."""
+
+        for thread in self.active_threads:
+            if thread.isRunning():
+                thread.quit()
+                thread.wait()
+            thread.deleteLater()
+            self.active_threads.clear()
+            super().closeEvent(event)
