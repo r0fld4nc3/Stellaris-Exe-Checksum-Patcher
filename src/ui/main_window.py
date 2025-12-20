@@ -913,6 +913,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         else:
             install_path = SETTINGS.get_install_path(self.configuration.game)
 
+        if not Path(install_path).exists():
+            log.error(f"File does not exist: {install_path}")
+            return False
+
         # Check if file already patched
         file_access_time = get_file_access_time(install_path)
         last_access_time = SETTINGS.get_last_accessed_timestamp(game)
