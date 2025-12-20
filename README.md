@@ -1,6 +1,6 @@
 # Stellaris Checksum Patcher (Enable Achievements w/ Mods!)
 
-[![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher.exe?style=for-the-badge&logo=square&logoColor=blue&label=Windows_Pre_2.0.0)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest/download/StellarisChecksumPatcher.exe)
+[![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher.exe?style=for-the-badge&logo=square&logoColor=blue&label=Windows_Pre_2.0.0)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/tag/1.1.0-pre)
 
 [![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher-win.exe?style=for-the-badge&logo=square&logoColor=blue&label=Windows_2.0.0)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/tag/v2.0.0/download/StellarisChecksumPatcher-win.exe)
 
