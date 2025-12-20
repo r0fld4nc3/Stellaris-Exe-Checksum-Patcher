@@ -33,10 +33,29 @@ The following describes the steps needed to compile the source code to a one-fil
 * [Python 3.13](https://www.python.org/downloads/release/python-3139/)
 * [UV](https://docs.astral.sh/uv/)
 
+### Pull
+
+#### git clone
+For a more in-depth explanation, look into _[How To](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository?platform=linux&tool=webui)_
+
+* In a terminal, navigate to the desired location in the filesystem.
+* Run:
+```shell
+git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher
+cd Stellaris-Exe-Checksum-Patcher
+```
+
+#### Without git clone
+* Go to the [Code Section](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher) and download the [source code](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/archive/refs/heads/main.zip) from the target branch.
+* Optionally, choose a specific branch first and then download the source code through the green button at the top (`<> Code`).
+
 ### Compile
 
-* In a terminal, navigate to the main project directory
-* Run `uv run ./nuitka-builds/build.py`
+* In the project's main directory.
+* Run:
+```shell
+uv run ./nuitka-builds/build.py
+```
 
 ## ⚙️ Build & Run From Source
 
@@ -59,13 +78,14 @@ For a more in-depth explanation, look into _[How To](https://docs.github.com/en/
 * Run:
 ```shell
 git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher
+cd Stellaris-Exe-Checksum-Patcher
 ```
 
 #### Without git clone
 * Go to the [Code Section](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher) and download the [source code](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/archive/refs/heads/main.zip) from the target branch.
 * Optionally, choose a specific branch first and then download the source code through the green button at the top (`<> Code`).
 
-* ### Windows
+### Windows
 
   * Uncompress the zip file.
 
@@ -78,7 +98,7 @@ git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher
     * Run `&"build-run.bat"` or `build-run.bat`, whichever works.
     * It should update the required dependencies and launch.
 
-* ### Linux
+### Linux
   * Uncompress the archive.
 
   * #### Method 1 - Non-terminal
