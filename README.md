@@ -21,7 +21,8 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 
 The following describes the steps needed to compile the source code to a one-file distributable binary/executable. The result should be a single file that is the packaged application into a runnable binary.
 
-[!NOTE] Compiling to a target platform requires the process to be started from that same platform, i.e.: Compiling to Windows must be done in Windows, to Linux in Lunux, etc.
+> [!NOTE]
+> Compiling to a target platform requires the process to be started from that same platform, i.e.: Compiling to Windows must be done in Windows, to Linux in Lunux, etc.
 
 ### Requirements:
 
@@ -120,7 +121,8 @@ git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher.git
 
 # 🔐 SHA256
 
-[!WARNING] The current checksums are not yet updated to the 2.0 release.
+> [!WARNING]
+> The current checksums are not yet updated to the 2.0 release.
 
 | File                               | SHA256                                                                                 | MD5                                                    |
 |------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
