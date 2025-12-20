@@ -13,9 +13,6 @@ _parser.add_argument(
 
 _parser.add_argument("--no-conn", action="store_true", help="Prevent all external connections.")
 
-# PyInstaller/auto-py-to-exe errors on Windows (so far) when parsing args is at the top level.
-# At the time of writing, I require this here to set up globals immediately.
-# Potential solution is to wrap in try/except and let PyInstaller continue by providing a default namespace.
 try:
     _args = _parser.parse_args()
 except Exception as e:
