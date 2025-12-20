@@ -8,6 +8,7 @@ UNIX = "unix"
 DARWIN = "darwin"
 MAC = "mac"
 
+
 def win_get_appdata() -> Path:
     if os_windows():
         return Path(os.getenv("appdata"))
@@ -88,7 +89,7 @@ def ensure_paths(to_path: Path):
             if to_path.suffix:
                 # It's a file
                 os.makedirs(to_path.parent, exist_ok=True)
-                with open(to_path, 'w') as f:
+                with open(to_path, 'w', encoding="utf-8") as f:
                     if to_path.suffix == ".json":
                         f.write('{}')
                     else:
@@ -101,7 +102,7 @@ def ensure_paths(to_path: Path):
             if str(to_path).rpartition('.')[-1]:
                 # We have a file
                 os.makedirs(to_path.rpartition('.')[0])
-                with open(to_path, 'w') as f:
+                with open(to_path, 'w', encoding="utf-8") as f:
                     if to_path.endswith(".json") == ".json":
                         f.write('{}')
                     else:

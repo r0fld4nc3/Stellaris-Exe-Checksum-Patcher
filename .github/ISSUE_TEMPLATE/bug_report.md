@@ -2,7 +2,7 @@
 name: Bug report
 about: Create a report to help us improve
 title: ''
-labels: bug
+labels: 'bug'
 assignees: ''
 
 ---
@@ -36,4 +36,4 @@ Steps to reproduce the behavior:
  - Version [e.g. 2.0.0-incompatible-with-4.x.x]
 
 **Additional context**
-<!-- Add any other context about the problem here.
+<!-- Add any other context about the problem here. -->

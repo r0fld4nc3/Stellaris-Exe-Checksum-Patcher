@@ -1,32 +1,53 @@
-import platform
 import argparse
+import platform
 
 system = platform.system()
-debug_commands = ("-debug", "-d")
 
 # Argparser
 _parser = argparse.ArgumentParser(description="Application Startup")
+_parser.set_defaults(debug=False, no_conn=False)
 
 _parser.add_argument(
-    "-d", "--debug",
-    action="store_true",
-    help="Enable debug mode"
+    "-d", "--debug", action="store_true", help="Enable debug mode and expose more debugging information."
 )
 
-_args = _parser.parse_args()
+_parser.add_argument("--no-conn", action="store_true", help="Prevent all external connections.")
+
+# PyInstaller/auto-py-to-exe errors on Windows (so far) when parsing args is at the top level.
+# At the time of writing, I require this here to set up globals immediately.
+# Potential solution is to wrap in try/except and let PyInstaller continue by providing a default namespace.
+try:
+    _args = _parser.parse_args()
+except Exception as e:
+    print(f"Error parsing arguments: {e}")
+    _args = _parser.parse_args([])
 
 APP_VERSION = [2, 0, 0]
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
+REPO_BRANCH: str = "road-to-2.0.0"
+TRACKING_BRANCH: str = f"pr1"
 LOG_LEVEL = 1
 IS_DEBUG = False
-UPDATE_CHECK_COOLDOWN = 60 # seconds
+UPDATE_CHECK_COOLDOWN = 60  # seconds
+USE_LOCAL_PATTERNS = False  # Force use of only local patterns file. If True will override user choice.
+SUPPORTED_GAMES = ("Stellaris",)
+
+# --- Updater ---
+REPO_OWNER = HOST
+REPO_NAME = "Stellaris-Exe-Checksum-Patcher"
 
 # Parse debug mode and set flags related to it
 if LOG_LEVEL == 0 or _args.debug:
     IS_DEBUG = True
     LOG_LEVEL = 0
+
+# --- Connections ---
+PREVENT_CONN = False
+if _args.no_conn:
+    PREVENT_CONN = True
+    USE_LOCAL_PATTERNS = True
 
 
 class OS:
@@ -37,28 +58,44 @@ class OS:
 
 
 from logger.path_helpers import win_get_localappdata
+
 config_folder = win_get_localappdata() / HOST / APP_NAME
 
 
 # Because we're using the config folder defined here, in the logger class and import
 # We have to import the logger after
-from logger import create_logger
+from logger import create_logger, reset_log_file
 
 log = create_logger("Globals", LOG_LEVEL)
+if not IS_DEBUG:
+    reset_log_file()
+
+log.info(f"[INIT] Running Application.")
+
+# Print flags
+for action in _parser._actions:
+    if action.option_strings:
+        if "-h" in action.option_strings or "--help" in action.option_strings:
+            continue
+        log.info(f"[INIT] Run with flag {action.option_strings}: {action.help}")
 
 from updater import Updater
-updater = Updater("r0fld4nc3", "Stellaris-Exe-Checksum-Patcher")
+
+updater = Updater(REPO_OWNER, REPO_NAME)
 
 from settings import Settings
-settings = Settings()
-settings.load_config()
+
+SETTINGS = Settings()
+SETTINGS.load_config()
 
 from utils import steam_helper
 
-steam = steam_helper.SteamHelper()
+STEAM = steam_helper.SteamHelper()
 
 # Worker Signals hook not initialised here yet, so won't print to GUI console
-log.info(f"Debug:             {IS_DEBUG}")
-log.info(f"App Version:       {APP_VERSION}")
-log.info(f"Target System:     {system}")
-log.info(f"Config Folder:     {config_folder}")
+log.info(f"Debug:                  {IS_DEBUG}")
+log.info(f"App Version:            {APP_VERSION}")
+log.info(f"Target System:          {system}")
+log.info(f"Config Folder:          {config_folder}")
+log.info(f"Prevent Connections:    {PREVENT_CONN}")
+log.info(f"Use Local Patterns:     {USE_LOCAL_PATTERNS}")

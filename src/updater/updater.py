@@ -1,8 +1,12 @@
-import requests
+import json
+import ssl
 import time
 
-from conf_globals import LOG_LEVEL
-from logger import create_logger
+import certifi
+import requests
+
+from conf_globals import LOG_LEVEL, PREVENT_CONN  # isort: skip
+from logger import create_logger  # isort: skip
 
 log = create_logger("Updater", LOG_LEVEL)
 
@@ -30,11 +34,18 @@ class Updater:
         self.has_new_version = False
 
     def check_for_update(self):
+        if PREVENT_CONN:
+            log.info(f"Update turned off due to prevent connections argument being active.")
+            return False
+
         log.info("Checking for Stellaris Checksum Patcher update...")
 
-        self.pulled_releases = self.list_releases()
+        self.pulled_releases = self.fetch_releases(max_fetch=self._releases_max_fill)
+
+        non_pre_idx = self.get_first_non_pre_release(self.pulled_releases)
+
         if self.pulled_releases:
-            has_new_version = self.has_new_release(self.local_version, self.pulled_releases[0])
+            has_new_version = self.has_new_release(self.local_version, self.pulled_releases[non_pre_idx])
             self.has_new_version = has_new_version
         else:
             log.info("No releases available")
@@ -45,23 +56,62 @@ class Updater:
 
         return has_new_version
 
-    def list_releases(self):
+    def fetch_releases(self, max_fetch: int = -1):
+        log.info("Fetching releases...", silent=True)
+
         releases = []
+
+        if PREVENT_CONN:
+            log.info(f"Update turned off due to prevent connections argument being active.")
+            return releases
+
+        # Force SSL context to fix Thread issues
+        try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+        except Exception as e:
+            log.error(f"Failed to create SSL context: {e}", silent=True)
 
         try:
             api_call = f"{self.api}{self._api_releases}"
-            response = requests.get(api_call, timeout=60)
+            log.info(f"CALL {api_call}", silent=True)
+            response = requests.get(api_call, timeout=60, verify=certifi.where())
         except requests.ConnectionError as con_err:
-            log.error(f"Unable to establish connection to update repo.")
+            log.warning(f"Unable to establish connection to update repo.")
             log.error(con_err)
             return False
 
         if not response.status_code == 200:
             log.error("Not a valid repository.")
         else:
-            releases = response.json()[:self._releases_max_fill]
+            releases = response.json()[:max_fetch]
+
+        log.debug(f"Releases: {releases}")
 
         return releases
+
+    def get_first_non_pre_release(self, releases: dict) -> int:
+        # Return if releases not dict type
+        if not isinstance(releases, dict):
+            return 0
+
+        # Get first non pre-release version index
+        log.info(
+            f"Getting first non pre-release available from list of supplied {len(releases)} releases.", silent=True
+        )
+
+        log.debug(f"{json.dumps(releases, indent=2)}")
+
+        for i, release in enumerate(self.pulled_releases):
+            pre_release = release.get("prerelease")
+            name = release.get("name")
+            tag = release.get("tag_name")
+            if not pre_release:
+                log.info(f"Release number {i} {name} ({tag}) is not a pre-release. Comparing against it.", silent=True)
+                return i
+            else:
+                log.info(f"Release number {i} {name} ({tag}) is set as pre-release. Skipping.", silent=True)
+
+        return 0  # Return first index, I guess
 
     def has_new_release(self, current: list[int], remote: dict) -> bool:
         log.info(f"Local version: {current}", silent=True)
@@ -81,43 +131,48 @@ class Updater:
             tuple_current = tuple(current)
             tuple_comp = tuple(comp)
             if tuple_current < tuple_comp:
-                log.debug(f"{tuple_current} < {tuple_comp}", silent=True)
+                log.debug(f"{tuple_current} < {tuple_comp}")
                 has_update = True
                 break
 
-        log.debug(f"{has_update=}", silent=True)
+        log.debug(f"{has_update=}")
 
         if has_update:
             log.info(f"This release {current} is outdated with remote {remote_release_name} ({remote_release_tag})")
             return True
         else:
-            log.debug(f"This release {current} is up to date with remote {remote_release_name} ({remote_release_tag})", silent=True)
+            log.debug(
+                f"This release {current} is up to date with remote {remote_release_name} ({remote_release_tag})",
+                silent=True,
+            )
             log.info("Up to date")
 
         return False
 
-    def construct_version_list_from_str(self, version: str):
+    @staticmethod
+    def construct_version_list_from_str(version: str):
         # Collect the digits between dots
-        digit = ''
+        digit = ""
         constructed_version = []
 
         for c in version:
-            log.debug(f"{digit=}", silent=True)
-            log.debug(f"-> '{c}'", silent=True)
+            log.debug(f"{digit=}")
+            log.debug(f"-> '{c}'")
+
             if c.isdigit():
-                log.debug(f"    - '{c}' is a digit.", silent=True)
+                log.debug(f"    - '{c}' is a digit.")
                 digit += c
             else:
-                log.debug(f"    - '{c}' is not a digit.", silent=True)
+                log.debug(f"    - '{c}' is not a digit.")
                 if digit:
                     constructed_version.append(int(digit))
-                    digit = ''
+                    digit = ""
 
         # Handle if last item(s) are digits and weren't appended
         if digit:
             constructed_version.append(int(digit))
 
-        log.debug(f"{constructed_version=}", silent=True)
+        log.debug(f"{constructed_version=}")
 
         return constructed_version
 
@@ -127,10 +182,12 @@ class Updater:
         _repo = f"{_user}/{repo}"
         _api = f"https://api.github.com/repos/{_repo}"
 
-        log.debug(f"User: {_user}\nRepository Name: {_repo}\nAPI: {_api}")
+        log.info(f"User: {_user}", silent=True)
+        log.info(f"Repository Name: {_repo}", silent=True)
+        log.info(f"API: {_api}", silent=True)
 
         return _user, _repo, _api
 
     def set_local_version(self, version: str):
         self.local_version = self.construct_version_list_from_str(version)
-        log.debug(f"Set local version {version}")
+        log.info(f"Set local version {version}", silent=True)
