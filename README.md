@@ -125,15 +125,10 @@ git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher.git
 
 # 🔐 SHA256
 
-> [!WARNING]
-> The current checksums are not yet updated to the 2.0 release.
-
-| File                               | SHA256                                                                                 | MD5                                                    |
-|------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
-| Stellaris-Checksum-Patcher-linux   | <sub><sup>a9f26f9b4e86c3533b83e7e16af48dc79e8eac45a45c5752e9cb0b365a15d6de</sup></sub> | <sub><sup>eca776501d4c0e634f95b438e6e8b8d6</sup></sub> |
-| Stellaris-Checksum-Patcher-win.zip | <sub><sup>afbf04f0db8a070fb35653af6e2ffeb3c1609e4dd6fac73be82a644328420073</sup></sub> | <sub><sup>522e021fec263ea048ef9bd1be6d8909</sup></sub> |
-| Stellaris-Checksum-Patcher.exe     | <sub><sup>5218e49db31812583386f4c944d7744e799b9344c813670a5d04b4c2166c8d16</sup></sub> | <sub><sup>a3dfaea91f0a4206fd9b5b7978b125f6</sup></sub> |
-| Stellaris-Checksum-Patcher.tar.xz  | <sub><sup>1e539c0a132bf9faa58521199b4ca45aedcfb41246ec60dd72a14a74c0995b2c</sup></sub> | <sub><sup>6163a03894cec4165608ed86326445fd</sup></sub> |
+| File                                   | SHA256                                                                                 | MD5                                                    |
+|----------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
+| Stellaris-Checksum-Patcher-linux_pr1   | <sub><sup>4f386e6d6d901bcb847dbeb8b13c01234455794b4d54e99a0466c2dc17a0abe6</sup></sub> | <sub><sup>8a50133c888959e85f3ae3273c84c262</sup></sub> |
+| Stellaris-Checksum-Patcher-win_pr1.exe | <sub><sup>a85bb135ad2bcf526b0c58035263ba2f6dcd56c28f38609c7fb0e0092b1ddd4c</sup></sub> | <sub><sup>c076f388e2322692de7403cbe2045374</sup></sub> |
 
 
 # 🔎 My Stance
