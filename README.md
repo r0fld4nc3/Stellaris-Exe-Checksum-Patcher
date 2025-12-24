@@ -1,10 +1,10 @@
 # Stellaris Checksum Patcher (Enable Achievements w/ Mods!)
 
-[![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher.exe?style=for-the-badge&logo=square&logoColor=blue&label=Windows_Pre_2.0.0)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/tag/1.1.0-pre)
+[![Downloads@Pre2.0](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher.exe?style=for-the-badge&logo=square&logoColor=blue&label=Windows_Pre_2.0.0)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/tag/1.1.0-pre)
 
-[![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher-win.exe?style=for-the-badge&logo=square&logoColor=blue&label=Windows_2.0.0)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/tag/v2.0.0/download/StellarisChecksumPatcher-win.exe)
+[![Downloads@2.0 Windows](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/Stellaris-Checksum-Patcher-win_fix-save-patch_02.exe?style=for-the-badge&logo=square&logoColor=blue&label=2.0.0_Windows)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/tag/v2.0.0/download/Stellaris-Checksum-Patcher-win_fix_save_patch_02.exe)
 
-[![Downloads@latest](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher-linux?style=for-the-badge&logo=linux&label=Linux)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/tag/v2.0.0/download/StellarisChecksumPatcher-linux)
+[![Downloads@2.0 Linux](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/Stellaris-Checksum-Patcher-linux?style=for-the-badge&logo=linux&label=2.0.0_Linux)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/tag/v2.0.0/download/Stellaris-Checksum-Patcher-linux)
 
 [![Release Version Badge](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
 
@@ -30,8 +30,8 @@ The following describes the steps needed to compile the source code to a one-fil
 
 ### Requirements:
 
-* [Python 3.13](https://www.python.org/downloads/release/python-3139/)
-* [UV](https://docs.astral.sh/uv/)
+* [Python 3.13](https://www.python.org/downloads/release/python-3139/) (Can be managed by UV)
+* [UV](https://docs.astral.sh/uv/) (Very recommended)
 
 ### Pull
 
@@ -68,8 +68,8 @@ This will sync the project's requirements, create a virtual environment and run 
 ### Building
 
 Requirements: 
-* [Python 3.13](https://www.python.org/downloads/release/python-3139/)
-* [UV](https://docs.astral.sh/uv/)
+* [Python 3.13](https://www.python.org/downloads/release/python-3139/) (Can be managed by UV)
+* [UV](https://docs.astral.sh/uv/) (Very recommended)
 
 #### git clone
 For a more in-depth explanation, look into _[How To](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository?platform=linux&tool=webui)_
