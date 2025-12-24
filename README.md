@@ -1,10 +1,10 @@
 # Stellaris Checksum Patcher (Enable Achievements w/ Mods!)
 
-[![Downloads@Pre2.0](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher.exe?style=for-the-badge&logo=square&logoColor=blue&label=Windows_Pre_2.0.0)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/tag/1.1.0-pre)
-
 [![Downloads@2.0 Windows](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/Stellaris-Checksum-Patcher-win_fix-save-patch_02.exe?style=for-the-badge&logo=square&logoColor=blue&label=2.0.0_Windows)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/tag/v2.0.0/download/Stellaris-Checksum-Patcher-win_fix_save_patch_02.exe)
 
 [![Downloads@2.0 Linux](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/Stellaris-Checksum-Patcher-linux?style=for-the-badge&logo=linux&label=2.0.0_Linux)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/tag/v2.0.0/download/Stellaris-Checksum-Patcher-linux)
+
+[![Downloads@Pre2.0](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/StellarisChecksumPatcher.exe?style=for-the-badge&logo=square&logoColor=blue&label=Pre_2.0)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/tag/1.1.0-pre)
 
 [![Release Version Badge](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
 
