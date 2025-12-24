@@ -15,7 +15,7 @@ An easy and painless way to patch the game's executable to enable Achievements b
 
 | Platform                                                                                                                         | Version              |
 |----------------------------------------------------------------------------------------------------------------------------------|----------------------|
-| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-win.exe)   | v2.0.0 |
+| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-win_fix-save-patch_02.exe)   | v2.0.2-save-patch-fix_02 |
 | [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.0.0/Stellaris-Checksum-Patcher-linux)   | v2.0.0 |
 | macOS                                                                                                                            | Currently None       |
 
@@ -148,7 +148,7 @@ cd Stellaris-Exe-Checksum-Patcher
 | File                               | SHA256                                                                                 | MD5                                                    |
 |------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
 | Stellaris-Checksum-Patcher-linux   | <sub><sup>15bfc34e73744a9c7f530e4db0a9621ed7fdfec5c647d18f33cfaca24bb3f49d</sup></sub> | <sub><sup>73eb3fb94b2994a3711b3e82f5e5cb52</sup></sub> |
-| Stellaris-Checksum-Patcher-win.exe | <sub><sup>207cf543844bacdf2440e514022b2998842c89c07b9545a082ac9456bc4721f3</sup></sub> | <sub><sup>9415f8c822ddd87197a23434b1564443</sup></sub> |
+| Stellaris-Checksum-Patcher-win_fix-save-patch_02.exe | <sub><sup>9af4e3a1c0f12782f0eb74689df3b8e0b074b86ce0aae8ab1872ca7dd633376d</sup></sub> | <sub><sup>4cc7f5cff84a753b284299e4e9c558d8</sup></sub> |
 
 
 # 🔎 My Stance
