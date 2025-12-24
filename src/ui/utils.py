@@ -1,13 +1,7 @@
-from PySide6.QtCore import (
-    QCoreApplication,
-    QEvent,
-    QObject,
-    QRect,
-    Qt,
-    QThread,
-    QTimer,
-    Signal,
-)
+from pathlib import Path
+from typing import Optional
+
+from PySide6.QtCore import QCoreApplication, QEvent, QObject, QRect, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -17,49 +11,12 @@ from PySide6.QtWidgets import (
     QTextBrowser,
 )
 
+from conf_globals import LOG_LEVEL, SETTINGS
+from logger import create_logger
+from patchers import MultiGamePatcher
+from patchers import models as patcher_models
 
-class WorkerSignals(QObject):
-    started = Signal()
-    finished = Signal()
-    progress = Signal(str)
-    terminal_progress = Signal(str)
-    request_file_path = Signal()
-    result = Signal(object)
-    failed = Signal()
-    sig_quit = Signal()
-    error = Signal(tuple)
-
-
-class Threader(QThread):
-    def __init__(self, target, args=(), kwargs=None) -> None:
-        self.signals = WorkerSignals()
-
-        QThread.__init__(self)
-        self._target = target
-        self._args = args
-        self._kwargs = kwargs if kwargs is not None else {}
-
-    def run(self):
-        """Start Thread."""
-        try:
-            if self._target:
-                self.signals.started.emit()
-                return_value = self._target(*self._args, **self._kwargs)
-
-                self.signals.result.emit(return_value)
-        except Exception as e:
-            import traceback
-
-            traceback.print_exc()
-            err_info = (type(e), e, traceback.format_exc())
-            self.signals.error.emit(err_info)
-        finally:
-            self.signals.finished.emit()
-
-    def stop(self):
-        if self.isRunning():
-            self.requestInterruption()
-            self.wait()
+log = create_logger("UI.UTILS", LOG_LEVEL)
 
 
 def set_icon_gray(icon: QIcon, size=(32, 32)):
@@ -291,3 +248,51 @@ def _restore_window_focus(window):
 
 def restore_window_focus(window):
     QTimer.singleShot(500, lambda: _restore_window_focus(window))
+
+
+def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.PatchConfiguration) -> Optional[Path]:
+    """
+    Utility function to find the game path automatically.
+
+    Args:
+        patcher: The multi-game patcher instance
+        configuraiton: Patch Configuration
+
+    Returns:
+        Path to game executable if found, otherwise None
+    """
+
+    game = configuration.game
+    version = configuration.version
+    is_proton = configuration.is_proton
+
+    game_patcher = patcher.get_game_patcher(game, version)
+
+    if not game_patcher:
+        return None
+
+    if is_proton:
+        exe_info = game_patcher.get_executable_info(patcher_models.Platform.WINDOWS)
+    else:
+        exe_info = game_patcher.get_executable_info()
+
+    log.info(f"{exe_info=}", silent=True)
+
+    # Check for saved path in settings first
+    saved_install_path_str: str = SETTINGS.get_install_path(game)
+    if saved_install_path_str:
+        game_install_dir = Path(saved_install_path_str)
+        if game_install_dir.exists() and game_install_dir.is_file():
+            log.info(f"Retrieved game executable from settings: {game_install_dir}")
+            return game_install_dir
+        else:
+            log.warning(f"Saved game path found, but executable is invalid.")
+
+    # Auto-locate
+    log.info("Attempting to auto-locate game installation...")
+    game_install_dir = game_patcher.locate_game_install()
+
+    if game_install_dir:
+        return game_install_dir
+
+    return None

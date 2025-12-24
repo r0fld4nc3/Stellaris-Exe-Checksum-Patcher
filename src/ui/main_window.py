@@ -25,6 +25,7 @@ from patchers import pdx_patchers, save_patcher  # isort: skip
 from typing import List, Optional, Union
 
 from patchers import models as patcher_models
+from thread_utils import Threader, WorkerSignals
 
 from .resources import AppFont, AppIcon, AppStyle, IconAchievementState, ResourceManager
 from .windows import (
@@ -36,7 +37,6 @@ from .windows import (
 from utils.platform import (  # isort: skip
     get_file_access_time,
     get_file_modified_time,
-    open_in_file_manager,
     set_file_access_time,
 )
 
@@ -56,7 +56,7 @@ from conf_globals import (  # isort: skip
     updater,
 )
 
-from .utils import WorkerSignals, Threader, EventFilterMoveResize, get_screen_info, set_icon_gray  # isort: skip
+from .utils import EventFilterMoveResize, get_screen_info, find_game_path  # isort: skip
 from logger import create_logger  # isort: skip
 
 # loggers to hook up to signals
@@ -522,6 +522,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         WORKER FUNCTION: Tries to find the game path automatically.
         Returns the path if found, otherwise None.
         """
+
+        return find_game_path(self.multi_game_patcher, self.configuration)
 
         patcher = self.multi_game_patcher.get_game_patcher(self.configuration.game, self.configuration.version)
 

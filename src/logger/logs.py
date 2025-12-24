@@ -10,7 +10,7 @@ from conf_globals import (
     USE_LOCAL_PATTERNS,
     system,
 )
-from ui.utils import WorkerSignals
+from thread_utils import WorkerSignals
 
 from .path_helpers import ensure_paths, get_os_env_config_folder
 

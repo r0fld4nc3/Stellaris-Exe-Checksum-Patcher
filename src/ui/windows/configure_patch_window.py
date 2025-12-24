@@ -30,9 +30,10 @@ from conf_globals import (
 from logger import create_logger
 from patchers import MultiGamePatcher, PatchConfiguration
 from patchers import models as patcher_models
+from thread_utils import Threader
 from utils.platform import open_in_file_manager
 
-from ..utils import Threader, restore_window_focus
+from ..utils import find_game_path, restore_window_focus
 from .welcome_dialog import WelcomeDialog
 
 log = create_logger("Patch Config", LOG_LEVEL)
@@ -549,39 +550,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         Returns the path if found, otherwise None.
         """
 
-        patcher = self.patcher.get_game_patcher(self.current_config.game, self.current_config.version)
-
-        if not patcher:
-            return None
-
-        is_proton = self.current_config.is_proton
-
-        if is_proton:
-            exe_info = patcher.get_executable_info(patcher_models.Platform.WINDOWS)
-        else:
-            # Get native exe info
-            exe_info = patcher.get_executable_info()
-
-        log.info(f"{exe_info=}", silent=True)
-
-        # Check for saved path in settings first
-        saved_install_path_str: str = SETTINGS.get_install_path(self.current_config.game)
-        if saved_install_path_str:
-            game_install_dir = Path(saved_install_path_str)
-            if game_install_dir.exists() and game_install_dir.is_file():
-                log.info(f"Retrieved game executable from settings: {game_install_dir}")
-                return game_install_dir
-            else:
-                log.warning(f"Saved game path found, but executable is invalid.")
-
-        # Auto-locate
-        log.info("Attempting to auto-locate game installation...")
-        game_install_dir = patcher.locate_game_install()
-
-        if game_install_dir:
-            return game_install_dir
-
-        return None  # Signal failure
+        return find_game_path(self.patcher, self.current_config)
 
     def _cleanup_thread(self, thread: Threader):
         """Remove finished thread from active list."""

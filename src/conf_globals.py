@@ -19,7 +19,7 @@ except Exception as e:
     print(f"Error parsing arguments: {e}")
     _args = _parser.parse_args([])
 
-APP_VERSION = [2, 0, 1]
+APP_VERSION = [2, 0, 2]
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
