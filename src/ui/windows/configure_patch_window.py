@@ -155,7 +155,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.use_proton_picker = QComboBox()
         if OS.LINUX or OS.MACOS:
             self.use_proton_picker.addItems(
-                [patcher_models.LINUX_VERSIONS_ENUM.NATIVE, patcher_models.LINUX_VERSIONS_ENUM.PROTON]
+                [patcher_models.TRANSLATION_LAYER_ENUM.NATIVE, patcher_models.TRANSLATION_LAYER_ENUM.PROTON]
             )
             self.use_proton_picker.setFont(self.font)
             selection_layout.addWidget(self.use_proton_picker)
@@ -299,7 +299,7 @@ class ConfigurePatchOptionsDialog(QDialog):
     def _should_use_proton(self) -> bool:
         """Determine if Proton should be used for Linux"""
         if OS.LINUX or OS.MACOS and hasattr(self, "use_proton_picker"):
-            return self.use_proton_picker.currentText().lower() == patcher_models.LINUX_VERSIONS_ENUM.PROTON.lower()
+            return self.use_proton_picker.currentText().lower() == patcher_models.TRANSLATION_LAYER_ENUM.PROTON.lower()
         return False
 
     def _get_current_platform(self) -> patcher_models.Platform:
@@ -363,11 +363,18 @@ class ConfigurePatchOptionsDialog(QDialog):
         # Update platform UI
         if OS.LINUX:
             linux_version = (
-                patcher_models.LINUX_VERSIONS_ENUM.PROTON
+                patcher_models.TRANSLATION_LAYER_ENUM.PROTON
                 if self.current_config.is_proton
-                else patcher_models.LINUX_VERSIONS_ENUM.NATIVE
+                else patcher_models.TRANSLATION_LAYER_ENUM.NATIVE
             )
             self.use_proton_picker.setCurrentText(linux_version)
+        elif OS.MACOS:
+            macos_version = (
+                patcher_models.TRANSLATION_LAYER_ENUM.PROTON
+                if self.current_config.is_proton
+                else patcher_models.TRANSLATION_LAYER_ENUM.NATIVE
+            )
+            self.use_proton_picker.setCurrentText(macos_version)
 
         self._on_game_changed(self.current_config.game)
 
@@ -393,9 +400,9 @@ class ConfigurePatchOptionsDialog(QDialog):
                 log.info(f"{use_proton=}")
 
                 if use_proton and hasattr(self, "use_proton_picker"):
-                    self.use_proton_picker.setCurrentText(patcher_models.LINUX_VERSIONS_ENUM.PROTON)
+                    self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.PROTON)
                 elif not use_proton and hasattr(self, "use_proton_picker"):
-                    self.use_proton_picker.setCurrentText(patcher_models.LINUX_VERSIONS_ENUM.NATIVE)
+                    self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.NATIVE)
 
         self.version_combobox.blockSignals(False)
         self._on_version_changed(self.version_combobox.currentText())
