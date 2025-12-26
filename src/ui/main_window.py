@@ -581,9 +581,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         if game_binary_path:
             if (OS.LINUX or OS.LINUX_PROTON) and self.configuration.is_proton:
-                SETTINGS.game(self.configuration.game).proton_install_path = game_binary_path
+                SETTINGS.game(self.configuration.game).proton_install_path = game_binary_path.resolve().as_posix()
             else:
-                SETTINGS.game(self.configuration.game).install_path = game_binary_path
+                SETTINGS.game(self.configuration.game).install_path = game_binary_path.resolve().as_posix()
             self._run_patcher_worker_thread(game_binary_path)
 
     def _run_patcher_worker_thread(self, game_binary_path: Path):

@@ -278,7 +278,7 @@ class SteamHelper:
 
         if steam_path_str:
             self.steam_install = Path(steam_path_str)
-            SETTINGS.settings.steam_install_path = str(self.steam_install)
+            SETTINGS.settings.steam_install_path = self.steam_install.resolve().as_posix()
             return self.steam_install
         else:
             log.error("Unable to acquire Steam installation.")

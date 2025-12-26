@@ -502,15 +502,13 @@ class ConfigurePatchOptionsDialog(QDialog):
             saved_path = auto_located_path
             log.info(f"Using auto-located path as saved path: {saved_path}", silent=True)
 
-            log.info(f"{paths=}")
-
             # Save the paths
             if saved_path not in paths and saved_path.exists():
                 with SETTINGS.batch_update():
                     if (OS.LINUX or OS.LINUX_PROTON) and self.current_config.is_proton:
-                        SETTINGS.game(self.current_config.game).proton_install_path = saved_path
+                        SETTINGS.game(self.current_config.game).proton_install_path = saved_path.resolve().as_posix()
                     else:
-                        SETTINGS.game(self.current_config.game).install_path = saved_path
+                        SETTINGS.game(self.current_config.game).install_path = saved_path.resolve().as_posix()
 
         else:
             # Iterate once to test if any path exists
