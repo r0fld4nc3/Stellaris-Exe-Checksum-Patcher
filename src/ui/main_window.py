@@ -306,7 +306,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         updater.set_local_version(str(self._APP_VERSION))
 
         if self.configuration.game:
-            _last_platform = SETTINGS.game(self.configuration.game).last_selected_platform
+            _last_platform = SETTINGS.game(self.configuration.game).last_patched_platform
             if _last_platform:
                 if OS.LINUX or OS.MACOS:
                     self.configuration.is_proton = _last_platform.lower() == patcher_models.Platform.WINDOWS.value
@@ -484,7 +484,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 )
             ]
 
-        SETTINGS.game(self.configuration.game).last_selected_platform = platform.value
+        SETTINGS.game(self.configuration.game).last_patched_platform = platform.value
 
         log.info(f"Patches to apply: {patches_to_apply}", silent=True)
 
@@ -512,7 +512,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Save last access time to track if already patched
         original_mtime = get_file_modified_time(game_binary_path)
         access_ts = set_file_access_time(game_binary_path, None, original_mtime)
-        SETTINGS.game(self.configuration.game).last_accessed_timestamp = access_ts
+        SETTINGS.game(self.configuration.game).last_patched_timestamp = access_ts
 
         self.swap_btn_patch_to_launch_game()
 
@@ -890,7 +890,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # Check if file already patched
         file_access_time = get_file_access_time(install_path)
-        last_access_time = SETTINGS.game(game).last_accessed_timestamp
+        last_access_time = SETTINGS.game(game).last_patched_timestamp
 
         if file_access_time == last_access_time:
             log.info("File already patched.")
