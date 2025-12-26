@@ -379,7 +379,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         if target_version:
             self.version_combobox.setCurrentText(self.current_config.version.capitalize())
 
-        last_platform = SETTINGS.game(game_name).last_selected_platform
+        last_platform = SETTINGS.game(game_name).last_patched_platform
         if last_platform:
             if OS.LINUX or OS.MACOS:
                 use_proton = last_platform.lower() == patcher_models.Platform.WINDOWS.value
