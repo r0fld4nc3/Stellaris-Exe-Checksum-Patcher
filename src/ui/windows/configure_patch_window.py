@@ -153,7 +153,7 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         # --- Linux Version Dropdown ---
         self.use_proton_picker = QComboBox()
-        if OS.LINUX:
+        if OS.LINUX or OS.MACOS:
             self.use_proton_picker.addItems(
                 [patcher_models.LINUX_VERSIONS_ENUM.NATIVE, patcher_models.LINUX_VERSIONS_ENUM.PROTON]
             )
@@ -298,7 +298,7 @@ class ConfigurePatchOptionsDialog(QDialog):
 
     def _should_use_proton(self) -> bool:
         """Determine if Proton should be used for Linux"""
-        if OS.LINUX and hasattr(self, "use_proton_picker"):
+        if OS.LINUX or OS.MACOS and hasattr(self, "use_proton_picker"):
             return self.use_proton_picker.currentText().lower() == patcher_models.LINUX_VERSIONS_ENUM.PROTON.lower()
         return False
 
