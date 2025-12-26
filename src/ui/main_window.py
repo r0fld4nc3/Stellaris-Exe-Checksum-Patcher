@@ -974,6 +974,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     def app_quit(self):
         log.info("Quitting Application. Performing graceful shutdown procedure.")
 
+        SETTINGS._auto_save = False  # Temporarily unset
         SETTINGS.settings.app_version = self._APP_VERSION
         SETTINGS.settings.window_width = self.width()
         SETTINGS.settings.window_height = self.height()

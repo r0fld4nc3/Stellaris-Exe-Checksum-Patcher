@@ -30,8 +30,8 @@ class AutoSaveHookedSettingsClass:
 
         # Trigger auto-save
         if hasattr(self, "_manager") and self._manager:
-            log.info(f"Auto-saving!")
-            self._manager._mark_dirty()
+            if self._manager._auto_save:
+                self._manager._mark_dirty()
 
 
 @dataclass
