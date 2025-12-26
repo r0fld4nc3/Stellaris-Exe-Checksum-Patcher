@@ -115,7 +115,7 @@ class ConfigurePatchOptionsDialog(QDialog):
     def _load_settings(self):
         log.info("Load Settings")
         # Reflect settings in UI
-        use_local_patterns = any([USE_LOCAL_PATTERNS, PREVENT_CONN, SETTINGS.get_force_use_local_patterns()])
+        use_local_patterns = any([USE_LOCAL_PATTERNS, PREVENT_CONN, SETTINGS.settings.force_local_patterns])
         print(hasattr(self, "chkbox_use_local_patterns"))
         self.chkbox_use_local_patterns.setCheckState(
             Qt.CheckState.Checked if use_local_patterns else Qt.CheckState.Unchecked
@@ -246,7 +246,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         # Force update state when global enforcement rule is applied
         if any((USE_LOCAL_PATTERNS, PREVENT_CONN)):
             self.chkbox_use_local_patterns.setEnabled(False)
-            # SETTINGS.set_force_use_local_patterns(Qt.CheckState.Unchecked.value)
+            # SETTINGS.settings.force_local_patterns = Qt.CheckState.Unchecked.value
         utilities_layout.addWidget(self.chkbox_use_local_patterns)
 
         # --- Spacer ---
@@ -260,7 +260,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.tab_widget.addTab(utilities_tab, "General Utilities")
 
     def _validate_steam_game_files(self):
-        install_path = SETTINGS.get_install_path(self.current_config.game)
+        install_path = SETTINGS.game(self.current_config.game).install_path
         app_id = STEAM.get_app_id_from_install_path(install_path)
 
         # Remove the binary file before verifying
@@ -379,7 +379,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         if target_version:
             self.version_combobox.setCurrentText(self.current_config.version.capitalize())
 
-        last_platform = SETTINGS.get_last_selected_platorm(game_name)
+        last_platform = SETTINGS.game(game_name).last_selected_platform
         if last_platform:
             if OS.LINUX or OS.MACOS:
                 use_proton = last_platform.lower() == patcher_models.Platform.WINDOWS.value
@@ -469,7 +469,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         if state in (Qt.CheckState.Checked.value, Qt.CheckState.Unchecked.value):
             # We don't need to set for --no-conn
             if not PREVENT_CONN:
-                SETTINGS.set_force_use_local_patterns(state)
+                SETTINGS.settings.force_local_patterns = state
         else:
             log.warning("Checkbox in Partially Checked state. We shouldn't be here.", silent=True)
 
@@ -490,8 +490,8 @@ class ConfigurePatchOptionsDialog(QDialog):
 
     def show_game_folder(self, auto_located_path: Optional[Path] = None):
         paths = [
-            SETTINGS.get_install_path(self.current_config.game),
-            SETTINGS.get_proton_install_path(self.current_config.game),
+            SETTINGS.game(self.current_config.game).install_path,
+            SETTINGS.game(self.current_config.game).proton_install_path,
         ]
 
         # Attempt to find a valid executable from settings
@@ -502,13 +502,15 @@ class ConfigurePatchOptionsDialog(QDialog):
             saved_path = auto_located_path
             log.info(f"Using auto-located path as saved path: {saved_path}", silent=True)
 
+            log.info(f"{paths=}")
+
             # Save the paths
             if saved_path not in paths and saved_path.exists():
-                if (OS.LINUX or OS.LINUX_PROTON) and self.current_config.is_proton:
-                    set_path = SETTINGS.set_proton_install_path
-                else:
-                    set_path = SETTINGS.set_install_path
-                set_path(self.current_config.game, saved_path)
+                with SETTINGS.batch_update():
+                    if (OS.LINUX or OS.LINUX_PROTON) and self.current_config.is_proton:
+                        SETTINGS.game(self.current_config.game).proton_install_path = saved_path
+                    else:
+                        SETTINGS.game(self.current_config.game).install_path = saved_path
 
         else:
             # Iterate once to test if any path exists
@@ -531,7 +533,7 @@ class ConfigurePatchOptionsDialog(QDialog):
             log.info(f"Opening game folder: {saved_path}", silent=False)
             open_in_file_manager(saved_path)
         else:
-            log.error(f"Unable to determine saved path: {saved_path}")
+            log.warning(f"Unable to determine saved path: {saved_path}")
             log.info("Attempting to auto-locate game installation...")
 
             if not auto_located_path:
@@ -561,7 +563,7 @@ class ConfigurePatchOptionsDialog(QDialog):
             log.info(f"Cleaned up worker thread. Active threads: {len(self.active_threads)}", silent=True)
 
     def show_app_config_folder(self):
-        config_dir = SETTINGS.get_config_dir()
+        config_dir = SETTINGS.config_dir
 
         if config_dir.exists() and config_dir.is_dir():
             log.info(f"App Config Folder: {config_dir}", silent=True)

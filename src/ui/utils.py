@@ -279,7 +279,10 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
     log.info(f"{exe_info=}", silent=True)
 
     # Check for saved path in settings first
-    saved_install_path_str: str = SETTINGS.get_install_path(game)
+    if not is_proton:
+        saved_install_path_str: str = SETTINGS.game(game).install_path
+    else:
+        saved_install_path_str: str = SETTINGS.game(game).proton_install_path
     if saved_install_path_str:
         game_install_dir = Path(saved_install_path_str)
         if game_install_dir.exists() and game_install_dir.is_file():

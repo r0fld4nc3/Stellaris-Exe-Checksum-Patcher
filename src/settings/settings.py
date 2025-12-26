@@ -22,8 +22,8 @@ class GameSettings:
     proton_install_path: str = ""
     save_games_path: str = ""
     patches: list[str] = field(default_factory=list)
-    last_patched_platform: str = ""
-    last_patched_timestamp: float = 0.0
+    last_selected_platform: str = ""
+    last_accessed_timestamp: float = 0.0
 
 
 @dataclass
@@ -33,7 +33,7 @@ class AppSettings:
     app_version: str = ""
     accepted_welcome_dialog: bool = False
     update_last_checked: int = 0
-    patterns_update_last_checked: int = 0
+    patch_patterns_update_last_checked: int = 0
     force_local_patterns: bool = False
     update_available: bool = False
     window_width: int = 800
@@ -166,7 +166,7 @@ class SettingsManager:
     def game(self, name: str) -> GameSettings:
         """Get or create Game settings."""
         if name not in self.settings.games:
-            self.settings[name] = GameSettings()
+            self.settings.games[name] = GameSettings()
             self._mark_dirty()
         return self.settings.games[name]
 

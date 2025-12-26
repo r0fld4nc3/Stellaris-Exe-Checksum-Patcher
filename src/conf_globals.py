@@ -80,10 +80,10 @@ from updater import Updater
 
 updater = Updater(REPO_OWNER, REPO_NAME)
 
-from settings import Settings
+from settings import SettingsManager
 
-SETTINGS = Settings()
-SETTINGS.load_config()
+SETTINGS = SettingsManager()
+SETTINGS.load()
 
 from utils import steam_helper
 
