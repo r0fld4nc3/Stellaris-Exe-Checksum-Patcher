@@ -303,9 +303,16 @@ class ConfigurePatchOptionsDialog(QDialog):
         return False
 
     def _get_current_platform(self) -> patcher_models.Platform:
-        if OS.LINUX and self._should_use_proton():
+        if OS.WINDOWS:
             return patcher_models.Platform.WINDOWS
-        return patcher_models.Platform.LINUX_NATIVE if OS.LINUX else patcher_models.Platform.WINDOWS
+        elif OS.LINUX:
+            if self._should_use_proton():
+                return patcher_models.Platform.WINDOWS
+            return patcher_models.Platform.LINUX_NATIVE
+        elif OS.MACOS:
+            if self._should_use_proton():
+                return patcher_models.Platform.WINDOWS
+            return patcher_models.Platform.MACOS
 
     def _validate_configuration(self, config: PatchConfiguration) -> bool:
         log.info(f"Validating patch configuration: {config}", silent=True)
