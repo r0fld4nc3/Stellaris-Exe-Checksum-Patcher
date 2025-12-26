@@ -552,7 +552,7 @@ class MultiGamePatcher:
         self, game_name: str, version: str = CONST_VERSION_LATEST_KEY, platform: Optional[Platform] = None
     ) -> Dict[str, PatchPattern]:
         self.logger.info(
-            f"Getting available patches for '{game_name}': '{version}' {platform if platform is not None else ''}",
+            f"Getting available patches for '{game_name}': '{version}' on {platform if platform else ''}",
             silent=True,
         )
         patcher = self.get_game_patcher(game_name, version=version)
