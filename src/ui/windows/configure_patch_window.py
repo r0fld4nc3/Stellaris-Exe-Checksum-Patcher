@@ -382,7 +382,8 @@ class ConfigurePatchOptionsDialog(QDialog):
         versions = self.patcher.get_available_versions(game_name)
         self.version_combobox.blockSignals(True)
         self.version_combobox.clear()
-        self.version_combobox.addItems([v.capitalize() for v in versions])
+        collected_versions = [v for v in versions]
+        # self.version_combobox.addItems([v.capitalize() for v in versions])
 
         target_version = ""
         if game_name == self.current_config.game:
@@ -403,6 +404,12 @@ class ConfigurePatchOptionsDialog(QDialog):
                     self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.PROTON)
                 elif not use_proton and hasattr(self, "use_proton_picker"):
                     self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.NATIVE)
+
+        # Add available versions provided they have patches
+        for version in collected_versions:
+            patches = self.patcher.get_available_patches_for_game(game_name, version, last_platform)
+            if patches:
+                self.version_combobox.addItem(version.capitalize())
 
         self.version_combobox.blockSignals(False)
         self._on_version_changed(self.version_combobox.currentText())
