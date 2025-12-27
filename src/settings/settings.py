@@ -42,6 +42,7 @@ class GameSettings(AutoSaveHookedSettingsClass):
     proton_install_path: str = ""
     save_games_path: str = ""
     patches: list[str] = field(default_factory=list)
+    last_patched_version: str = ""
     last_patched_platform: str = ""
     last_patched_timestamp: float = 0.0
 

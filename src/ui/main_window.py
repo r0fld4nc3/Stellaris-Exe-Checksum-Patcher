@@ -487,7 +487,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 if config.enabled
             ]
 
-        SETTINGS.game(self.configuration.game).last_patched_platform = platform.value
+        with SETTINGS.batch_update():
+            SETTINGS.game(self.configuration.game).last_patched_platform = platform.value
+            SETTINGS.game(self.configuration.game).last_patched_version = self.configuration.version
 
         log.info(f"Patches to apply: {patches_to_apply}", silent=True)
 
