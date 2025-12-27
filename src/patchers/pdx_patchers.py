@@ -558,8 +558,21 @@ class MultiGamePatcher:
     def get_available_patches_for_game(
         self, game_name: str, version: str = CONST_VERSION_LATEST_KEY, platform: Optional[Platform] = None
     ) -> Dict[str, PatchPattern]:
+        if platform is not None and not isinstance(platform, Platform):
+            platform = Platform(platform)
+
+        # Normalize platform to Enum
+        if isinstance(platform, str):
+            try:
+                platform = Platform(platform.lower())
+            except ValueError:
+                self.logger.error(f"Invalid platform: '{platform}'")
+                return {}
+
+        platform_str = platform.value if platform else "None"
+
         self.logger.info(
-            f"Getting available patches for '{game_name}': '{version}' on {platform if platform else ''}",
+            f"Getting available patches for '{game_name}': '{version}' {'on ' + platform_str if platform else ''}",
             silent=True,
         )
         patcher = self.get_game_patcher(game_name, version=version)

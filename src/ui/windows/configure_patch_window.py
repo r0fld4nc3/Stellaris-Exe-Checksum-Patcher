@@ -54,6 +54,7 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         self.patcher = patcher
         self.current_config = current_config
+        self._current_platform: Optional[patcher_models.Platform] = None
         self.font = font
 
         # --- Style and Appearance ---
@@ -394,24 +395,40 @@ class ConfigurePatchOptionsDialog(QDialog):
         if target_version:
             self.version_combobox.setCurrentText(self.current_config.version.capitalize())
 
-        last_platform = SETTINGS.game(game_name).last_patched_platform
-        if last_platform:
-            if OS.LINUX or OS.MACOS:
-                use_proton = last_platform.lower() == patcher_models.Platform.WINDOWS.value
-                log.info(f"{use_proton=}")
+        last_platform_str = SETTINGS.game(game_name).last_patched_platform
 
-                if use_proton and hasattr(self, "use_proton_picker"):
-                    self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.PROTON)
-                elif not use_proton and hasattr(self, "use_proton_picker"):
-                    self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.NATIVE)
+        # Convert to Enum
+        if last_platform_str:
+            try:
+                self._current_platform = patcher_models.Platform(last_platform_str.lower())
+                log.info(f"Using saved platform: {self._current_platform}")
+            except ValueError:
+                log.warning(f"Invalid saved platform '{last_platform_str}', auto-detecting current.")
+                self._current_platform = self._get_current_platform()
+        else:
+            # No saved platform, auto-detect
+            self._current_platform = self._get_current_platform()
+            log.info(f"No saved platform, auto-detected: {self._current_platform.value}")
+
+        if OS.LINUX or OS.MACOS:
+            use_proton = self._current_platform == patcher_models.Platform.WINDOWS
+            log.info(f"{use_proton=}")
+
+            if use_proton and hasattr(self, "use_proton_picker"):
+                self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.PROTON)
+            elif not use_proton and hasattr(self, "use_proton_picker"):
+                self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.NATIVE)
 
         # Add available versions provided they have patches
         for version in collected_versions:
-            patches = self.patcher.get_available_patches_for_game(game_name, version, last_platform)
+            patches = self.patcher.get_available_patches_for_game(game_name, version, self._current_platform)
             if patches:
                 self.version_combobox.addItem(version.capitalize())
 
         self.version_combobox.blockSignals(False)
+
+        log.info(f"Current text before _on_version_changed: '{self.version_combobox.currentText()}'")
+
         self._on_version_changed(self.version_combobox.currentText())
 
         # Update Utilities Game Title
@@ -433,7 +450,10 @@ class ConfigurePatchOptionsDialog(QDialog):
             return
 
         # Determine platform from UI Widget
-        platform = self._get_current_platform()
+        # Use stored platform if available, otherwise detect it
+        if not self._current_platform:
+            self._current_platform = self._get_current_platform()
+            log.warning(f"Platform was not set, auto-detected from system: {self._current_platform.value}")
 
         # Determine if current UI selection matches intiial config
         is_initial_config = (
@@ -444,7 +464,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         use_saved_selections = is_initial_config and self.current_config.selected_patches
 
         # Populate scroll area with patch option checkboxes
-        available_patches = patcher.get_available_patches(platform=platform)
+        available_patches = patcher.get_available_patches(platform=self._current_platform)
         for patch_name, patch_info in available_patches.items():
             checkbox = QCheckBox(patch_info.display_name)
             checkbox.setToolTip(patch_info.description)
@@ -476,7 +496,7 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         # Log current config
         log.info(
-            f"Displaying current config:\nGame={self.game_combobox.currentText()}\nVersion: {self.version_combobox.currentText().lower()}\nPlatform: {platform}",
+            f"Displaying current config:\nGame={self.game_combobox.currentText()}\nVersion: {self.version_combobox.currentText().lower()}\nPlatform: {self._current_platform}",
             silent=True,
         )
 
