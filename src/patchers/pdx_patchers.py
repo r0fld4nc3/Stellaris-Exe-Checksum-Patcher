@@ -250,6 +250,7 @@ class GamePatcher:
 
         if create_backup:
             if platform == Platform.MACOS and not file_path.suffix.lower() == ".exe":
+                # Backup the .app folder, not the binary content inside
                 backup_success = self._create_backup(file_path.parent.parent.parent)
             else:
                 backup_success = self._create_backup(file_path)
