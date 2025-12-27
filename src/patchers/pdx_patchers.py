@@ -249,7 +249,12 @@ class GamePatcher:
             return results
 
         if create_backup:
-            if not self._create_backup(file_path):
+            if platform == Platform.MACOS and not file_path.suffix.lower() == ".exe":
+                backup_success = self._create_backup(file_path.parent.parent.parent)
+            else:
+                backup_success = self._create_backup(file_path)
+
+            if not backup_success:
                 log.error("Failed to create backup, aborting all patches")
                 for patch_name, _ in patches_to_apply:
                     results[patch_name] = False
