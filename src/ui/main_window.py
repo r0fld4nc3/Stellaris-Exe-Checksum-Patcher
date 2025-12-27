@@ -897,6 +897,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # Get available version and find first one with patches available
         all_versions = self.multi_game_patcher.get_available_versions(precached_game)
+        last_patched_version = SETTINGS.game(precached_game).last_patched_version
+        log.info(f"Last patched version: {last_patched_version}", silent=True)
         selected_version = patcher_models.CONST_VERSION_LATEST_KEY  # Default fallback
 
         for version in all_versions:
