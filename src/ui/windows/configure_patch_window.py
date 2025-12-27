@@ -383,17 +383,6 @@ class ConfigurePatchOptionsDialog(QDialog):
         versions = self.patcher.get_available_versions(game_name)
         self.version_combobox.blockSignals(True)
         self.version_combobox.clear()
-        collected_versions = [v for v in versions]
-        # self.version_combobox.addItems([v.capitalize() for v in versions])
-
-        target_version = ""
-        if game_name == self.current_config.game:
-            target_version = self.current_config.version
-        elif patcher_models.CONST_VERSION_LATEST_KEY in versions:
-            target_version = patcher_models.CONST_VERSION_LATEST_KEY
-
-        if target_version:
-            self.version_combobox.setCurrentText(self.current_config.version.capitalize())
 
         last_platform_str = SETTINGS.game(game_name).last_patched_platform
 
@@ -420,15 +409,37 @@ class ConfigurePatchOptionsDialog(QDialog):
                 self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.NATIVE)
 
         # Add available versions provided they have patches
-        for version in collected_versions:
+        available_versions_with_patches = []
+        for version in versions:
             patches = self.patcher.get_available_patches_for_game(game_name, version, self._current_platform)
             if patches:
                 self.version_combobox.addItem(version.capitalize())
+                available_versions_with_patches.append(version)
+
+        # Determine version to select
+        target_version = None
+
+        # If it's the same as current config, try to use that version
+        if game_name == self.current_config.game and self.current_config.version in available_versions_with_patches:
+            target_version = self.current_config.version
+        # Otherwise, prefer 'latest' if available
+        elif patcher_models.CONST_VERSION_LATEST_KEY in available_versions_with_patches:
+            target_version = patcher_models.CONST_VERSION_LATEST_KEY
+        # Fall back to first available version
+        elif available_versions_with_patches:
+            target_version = available_versions_with_patches[0]
+
+        if target_version:
+            self.version_combobox.setCurrentText(target_version.capitalize())
+            # Update current config version
+            self.current_config.version = target_version
+            log.info(f"Set config version: {target_version}")
+        else:
+            log.warning(f"No version with patches available for {game_name} on {self._current_platform.value}")
 
         self.version_combobox.blockSignals(False)
 
         log.info(f"Current text before _on_version_changed: '{self.version_combobox.currentText()}'")
-
         self._on_version_changed(self.version_combobox.currentText())
 
         # Update Utilities Game Title
@@ -444,6 +455,10 @@ class ConfigurePatchOptionsDialog(QDialog):
         game_name = self.game_combobox.currentText()
         if not game_name or not version_name:
             return
+
+        # Update current config to match UI
+        self.current_config.game = game_name
+        self.current_config.version = version_name.lower()
 
         patcher = self.patcher.get_game_patcher(game_name, version_name.lower())
         if not patcher:
