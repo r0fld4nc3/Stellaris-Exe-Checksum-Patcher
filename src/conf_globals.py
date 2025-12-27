@@ -23,8 +23,8 @@ APP_VERSION = [2, 0, 2]
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
-REPO_BRANCH: str = "main"
-TRACKING_BRANCH: str = f"release"
+REPO_BRANCH: str = "dev"
+TRACKING_BRANCH: str = f"dev"
 LOG_LEVEL = 1
 IS_DEBUG = False
 UPDATE_CHECK_COOLDOWN = 60  # seconds
@@ -80,10 +80,10 @@ from updater import Updater
 
 updater = Updater(REPO_OWNER, REPO_NAME)
 
-from settings import Settings
+from settings import SettingsManager
 
-SETTINGS = Settings()
-SETTINGS.load_config()
+SETTINGS = SettingsManager()
+SETTINGS.load()
 
 from utils import steam_helper
 

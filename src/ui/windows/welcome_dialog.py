@@ -198,7 +198,7 @@ class WelcomeDialog(QDialog):
 
         # Confirm and Don't Show Again
         # Make it dynamic! Appear only if never accepted!
-        has_accepted = SETTINGS.get_accepted_welcome_dialog()
+        has_accepted = SETTINGS.settings.accepted_welcome_dialog
         if not has_accepted:
             btn_confirm = QPushButton("Understood! - Don't Show Again")
             # Override button font
@@ -220,7 +220,8 @@ class WelcomeDialog(QDialog):
         content_layout.addLayout(button_layout)
 
     def _on_confirm(self):
-        SETTINGS.set_accepted_welcome_dialog(True)
+        with SETTINGS.batch_update():
+            SETTINGS.settings.accepted_welcome_dialog = True
         self.accept()
 
     def adapt_to_screen_size(self, parent=None, width_pct: int = 50, height_pct: int = 80):

@@ -11,7 +11,7 @@ import shutil
 from .models import *
 
 from pathlib import Path  # isort: skip
-from typing import Optional, Dict, List  # isort: skip
+from typing import Optional, Dict, List, Union  # isort: skip
 
 from conf_globals import LOG_LEVEL, OS, STEAM  # isort: skip
 from logger import create_logger  # isort: skip
@@ -76,9 +76,16 @@ class GamePatcher:
     def get_platform_config(self, platform: Platform) -> Optional[PlatformConfig]:
         return self.platforms.get(platform)
 
-    def get_available_patches(self, platform: Optional[Platform] = None) -> Dict[str, PatchPattern]:
+    def get_available_patches(self, platform: Optional[Union[Platform, str]] = None) -> Dict[str, PatchPattern]:
         if platform is None:
             platform = self.detect_platform()
+        elif isinstance(platform, str):
+            try:
+                platform = Platform(platform.lower())
+                self.logger.info(f"Converted platform string to Enum: {platform}", silent=True)
+            except ValueError:
+                self.logger.error(f"Invalid platform string: '{platform}'")
+                return {}
 
         platform_config = self.get_platform_config(platform)
         if platform_config:
@@ -551,8 +558,21 @@ class MultiGamePatcher:
     def get_available_patches_for_game(
         self, game_name: str, version: str = CONST_VERSION_LATEST_KEY, platform: Optional[Platform] = None
     ) -> Dict[str, PatchPattern]:
+        if platform is not None and not isinstance(platform, Platform):
+            platform = Platform(platform)
+
+        # Normalize platform to Enum
+        if isinstance(platform, str):
+            try:
+                platform = Platform(platform.lower())
+            except ValueError:
+                self.logger.error(f"Invalid platform: '{platform}'")
+                return {}
+
+        platform_str = platform.value if platform else "None"
+
         self.logger.info(
-            f"Getting available patches for '{game_name}': '{version}' {platform if platform is not None else ''}",
+            f"Getting available patches for '{game_name}': '{version}' {'on ' + platform_str if platform else ''}",
             silent=True,
         )
         patcher = self.get_game_patcher(game_name, version=version)

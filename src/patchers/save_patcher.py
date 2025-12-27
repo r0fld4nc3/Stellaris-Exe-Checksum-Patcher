@@ -36,7 +36,7 @@ MACOS_PARADOX_INTERACTIVE_PATHS = [Path.home() / "Documents" / "Paradox Interact
 
 ACHIEVEMENTS_FILE_NAME = "achievements.txt"
 ACHIEVEMENTS_URL = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/src/achievements/{ACHIEVEMENTS_FILE_NAME}"
-ACHIEVEMENTS_FILE_LOCAL = SETTINGS.get_config_dir() / ACHIEVEMENTS_FILE_NAME
+ACHIEVEMENTS_FILE_LOCAL = SETTINGS.config_dir / ACHIEVEMENTS_FILE_NAME
 ACHIEVEMENTS_DISTRIBUTED_FILE = Path(__file__).parent / ACHIEVEMENTS_FILE_NAME
 if not ACHIEVEMENTS_DISTRIBUTED_FILE.exists():
     # We're not running a compiled build
@@ -268,7 +268,7 @@ class SavePatcher:
 
         # Determine backup directory
         if backup_base_dir is None:
-            backup_base_dir = SETTINGS.get_config_dir() / "saves_backup"
+            backup_base_dir = SETTINGS.config_dir / "saves_backup"
 
         timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
         backup_dir = backup_base_dir / save_file.parent.name / timestamp_str
@@ -828,7 +828,7 @@ class StellarisSavePatcher(SavePatcher):
         log.info("Loading local achievements file.")
 
         if not ACHIEVEMENTS_FILE_LOCAL.exists():
-            config_dir = SETTINGS.get_config_dir()
+            config_dir = SETTINGS.config_dir
             copy_dest = config_dir / ACHIEVEMENTS_FILE_NAME
 
             try:
