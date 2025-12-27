@@ -19,12 +19,12 @@ except Exception as e:
     print(f"Error parsing arguments: {e}")
     _args = _parser.parse_args([])
 
-APP_VERSION = [2, 0, 2]
+APP_VERSION = [2, 0, 3]
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
 REPO_BRANCH: str = "main"
-TRACKING_BRANCH: str = f"release"
+TRACKING_BRANCH: str = f"settings-refactor"
 LOG_LEVEL = 1
 IS_DEBUG = False
 UPDATE_CHECK_COOLDOWN = 60  # seconds
