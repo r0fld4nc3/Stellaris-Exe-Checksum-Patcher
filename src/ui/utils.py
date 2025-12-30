@@ -1,22 +1,23 @@
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import QCoreApplication, QEvent, QObject, QRect, Qt, QTimer
+from PySide6.QtCore import QCoreApplication, QEvent, QObject, QRect, Qt, QTimer, QUrl
 from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
+    QFileDialog,
     QPushButton,
     QTextBrowser,
 )
 
-from conf_globals import LOG_LEVEL, SETTINGS
+from conf_globals import LOG_LEVEL, OS, SETTINGS
 from logger import create_logger
 from patchers import MultiGamePatcher
 from patchers import models as patcher_models
 
-log = create_logger("UI.UTILS", LOG_LEVEL)
+log = create_logger("UI UTILS", LOG_LEVEL)
 
 
 def set_icon_gray(icon: QIcon, size=(32, 32)):
@@ -254,6 +255,10 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
     """
     Utility function to find the game path automatically.
 
+    Attemps to find the game executable by:
+    1. Checking saved path in settings
+    2. Auto-locating via Steam detection
+
     Args:
         patcher: The multi-game patcher instance
         configuraiton: Patch Configuration
@@ -262,37 +267,70 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
         Path to game executable if found, otherwise None
     """
 
-    game = configuration.game
-    version = configuration.version
-    is_proton = configuration.is_proton
-
-    game_patcher = patcher.get_game_patcher(game, version)
+    game_patcher = patcher.get_game_patcher(configuration.game, configuration.version)
 
     if not game_patcher:
+        log.error(f"Failed to get patcher for {configuration.game} version {configuration.version}")
         return None
 
-    if is_proton:
-        exe_info = game_patcher.get_executable_info(patcher_models.Platform.WINDOWS)
-    else:
-        exe_info = game_patcher.get_executable_info()
-
+    # Determine platform and executable info
+    platform = patcher_models.Platform.WINDOWS if configuration.is_proton else None
+    exe_info = game_patcher.get_executable_info(platform)
+    path_postfix = exe_info.path_postfix
     log.info(f"{exe_info=}", silent=True)
+    log.info(f"Platform: {platform}", silent=True)
+    log.info(f"Is Proton: {configuration.is_proton}", silent=True)
 
-    # Check for saved path in settings first
-    saved_install_path_str: str = SETTINGS.get_install_path(game)
-    if saved_install_path_str:
-        game_install_dir = Path(saved_install_path_str)
-        if game_install_dir.exists() and game_install_dir.is_file():
-            log.info(f"Retrieved game executable from settings: {game_install_dir}")
-            return game_install_dir
+    # Check saved path in settings
+    saved_path_str = (
+        SETTINGS.game(configuration.game).proton_install_path
+        if configuration.is_proton
+        else SETTINGS.game(configuration.game).install_path
+    )
+
+    log.info(f"Retrieved saved path from settings: '{saved_path_str}'", silent=True)
+
+    if saved_path_str:
+        saved_path = Path(saved_path_str)
+        if saved_path.exists() and saved_path.is_file():
+            log.info(f"Retrieved game executable from settings: {saved_path}", silent=True)
+            return saved_path
         else:
             log.warning(f"Saved game path found, but executable is invalid.")
 
     # Auto-locate
-    log.info("Attempting to auto-locate game installation...")
-    game_install_dir = game_patcher.locate_game_install()
+    log.info(f"Attempting to auto-locate game installation.")
+    auto_located_path = game_patcher.locate_game_install()
 
-    if game_install_dir:
-        return game_install_dir
+    if OS.MACOS and not configuration.is_proton:
+        auto_located_path = auto_located_path / path_postfix
 
+    if auto_located_path:
+        log.info(f"Auto-located path: {auto_located_path}")
+        return auto_located_path
+
+    log.error(f"Failed to locate {configuration.game} installation.")
+    return None
+
+
+def prompt_install_dir(game_name: str = "Game") -> Optional[Path]:
+    qurl_install_dir: tuple[QUrl, str] = QFileDialog().getOpenFileUrl(
+        caption=f"Please choose {game_name} executable binary..."
+    )
+
+    picked_path_str = qurl_install_dir[0].path()
+    log.info(f"User picked path: {picked_path_str}", silent=True)
+
+    # Handle potentially empty strings
+    if picked_path_str and picked_path_str.strip():
+        picked_path = Path(picked_path_str).absolute().resolve()
+
+        # Verify path does exist
+        if picked_path.exists():
+            return picked_path
+        else:
+            log.warning(f"Selected path does not exist: {picked_path}")
+            return None
+
+    log.info(f"User cancelled file selection.", silent=True)
     return None

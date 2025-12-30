@@ -1,9 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set "SRC_DIR=.\src"
-set "VENV_DIR=.\venv-stellaris-checksum-patcher"
-set "PYPROJECT_FILE=.\pyproject.toml"
+REM Get the project root directory
+set "SCRIPT_DIR=%~dp0"
+REM Navigate ip one directory to get PROJECT_ROOT
+for %%i in ("%SCRIPT_DIR%..") do set "PROJECT_ROOT=%%~fi"
+
+set "SRC_DIR=%PROJECT_ROOT%\src"
+set "VENV_DIR=%PROJECT_ROOT%\venv-stellaris-checksum-patcher"
+set "PYPROJECT_FILE=%PROJECT_ROOT%\pyproject.toml"
 set "MAIN_FILE=%SRC_DIR%\main.py"
 set "PYTHON_BIN=python"
 set "USE_UV=false"
@@ -57,6 +62,9 @@ if %ERRORLEVEL% neq 0 (
     echo Error: Failed to activate virtual environment.
     exit /b 1
 )
+
+REM Change to project root for dependency installation
+cd /d "%PROJECT_ROOT%"
 
 echo Ensuring dependencies from %PYPROJECT_FILE% are up to date...
 if "%USE_UV%"=="true" (

@@ -225,7 +225,7 @@ class SteamHelper:
                 if library_path not in self.steam_library_paths:
                     self.steam_library_paths.append(library_path)
 
-        log.info(f"Final known library paths: {self.steam_library_paths}")
+        log.info(f"Final known library paths: {self.steam_library_paths}", silent=True)
         return self.steam_library_paths
 
     def get_game_install_path(self, game_name) -> Optional[Path]:
@@ -246,7 +246,7 @@ class SteamHelper:
     def get_steam_install_path(self) -> Optional[Path]:
         log.info("Acquiring Steam installation...")
 
-        saved_path_str = SETTINGS.get_steam_install_path()
+        saved_path_str = SETTINGS.settings.steam_install_path
         if saved_path_str:
             saved_path = Path(saved_path_str)
             if saved_path.exists():
@@ -264,7 +264,13 @@ class SteamHelper:
             if not steam_path_str:
                 steam_path_str = registry_helper.read_key(STEAM_REGISTRY_PATH_32, STEAM_INSTALL_LOCATION_KEY)
         elif OS.LINUX:
-            search_paths = LINUX_DISTRO_PATHS if OS.LINUX else MACOS_DISTRO_PATHS
+            search_paths = LINUX_DISTRO_PATHS
+            for distro_path in search_paths:
+                if Path(distro_path).exists():
+                    steam_path_str = str(distro_path)
+                    break
+        elif OS.MACOS:
+            search_paths = MACOS_DISTRO_PATHS
             for distro_path in search_paths:
                 if Path(distro_path).exists():
                     steam_path_str = str(distro_path)
@@ -272,11 +278,11 @@ class SteamHelper:
 
         if steam_path_str:
             self.steam_install = Path(steam_path_str)
-            SETTINGS.set_steam_install_path(str(self.steam_install))
+            SETTINGS.settings.steam_install_path = self.steam_install.resolve().as_posix()
             return self.steam_install
         else:
             log.error("Unable to acquire Steam installation.")
-            return None
+            return Path().home()
 
     def get_app_id_from_install_path(self, install_path: str | Path) -> str:
         if not isinstance(install_path, Path):
@@ -343,7 +349,7 @@ class SteamHelper:
 
 
 def validate_game_files_app_id(app_id: int | str) -> None:
-    steam_bin_win = SETTINGS.get_steam_install_path() + "/steam.exe"
+    steam_bin_win = SETTINGS.settings.steam_install_path + "/steam.exe"
 
     steam_cmd_url = f"{STEAM_CLIENT_INVOKE_URL}{STEAM_CLIENT_INVOKE_VALIDATE}/{app_id}"
 
@@ -399,7 +405,7 @@ def verify_game_files_app_name(app_name: str) -> None:
 
 
 def launch_game_app_id(app_id: int | str) -> None:
-    steam_bin = SETTINGS.get_steam_install_path()
+    steam_bin = SETTINGS.settings.steam_install_path
     steam_cmd_url = f"{STEAM_CLIENT_INVOKE_URL}{STEAM_CLIENT_INVOKE_RUN}/{app_id}"
 
     log.info(f"Launching game with App ID: {app_id}")

@@ -4,441 +4,391 @@ import json  # isort: skip
 import shutil  # isort: skip
 import tempfile  # isort: skip
 from pathlib import Path  # isort: skip
+from dataclasses import asdict, dataclass, field
 from typing import Optional, Union
 
-from conf_globals import config_folder, LOG_LEVEL  # isort: skip
+from conf_globals import CONFIG_FOLDER, LOG_LEVEL  # isort: skip
 from logger import create_logger  # isort: skip
 from utils.encodings import detect_file_encoding  # isort: skip
 
 log = create_logger("Settings", LOG_LEVEL)
 
 
-class Settings:
-    class ENUM:
-        APP_VERSION = "app-version"
-        ACCEPTED_WELCOME_DIALOG = "accepted-welcome-dialog"
-        UPDATE_LAST_CHECKED = "update-last-checked"
-        PATTERNS_UPDATE_LAST_CHECKED = "patch-patterns-update-last-checked"
-        FORCE_LOCAL_PATTERNS = "patch-patterns-force-local"
-        UPDATE_AVAILABLE = "update-available"
-        WINDOW_WIDTH = "window-width"
-        WINDOW_HEIGHT = "window-height"
-        LAST_SELECTED_GAME = "last-selected-game"
-        STEAM_INSTALL_PATH = "steam-install-path"
-        GAMES = "games"
+@dataclass
+class AutoSaveHookedSettingsClass:
+    # Manager hook to intercept attr calls in order to auto-save
+    _manager: Optional["SettingsManager"] = field(default=None, init=False, repr=False, compare=False)
 
-        APP_IDS_UPDATE_LAST_CHECKED = "app-ids-update-last-checked"
-
-        # --- GAME SPECIFIC INFO ---
-        INSTALL_PATH = "install-path"
-        PROTON_INSTALL_PATH = "proton-install-path"
-        PATCHES = "patches"
-        SAVE_GAMES_PATH = "save-games-path"
-        PATCHED_BLOCK = "patched-block"
-        PATCHED_HASH = "patched-exe-hash"
-        EXE_NAME = "exe-name"
-        EXE_PROTON_NAME = "exe-proton-name"
-        LAST_PATCHED_PLATFORM = "last-patched-platform"
-        LAST_PATCHED_TIMESTAMP = "last-patched-ts"
-
-        _DICT_DEFAULT_GAME_SETTINGS = {
-            LAST_PATCHED_PLATFORM: "",
-            LAST_PATCHED_TIMESTAMP: 0,
-            INSTALL_PATH: "",
-            PROTON_INSTALL_PATH: "",
-            SAVE_GAMES_PATH: "",
-            PATCHES: [],
-        }
-
-    def __init__(self):
-        self.patcher_settings: dict = {
-            self.ENUM.APP_VERSION: "",
-            self.ENUM.ACCEPTED_WELCOME_DIALOG: False,
-            self.ENUM.UPDATE_LAST_CHECKED: 0,
-            self.ENUM.PATTERNS_UPDATE_LAST_CHECKED: 0,
-            self.ENUM.FORCE_LOCAL_PATTERNS: False,
-            self.ENUM.UPDATE_AVAILABLE: False,
-            self.ENUM.WINDOW_WIDTH: 0,
-            self.ENUM.WINDOW_HEIGHT: 0,
-            self.ENUM.LAST_SELECTED_GAME: "",
-            self.ENUM.STEAM_INSTALL_PATH: "",
-            self.ENUM.GAMES: {},
-        }
-        self._config_file_name = "stellaris-checksum-patcher-settings.json"
-        self.config_dir = Path(config_folder)
-        self.config_file = Path(config_folder) / self._config_file_name
-
-    def set_app_version(self, version: str):
-        self.patcher_settings[self.ENUM.APP_VERSION] = version
-        log.info(f"Saving app version: {version}")
-        self.save_config()
-
-    def get_app_version(self):
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.APP_VERSION)
-
-    def set_window_width(self, num: int):
-        self.patcher_settings[self.ENUM.WINDOW_WIDTH] = num
-        log.info(f"Saving window width: {num}")
-        self.save_config()
-
-    def get_window_width(self):
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.WINDOW_WIDTH)
-
-    def set_window_height(self, num: int):
-        self.patcher_settings[self.ENUM.WINDOW_HEIGHT] = num
-        log.info(f"Saving window height: {num}")
-        self.save_config()
-
-    def get_window_height(self):
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.WINDOW_HEIGHT)
-
-    def set_install_path(self, game_name: str, install_path: Union[Path, str]):
-        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
-
-        if not game:
-            self.patcher_settings[self.ENUM.GAMES][game_name] = self.ENUM._DICT_DEFAULT_GAME_SETTINGS
-
-        # Enforce install_path type
-        if not isinstance(install_path, Path):
-            install_path = Path(install_path).resolve().as_posix()
-
-        self.patcher_settings[self.ENUM.GAMES][game_name][self.ENUM.INSTALL_PATH] = str(install_path)
-
-        log.info(f"Saving {game_name} install location: {install_path}")
-        self.save_config()
-
-        return True
-
-    def get_install_path(self, game_name: str) -> str:
-        # self.load_config()
-
-        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
-
-        if not game:
-            return ""
-
-        return self.patcher_settings[self.ENUM.GAMES][game_name].get(self.ENUM.INSTALL_PATH)
-
-    def set_proton_install_path(self, game_name: str, install_path):
-        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
-
-        if not game:
-            self.patcher_settings[self.ENUM.GAMES][game_name] = self.ENUM._DICT_DEFAULT_GAME_SETTINGS
-
-        # Enforce install_path type
-        if not isinstance(install_path, Path):
-            install_path = Path(install_path).resolve().as_posix()
-
-        self.patcher_settings[self.ENUM.GAMES][game_name][self.ENUM.PROTON_INSTALL_PATH] = install_path
-
-        log.info(f"Saving {game_name} Proton install location: {install_path}")
-        self.save_config()
-
-        return True
-
-    def get_proton_install_path(self, game_name: str) -> str:
-        # self.load_config()
-
-        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
-
-        if not game:
-            return ""
-
-        return self.patcher_settings[self.ENUM.GAMES][game_name].get(self.ENUM.PROTON_INSTALL_PATH)
-
-    def set_steam_install_path(self, install_path) -> None:
-        posix_path = Path(install_path).as_posix()
-        self.patcher_settings[self.ENUM.STEAM_INSTALL_PATH] = posix_path
-        log.info(f"Saving Steam install path: {posix_path}")
-        self.save_config()
-
-    def get_steam_install_path(self) -> str:
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.STEAM_INSTALL_PATH)
-
-    def set_save_games_dir(self, game_name: str, save_games_dir: str):
-        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
-
-        if not game:
-            self.patcher_settings[self.ENUM.GAMES][game_name] = self.ENUM._DICT_DEFAULT_GAME_SETTINGS
-
-        posix_path = Path(save_games_dir).as_posix()
-
-        self.patcher_settings[self.ENUM.GAMES][game_name][self.ENUM.SAVE_GAMES_PATH] = posix_path
-
-        log.info(f"Saving {game_name} save games directory: {posix_path}")
-        self.save_config()
-
-        return True
-
-    def get_save_games_dir(self, game_name: str) -> Optional[Path]:
-        # self.load_config()
-
-        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
-
-        if not game:
-            return None
-
-        return self.patcher_settings[self.ENUM.GAMES][game_name].get(self.ENUM.SAVE_GAMES_PATH)
-
-    def set_patches_applied_to_game(self, game_name: str, patches: list[str]):
-        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
-
-        if not game:
-            self.patcher_settings[self.ENUM.GAMES][game_name] = self.ENUM._DICT_DEFAULT_GAME_SETTINGS
-
-        self.patcher_settings[self.ENUM.GAMES][game_name][self.ENUM.PATCHES] = patches
-
-        log.info(f"Saving {game_name} patches: {patches}")
-        self.save_config()
-
-        return True
-
-    def get_patches_applied_to_game(self, game_name: str) -> list[str]:
-        # self.load_config()
-
-        game = self.patcher_settings[self.ENUM.GAMES].get(game_name, None)
-
-        if not game:
-            return []
-
-        return self.patcher_settings[self.ENUM.GAMES][game_name].get(self.ENUM.PATCHES, [])
-
-    def get_update_last_checked(self) -> int:
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.UPDATE_LAST_CHECKED, 0)
-
-    def set_update_last_checked(self, timestamp: int):
-        self.patcher_settings[self.ENUM.UPDATE_LAST_CHECKED] = int(timestamp)
-        log.info(f"Saving update last checked: {timestamp}")
-        self.save_config()
-
-    def get_has_update(self) -> bool:
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.UPDATE_AVAILABLE)
-
-    def set_has_update(self, has_update_bool: bool):
-        self.patcher_settings[self.ENUM.UPDATE_AVAILABLE] = bool(has_update_bool)
-        log.info(f"Saving is update available: {has_update_bool}")
-        self.save_config()
-
-    def get_patch_patterns_update_last_checked(self):
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.PATTERNS_UPDATE_LAST_CHECKED, 0)
-
-    def set_patch_patterns_update_last_checked(self, timestamp: int):
-        self.patcher_settings[self.ENUM.PATTERNS_UPDATE_LAST_CHECKED] = int(timestamp)
-        log.info(f"Saving patch patterns update last checked: {int(timestamp)}")
-        self.save_config()
-
-    def set_force_use_local_patterns(self, state: bool):
-        self.patcher_settings[self.ENUM.FORCE_LOCAL_PATTERNS] = state
-        log.info(f"Saving force local patterns to: {state}")
-        self.save_config()
-
-    def get_force_use_local_patterns(self):
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.FORCE_LOCAL_PATTERNS, False)
-
-    def get_app_ids_file_update_last_checked(self):
-        # self.load_config()
-        return self.patcher_settings.get(self.ENUM.APP_IDS_UPDATE_LAST_CHECKED, 0)
-
-    def set_app_ids_file_update_last_checked(self, timestamp: int):
-        self.patcher_settings[self.ENUM.APP_IDS_UPDATE_LAST_CHECKED] = int(timestamp)
-        log.info(f"Saving App IDs file update last checked: {int(timestamp)}")
-        self.save_config()
-
-    def set_last_selected_platform(self, game: str, platform: str):
-        game_config = self.patcher_settings[self.ENUM.GAMES].get(game, None)
-
-        if not game_config:
+    def __setattr__(self, name, value):
+        # Skip internal attributes
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
             return
 
-        log.info(f"Saving '{game}' last used platform: {platform}", silent=True)
-        self.patcher_settings[self.ENUM.GAMES][game][self.ENUM.LAST_PATCHED_PLATFORM] = platform
+        # Set value
+        object.__setattr__(self, name, value)
 
-    def get_last_selected_platorm(self, game_name: str) -> str:
-        games: dict = self.patcher_settings.get(self.ENUM.GAMES)
-        game_config: dict = games.get(game_name, None)
+        # Trigger auto-save
+        if hasattr(self, "_manager") and self._manager:
+            self._manager._mark_dirty()
 
-        if not game_config:
-            return ""
 
-        return game_config.get(self.ENUM.LAST_PATCHED_PLATFORM, "")
+@dataclass
+class GameSettings(AutoSaveHookedSettingsClass):
+    """Representation of settings for a game."""
 
-    def set_last_accessed_timestamp(self, game: str, ts: int | float):
-        game_config = self.patcher_settings[self.ENUM.GAMES].get(game, None)
+    install_path: str = ""
+    proton_install_path: str = ""
+    save_games_path: str = ""
+    patches: list[str] = field(default_factory=list)
+    last_patched_version: str = ""
+    last_patched_platform: str = ""
+    last_patched_timestamp: float = 0.0
 
-        if not game_config:
-            return
 
-        log.info(f"Saving '{game}' last accessed time: {ts}", silent=True)
-        self.patcher_settings[self.ENUM.GAMES][game][self.ENUM.LAST_PATCHED_TIMESTAMP] = ts
+@dataclass
+class AppSettings(AutoSaveHookedSettingsClass):
+    """Main application settings."""
 
-    def get_last_accessed_timestamp(self, game_name: str) -> int | float:
-        games: dict = self.patcher_settings.get(self.ENUM.GAMES)
-        game_config: dict = games.get(game_name, None)
+    app_version: str = ""
+    accepted_welcome_dialog: bool = False
+    update_last_checked: int = 0
+    max_allowed_binary_backups: int = 2
+    patch_patterns_update_last_checked: int = 0
+    force_local_patterns: bool = False
+    update_available: bool = False
+    window_width: int = 800
+    window_height: int = 600
+    last_selected_game: str = ""
+    steam_install_path: str = ""
+    app_ids_update_last_checked: int = 0
+    games: dict[str, GameSettings] = field(default_factory=dict)
 
-        if not game_config:
-            return ""
 
-        return game_config.get(self.ENUM.LAST_PATCHED_TIMESTAMP, 0)
+class SettingsManager:
+    """Manages application settings with automatic persistence."""
 
-    def set_last_selected_game(self, game_name: str):
-        self.patcher_settings[self.ENUM.LAST_SELECTED_GAME] = game_name
-        log.info(f"Saving last selected game: {game_name}")
-        self.save_config()
+    def __init__(self, config_file_name: str = "stellaris-checksum-patcher-settings-v2.json"):
+        self.config_dir = Path(CONFIG_FOLDER)
+        self.config_file = self.config_dir / config_file_name
+        self.settings = AppSettings()
+        self.settings._manager = self  # Link manager to class
+        self._auto_save = True
+        self._dirty = False
 
-    def get_last_selected_game(self) -> str:
-        """Return name of last selected game"""
-        return self.patcher_settings.get(self.ENUM.LAST_SELECTED_GAME, "")
+        # Kick-off migration process
+        self.migrate_from_v1()
 
-    def set_accepted_welcome_dialog(self, acceptance: bool):
-        log.info(f"Set welcome dialog acceptance: {acceptance}")
-        self.patcher_settings[self.ENUM.ACCEPTED_WELCOME_DIALOG] = acceptance
-        self.save_config()
+    def _mark_dirty(self):
+        """Mark settings as modified and trigger auto-save."""
+        self._dirty = True
+        if self._auto_save:
+            self.save_settings()
 
-    def get_accepted_welcome_dialog(self) -> bool:
-        return self.patcher_settings.get(self.ENUM.ACCEPTED_WELCOME_DIALOG, False)
-
-    def clean_save_file(self):
-        """
-        Removes unused keys from the save file.
-        :return: `bool`
-        """
-
-        if not self.config_dir or not Path(self.config_dir).exists():
-            log.info("No config folder found.")
+    def load(self) -> bool:
+        """Load settings from disk."""
+        if not self.config_file.exists():
+            log.debug(f"Config file does not exist.")
             return False
 
-        if not Path(self.config_file).exists():
-            log.info("Config file does not exist. Creating.")
-            return self._safe_write_json(self.config_file, self.patcher_settings)
+        data = self._read_json(self.config_file)
+        if data:
+            self.settings = self._from_dict(data)
+            self._dirty = False
+            log.info(f"Loaded config from {self.config_file}")
+            return True
+        return False
 
-        settings: dict = self._safe_read_json(self.config_file)
-        if settings is None:
-            log.info(f"Unable to read config file {self.config_file}. Creating new one")
-            return self._safe_write_json(self.config_file, self.patcher_settings)
+    def save_settings(self) -> bool:
+        """Save settings to dsk."""
+        if not self._auto_save:
+            return True
 
-        # Get all valid keys from ENUM
-        valid_main_keys = {
-            getattr(self.ENUM, attr)
-            for attr in dir(self.ENUM)
-            if not attr.startswith("_") and isinstance(getattr(self.ENUM, attr), str)
-        }
+        self.config_dir.mkdir(parents=True, exist_ok=True)
+        data = self._to_dict(self.settings)
 
-        log.debug(f"{valid_main_keys=}")
+        if self._write_json(self.config_file, data):
+            self._dirty = False
+            log.info(f"Saved config to {self.config_file}")
+            return True
+        return False
 
-        # Remove unused keys
-        for setting in reversed(list(settings.keys())):
-            if setting not in valid_main_keys:
-                settings.pop(setting)
-                log.debug(f"Cleared unused settings key: {setting}")
+    def _to_dict(self, settings: AppSettings) -> dict:
+        """Convert AppSettings to dict."""
 
-        # Add missing settings
-        for k, v in self.patcher_settings.items():
-            if k not in settings:
-                settings[k] = v
-                log.info(f"Added {k}: {v}")
+        def _dict_factory(field_list):
+            """Custom dict factory to filter and exclude certain attributes."""
+            return {k: v for k, v in field_list if not k.startswith("_")}
 
-        return self._safe_write_json(self.config_file, settings)
+        data = asdict(settings, dict_factory=_dict_factory)
+        return data
 
-    def save_config(self):
-        if not self.config_dir:
-            self.config_dir = self.get_config_dir()
+    def _from_dict(self, data: dict) -> AppSettings:
+        """Convert dict settings to AppSettings handling nested GameSettings."""
 
-        os.makedirs(str(self.config_dir), exist_ok=True)
-        result = self._safe_write_json(self.config_file, self.patcher_settings)
-        if result:
-            log.debug(f"Saved config to {self.config_file}")
-        return result
+        # Extract nested and convert to relevant objects
+        game_data: dict = data.pop("games", {})
+        games: dict = {}
 
-    def load_config(self):
-        if self.config_dir == "" or not Path(self.config_dir).exists() or not Path(self.config_file).exists():
-            log.debug(f"Config does not exist.")
-            return False
+        for name, game_data in game_data.items():
+            # Skip empty name
+            if not name or not name.strip():
+                log.warning(f"Skipping game with empty name: {game_data}", silent=True)
+                continue
 
-        self.clean_save_file()
+            if isinstance(game_data, dict):
+                # Filter to only valid GameSettings fields
+                valid_fields = {k: v for k, v in game_data.items() if k in GameSettings.__annotations__}
 
-        log.debug(f"Loading config from {self.config_dir}")
-        log.debug(f"Config file: {self.config_file}")
+                game_settings = GameSettings(**valid_fields)
+                game_settings._manager = self  # Link manager to class
+                games[name] = game_settings
+            else:
+                games[name] = game_data
 
-        settings = self._safe_read_json(self.config_file)
+        # Filter valid AppSettings fields
+        valid_fields = {k: v for k, v in data.items() if k in AppSettings.__annotations__}
 
-        log.debug(json.dumps(settings, indent=2))
+        settings = AppSettings(**valid_fields)
+        settings._manager = self  # Link manager to class
+        settings.games = games
 
-        if settings is None:
-            log.info("Generating new config file")
-            self.save_config()
-            return False
+        return settings
 
-        # Load settings to class
-        self.patcher_settings.update(settings)
-
-        log.debug(f"Loaded config: {self.patcher_settings}")
-        return True
-
-    def get_config_dir(self) -> Path:
-        if not self.config_dir or not Path(self.config_dir).exists():
-            return Path(os.path.dirname(sys.executable))
-
-        return self.config_dir
-
-    def _safe_read_json(self, fp):
+    def _read_json(self, fp: Path) -> Optional[dict]:
         try:
-            if not Path(fp).exists():
+            if not fp.exists():
                 return None
 
-            _encoding = detect_file_encoding(fp)
+            encoding = detect_file_encoding(fp)
+            content = fp.read_text(encoding=encoding)
 
-            with open(fp, "r", encoding=_encoding) as file:
-                content = file.read()
-                if not content.strip():
-                    return None
-                return json.loads(content)
+            if not content.strip():
+                return None
+
+            return json.loads(content)
+
         except json.JSONDecodeError as e:
-            log.error(f"Json decode error reading file: {e}")
-
-            backup_path = f"{fp}.baddecode"
-            shutil.copy2(fp, backup_path)
-            log.info(f"Backed up bad file to {backup_path}")
+            log.error(f"JSON Decode Error: {e}")
+            backup = fp.with_suffix(fp.suffix + ".baddecode")
+            shutil.copy2(fp, backup)
+            log.info(f"Backed up corrupted file to: {backup}")
             return None
         except Exception as e:
-            log.error(f"Error reading config file: {e}")
+            log.error(f"Error reading config: {e}")
             return None
 
-    def _safe_write_json(self, fp: Path, data):
-        if not isinstance(fp, Path):
-            fp = Path(fp)
+    def _write_json(self, fp: Path, data: dict) -> bool:
+        """Atomically write JSON file."""
 
-        # Ensure directory exists
-        if not fp.parent.exists():
-            fp.parent.mkdir(parents=True, exist_ok=True)
+        fp.parent.mkdir(parents=True, exist_ok=True)
 
-        # Write to temporary first
-        temp_file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=str(fp.parent), delete=False)
-
-        log.debug(f"Created temporary file: {temp_file.name}")
+        temp = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=str(fp.parent), delete=False)
 
         try:
-            json_str = json.dumps(data, indent=2, ensure_ascii=False)
-            temp_file.write(json_str)
-            temp_file.flush()
-            os.fsync(temp_file.fileno())
-            temp_file.close()
-
-            # Rename the temp file to the target file (atomic)
-            shutil.move(temp_file.name, fp)
+            temp.write(json.dumps(data, indent=2, ensure_ascii=False))
+            temp.flush()
+            os.fsync(temp.fileno())
+            temp.close()
+            shutil.move(temp.name, fp)
             return True
         except Exception as e:
-            log.error(f"Error writing config file: {e}")
+            log.error(f"Error writing config: {e}")
             try:
-                os.unlink(temp_file.name)
-                log.info(f"Unlink: {temp_file.name}")
+                os.unlink(temp.name)
             except:
                 pass
             return False
+
+    def game(self, name: str) -> GameSettings:
+        """Get or create Game settings."""
+        if name not in self.settings.games:
+            game_settings = GameSettings()
+            game_settings._manager = self  # Link manager to class
+            self.settings.games[name] = game_settings
+            self._mark_dirty()
+        return self.settings.games[name]
+
+    def has_game(self, name: str) -> bool:
+        return name in self.settings.games
+
+    def remove_game(self, name: str) -> bool:
+        if name in self.settings.games:
+            del self.settings.games[name]
+            self._mark_dirty()
+            return True
+        return False
+
+    def migrate_from_v1(self) -> bool:
+        """
+        Migrate old v1 settings to v2.
+        """
+
+        def _search_config_dir_for_file(self: "SettingsManager") -> tuple[Optional[Path], set[Path]]:
+            """
+            Search config directory for old settings file and return its path if found.
+
+            It looks at recent modified and accessed times to sort for the most recent
+            old save file in order to determine which file has the most up to date
+            values.
+
+            It attempts to filter out the current v2 file if it is present.
+
+            Returns:
+                Tuple of (most_recent_file, all_old_files)
+            """
+
+            log.info("Attempting to locate and migrate old settings to v2", silent=True)
+
+            found: Optional[Path] = None
+            all_old_files: set[Path] = set()
+
+            access_sort: dict = {}
+
+            for item in self.config_dir.iterdir():
+                log.info(f"--> {item}")
+
+                # Pass own v2 file
+                if item.name == self.config_file.name:
+                    log.info(f"Passing own file: {item.name}", silent=True)
+                    continue
+
+                # Pass non .json files
+                if item.suffix.lower() != ".json":
+                    log.info(f"Passing non .json file. {item.name}", silent=True)
+                    continue
+
+                # Test for known identifier strings
+                name_split = item.stem.split("-")
+
+                if "settings" not in name_split:
+                    continue
+
+                if "v2" in name_split and item != self.config_file:
+                    all_old_files.add(item)
+                    continue
+                else:
+                    skip = False
+                    # Let's really test it, because "v2 copy" returns False
+                    for kw in name_split:
+                        if "v2" in kw.lower():
+                            skip = True
+                            break
+                    if item != self.config_file:
+                        all_old_files.add(item)
+
+                    if skip:
+                        continue
+
+                log.info(f"Processing file: {item.name}")
+
+                # Get access/modified times
+                a_time = os.stat(item).st_atime
+                m_time = os.stat(item).st_mtime
+
+                log.info(f"'{item.name} a_time: {a_time}")
+                log.info(f"'{item.name} m_time: {m_time}")
+
+                most_recent = max(a_time, m_time)
+
+                access_sort[item] = most_recent
+
+                all_old_files.add(item)
+
+            # TODO: Sort most recent
+            if access_sort:
+                found = max(access_sort.items(), key=lambda x: x[1])[0]
+                log.info(f"Selected most recent file for migration: {found.name}", silent=True)
+
+            return found, all_old_files
+
+        # Map old keys (dash-separated) to new keys (underscore-separated)
+        key_mapping: dict = {
+            "accepted-welcome-dialog": "accepted_welcome_dialog",
+            "update-last-checked": "update_last_checked",
+            "patch-patterns-update-last-checked": "patch_patterns_update_last_checked",
+            "patch-patterns-force-local": "force_local_patterns",
+            "window-width": "window_width",
+            "window-height": "window_height",
+            "last-selected-game": "last_selected_game",
+            "steam-install-path": "steam_install_path",
+        }
+
+        # Map old game keys to new keys
+        game_key_mapping = {
+            "install-path": "install_path",
+            "proton-install-path": "proton_install_path",
+            "last-patched-platform": "last_patched_platform",
+            "last-patched-timestamp": "last_patched_timestamp",
+        }
+
+        old_settings, all_old_files = _search_config_dir_for_file(self)
+
+        if not old_settings:
+            log.info(f"No old settings file found to migrate.", silent=True)
+            return False
+
+        with open(old_settings, "r", encoding="utf-8") as f:
+            old_data = json.load(f)
+
+        # Migrate App Settings
+        with self.batch_update():
+            for old_key, new_key in key_mapping.items():
+                if old_key in old_data:
+                    value = old_data[old_key]
+
+                    # Need to use setattr to set the value on dataclass
+                    if hasattr(self.settings, new_key):
+                        setattr(self.settings, new_key, value)
+                        log.info(f"Migrated {old_key} -> {new_key}: {value}", silent=True)
+
+        # Migrate Game settings
+        if "games" in old_data and isinstance(old_data["games"], dict):
+            for game_name, game_data in old_data["games"].items():
+                if not isinstance(game_data, dict):
+                    continue
+
+                game_settings = self.game(game_name)
+
+                with self.batch_update():
+                    for old_key, new_key in game_key_mapping.items():
+                        if old_key in game_data:
+                            value = game_data[old_key]
+                            setattr(game_settings, new_key, value)
+                            log.info(f"Migrated game '{game_name}' {old_key} -> {new_key}: {value}", silent=True)
+
+        # Save migrated settings
+        self.save_settings()
+        log.info(f"Successfully migrated settings from v1 to v2.", silent=True)
+
+        # Delete all old files
+        for file in all_old_files:
+            log.info(f"Delete file: {file}", silent=True)
+            if file.is_file():
+                file.unlink(missing_ok=True)
+
+        return True
+
+    def batch_update(self):
+        return _BatchContext(self)
+
+
+class _BatchContext:
+    """Context Manager for batch updates."""
+
+    def __init__(self, manager: SettingsManager):
+        self.manager = manager
+
+    def __enter__(self):
+        log.debug(f"Batch update started, disabling auto-save", silent=True)
+        self.manager._auto_save = False
+        return self.manager
+
+    def __exit__(self, *args):
+        log.debug(f"Batch update ending, dirty={self.manager._dirty}", silent=True)
+        self.manager._auto_save = True
+        if self.manager._dirty:
+            log.debug("Saving batched changes", silent=True)
+            self.manager.save_settings()
+        else:
+            log.warning("Batch update completed without marked as dirty.", silent=True)

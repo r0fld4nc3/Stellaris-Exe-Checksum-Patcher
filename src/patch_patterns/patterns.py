@@ -11,6 +11,7 @@ import requests
 from conf_globals import (
     LOG_LEVEL,
     OS,
+    PREVENT_CONN,
     REPO_BRANCH,
     REPO_NAME,
     REPO_OWNER,
@@ -25,7 +26,7 @@ log = create_logger("Patterns", LOG_LEVEL)  # isort: skip
 
 PATTERNS_FILE_NAME = "patterns.json"
 PATTERNS_URL = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/src/patch_patterns/{PATTERNS_FILE_NAME}"
-PATTERNS_LOCAL = SETTINGS.get_config_dir() / PATTERNS_FILE_NAME
+PATTERNS_LOCAL = SETTINGS.config_dir / PATTERNS_FILE_NAME
 PATTERNS_DISTRIBUTED_FILE = Path(__file__).parent / PATTERNS_FILE_NAME
 
 
@@ -40,12 +41,16 @@ class Platform(Enum):
 def get_patterns_config_remote() -> dict:
     log.info(f"Fetching patterns from remote: {PATTERNS_URL}")
 
-    last_checked = SETTINGS.get_patch_patterns_update_last_checked()
+    if PREVENT_CONN:
+        log.info("Force local patterns is off. Returning local patterns.", silent=True)
+        return get_patterns_config_local()
+
+    last_checked = SETTINGS.settings.patch_patterns_update_last_checked
     now = int(time.time())
     check_delta = now - last_checked
 
     if not last_checked:
-        SETTINGS.set_patch_patterns_update_last_checked(now)
+        SETTINGS.settings.patch_patterns_update_last_checked = now
 
     # Force SSL context to fix Thread issues
     try:
@@ -58,7 +63,7 @@ def get_patterns_config_remote() -> dict:
         # Return local file
         return get_patterns_config_local()
     else:
-        SETTINGS.set_patch_patterns_update_last_checked(now)
+        SETTINGS.settings.patch_patterns_update_last_checked = now
 
     try:
         response = requests.get(PATTERNS_URL, timeout=10, verify=certifi.where())
@@ -81,7 +86,7 @@ def get_patterns_config_remote() -> dict:
             config_key = Platform.WINDOWS
 
         # Save patterns file
-        if not USE_LOCAL_PATTERNS or not SETTINGS.get_force_use_local_patterns():
+        if not USE_LOCAL_PATTERNS or not SETTINGS.settings.force_local_patterns:
             log.info(f"Saving remote patterns to config dir: {PATTERNS_LOCAL}")
             with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
                 f.write(json.dumps(patterns_data, indent=2))
@@ -111,7 +116,7 @@ def get_patterns_config_local() -> dict:
         log.error(f"Expected local patterns file does not exist: {PATTERNS_LOCAL}")
 
         # Copy from local distribution to config dir
-        config_dir = SETTINGS.get_config_dir()
+        config_dir = SETTINGS.config_dir
         copy_dest = config_dir / PATTERNS_FILE_NAME
 
         try:

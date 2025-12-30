@@ -49,10 +49,10 @@ cd Stellaris-Exe-Checksum-Patcher
 * In the project's main directory.
 * Run:
 ```shell
-uv run ./nuitka-builds/build.py
+uv run ./builds/build-nuitka.py
 ```
 
-## ⚙️ Build & Run From Source
+## ⚙️ Sync & Run From Source
 
 The following describes the steps needed to run the source code without the need to compile a binary/executable. This is useful for fast development iteration as it offsets the burden to each user.
 
@@ -60,9 +60,7 @@ As a side-effect, each user must meet the configuration requirements.
 
 This will sync the project's requirements, create a virtual environment and run the project via the System/Venv python.
 
-### Building
-
-Requirements: 
+### Requirements: 
 * [Python 3.13](https://www.python.org/downloads/release/python-3139/) (Can be managed by UV)
 * [UV](https://docs.astral.sh/uv/) (Very recommended)
 
@@ -85,24 +83,26 @@ cd Stellaris-Exe-Checksum-Patcher
   * Uncompress the zip file.
 
   * #### Method 1 - Non-terminal
-    * Double-click `build-run.bat` to launch.
+    * Enter `Stellaris-Exe-Checksum-Patcher/scripts` directory.
+    * Double-click `dev-run.bat` to launch.
     * It should spawn a terminal window, update the required dependencies and launch.
 
   * #### Method 2 - Terminal
-    * Open `Terminal` or `Console` and `cd` into the directory where `build-run.bat` is.
-    * Run `&"build-run.bat"` or `build-run.bat`, whichever works.
+    * Open a terminal and `cd` into the `Stellaris-Exe-Checksum-Patcher/scripts` directory.
+    * Run `&"dev-run.bat"`, `dev-run.bat` or `.\dev-run.bat`, whichever works.
     * It should update the required dependencies and launch.
 
 ### Linux
   * Uncompress the archive.
 
   * #### Method 1 - Non-terminal
-    * Right click `build-run.sh` > Properties > Executable as Program (if it isn't already set)
-    * Double-click to launch
+    * Enter `Stellaris-Exe-Checksum-Patcher/scripts` directory.
+    * Right click `dev-run.sh` > Properties > **Executable as Program** (if it isn't already set).
+    * Double-click to launch.
 
   * #### Method 2 - Terminal
-    * Open a terminal on the folder where there script is located or navigate your terminal to there.
-    * Run `chmod +x build-run.sh; ./build-run.sh`
+    * Open a terminal and `cd` into the `Stellaris-Exe-Checksum-Patcher/scripts` directory.
+    * Run `chmod +x dev-run.sh; ./dev-run.sh`
 
 ## ❗ Disclaimer ❗
 * Remember to **NOT** upload the modified Stellaris executable to download or distribution sites.

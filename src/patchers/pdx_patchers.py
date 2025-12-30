@@ -11,9 +11,9 @@ import shutil
 from .models import *
 
 from pathlib import Path  # isort: skip
-from typing import Optional, Dict, List  # isort: skip
+from typing import Optional, Dict, List, Union  # isort: skip
 
-from conf_globals import LOG_LEVEL, OS, STEAM  # isort: skip
+from conf_globals import LOG_LEVEL, SETTINGS, OS, STEAM  # isort: skip
 from logger import create_logger  # isort: skip
 
 log = create_logger("PDX Patchers", LOG_LEVEL)  # isort: skip
@@ -76,9 +76,16 @@ class GamePatcher:
     def get_platform_config(self, platform: Platform) -> Optional[PlatformConfig]:
         return self.platforms.get(platform)
 
-    def get_available_patches(self, platform: Optional[Platform] = None) -> Dict[str, PatchPattern]:
+    def get_available_patches(self, platform: Optional[Union[Platform, str]] = None) -> Dict[str, PatchPattern]:
         if platform is None:
             platform = self.detect_platform()
+        elif isinstance(platform, str):
+            try:
+                platform = Platform(platform.lower())
+                self.logger.info(f"Converted platform string to Enum: {platform}", silent=True)
+            except ValueError:
+                self.logger.error(f"Invalid platform string: '{platform}'")
+                return {}
 
         platform_config = self.get_platform_config(platform)
         if platform_config:
@@ -129,9 +136,26 @@ class GamePatcher:
     def _create_backup(self, file_path: Path) -> bool:
         """Create a backup of the file"""
 
+        # If max is 0, don't create or delete any backups
+        max_allowed_backups = SETTINGS.settings.max_allowed_binary_backups
+
+        if max_allowed_backups <= 0:
+            log.info(f"Backup creation disabled (max_allowed_binary_backups = {max_allowed_backups})", silent=True)
+            return True
+
+        if OS.MACOS:
+            if file_path.is_dir() and ".app" in file_path.name.lower():
+                binary_dir = file_path.parent
+            else:
+                binary_dir = file_path.parent
+        else:
+            binary_dir: Path = file_path.parent if file_path.is_file() else file_path
+
+        self._delete_backups(binary_dir)
+
         # Backup with timestamp
         timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-        backup_path = Path(str(file_path) + f"_{timestamp_str}.orig")
+        backup_path = Path(str(file_path) + f"-{timestamp_str}.orig")
 
         try:
             # Handle macOS .app directories
@@ -147,6 +171,45 @@ class GamePatcher:
         except Exception as e:
             self.logger.error(f"Failed to create backup: {e}")
             return False
+
+    def _delete_backups(self, backup_directory: Path) -> None:
+        max_allowed_backups = SETTINGS.settings.max_allowed_binary_backups
+
+        log.info(f"Deleting backups if reached or over max allowance: {max_allowed_backups}", silent=True)
+        log.info(f"Processing backup directory: {backup_directory}", silent=True)
+
+        # If max is 0, don't create or delete any backups
+        if max_allowed_backups <= 0:
+            log.info(f"Backup deletion disabled (max_allowed_binary_backups = {max_allowed_backups})", silent=True)
+            return
+
+        # Collect backups
+        backups: list[Path] = []
+        for item in backup_directory.iterdir():
+            if ".orig" in item.name.lower():
+                backups.append(item)
+
+        if len(backups) >= max_allowed_backups:
+            backups.sort(key=lambda x: x.stat().st_mtime)
+
+            log.info(f"Sorted backups: {backups}", silent=True)
+
+            num_to_keep = max(0, max_allowed_backups - 1)
+            num_to_delete = len(backups) - num_to_keep
+
+            log.info(f"Keep {num_to_keep}, Delete {num_to_delete}", silent=True)
+
+            for backup_item in backups[:num_to_delete]:
+                log.info(f"Remove: '{backup_item}", silent=True)
+                try:
+                    if OS.MACOS:
+                        shutil.rmtree(backup_item)
+                    else:
+                        backup_item.unlink()
+                except Exception as e:
+                    log.warning(f"Failed to delete backup: '{backup_item}': {e}")
+        else:
+            log.info(f"No backups to delete, found {len(backups)}/{max_allowed_backups}")
 
     def locate_game_install(self) -> Optional[Path]:
         """
@@ -169,13 +232,13 @@ class GamePatcher:
         speculative_exe_path = game_install_path / self.exe_info.filename
 
         if speculative_exe_path.is_file() and speculative_exe_path.exists():
-            log.info(f"Auto-located path: {speculative_exe_path}")
+            log.info(f"Auto-located path: '{speculative_exe_path}'")
             return speculative_exe_path
 
         # Doesn't exist, glob for it
         for item in game_install_path.rglob("*"):
             if item.name == self.exe_info.filename:
-                log.info(f"Auto-located path: {item}")
+                log.info(f"Auto-located path: '{item}'")
                 return item.resolve()
 
         log.warning(f"Unable to auto-locate game binary. Automatic path detection failed.")
@@ -184,9 +247,12 @@ class GamePatcher:
 
     def patch_file_multiple(
         self, file_path: Path, patch_names: List[str], platform: Optional[Platform] = None, create_backup: bool = True
-    ):
+    ) -> dict[str, bool]:
         """
         Apply multiple patches to a file in a single operation
+
+        Returns:
+            dict: where `key` is patch name and `value` is `bool` status whether it succeeded or failed to apply.
         """
 
         if platform is None:
@@ -242,7 +308,13 @@ class GamePatcher:
             return results
 
         if create_backup:
-            if not self._create_backup(file_path):
+            if platform == Platform.MACOS and not file_path.suffix.lower() == ".exe":
+                # Backup the .app folder, not the binary content inside
+                backup_success = self._create_backup(file_path.parent.parent.parent)
+            else:
+                backup_success = self._create_backup(file_path)
+
+            if not backup_success:
                 log.error("Failed to create backup, aborting all patches")
                 for patch_name, _ in patches_to_apply:
                     results[patch_name] = False
@@ -503,6 +575,7 @@ class MultiGamePatcher:
             return f
 
     def reload_patterns(self) -> Dict:
+        log.info(f"Reload Patterns...", silent=True)
         return self._load_patterns()
 
     def get_available_games(self) -> List[str]:
@@ -551,8 +624,21 @@ class MultiGamePatcher:
     def get_available_patches_for_game(
         self, game_name: str, version: str = CONST_VERSION_LATEST_KEY, platform: Optional[Platform] = None
     ) -> Dict[str, PatchPattern]:
+        if platform is not None and not isinstance(platform, Platform):
+            platform = Platform(platform)
+
+        # Normalize platform to Enum
+        if isinstance(platform, str):
+            try:
+                platform = Platform(platform.lower())
+            except ValueError:
+                self.logger.error(f"Invalid platform: '{platform}'")
+                return {}
+
+        platform_str = platform.value if platform else "None"
+
         self.logger.info(
-            f"Getting available patches for '{game_name}': '{version}' {platform if platform is not None else ''}",
+            f"Getting available patches for '{game_name}': '{version}' {'on ' + platform_str if platform else ''}",
             silent=True,
         )
         patcher = self.get_game_patcher(game_name, version=version)

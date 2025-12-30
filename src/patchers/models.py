@@ -12,7 +12,7 @@ log = create_logger("Patcher Models", LOG_LEVEL)
 CONST_VERSION_LATEST_KEY = "latest"
 
 
-class LINUX_VERSIONS_ENUM:
+class TRANSLATION_LAYER_ENUM:
     NATIVE = "Native"
     PROTON = "Proton"
 

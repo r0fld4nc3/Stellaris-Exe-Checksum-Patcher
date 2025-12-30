@@ -1,25 +1,8 @@
-import argparse
 import platform
 
-system = platform.system()
+from utils.argument_parse import ARGUMENTS, PARSER
 
-# Argparser
-_parser = argparse.ArgumentParser(description="Application Startup")
-_parser.set_defaults(debug=False, no_conn=False)
-
-_parser.add_argument(
-    "-d", "--debug", action="store_true", help="Enable debug mode and expose more debugging information."
-)
-
-_parser.add_argument("--no-conn", action="store_true", help="Prevent all external connections.")
-
-try:
-    _args = _parser.parse_args()
-except Exception as e:
-    print(f"Error parsing arguments: {e}")
-    _args = _parser.parse_args([])
-
-APP_VERSION = [2, 0, 2]
+APP_VERSION = [2, 1, 0]
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
@@ -31,20 +14,22 @@ UPDATE_CHECK_COOLDOWN = 60  # seconds
 USE_LOCAL_PATTERNS = False  # Force use of only local patterns file. If True will override user choice.
 SUPPORTED_GAMES = ("Stellaris",)
 
+# --- Connections ---
+PREVENT_CONN = False
+if ARGUMENTS.no_conn:
+    PREVENT_CONN = True
+    USE_LOCAL_PATTERNS = True
+
 # --- Updater ---
 REPO_OWNER = HOST
 REPO_NAME = "Stellaris-Exe-Checksum-Patcher"
 
 # Parse debug mode and set flags related to it
-if LOG_LEVEL == 0 or _args.debug:
+if LOG_LEVEL == 0 or ARGUMENTS.debug:
     IS_DEBUG = True
     LOG_LEVEL = 0
 
-# --- Connections ---
-PREVENT_CONN = False
-if _args.no_conn:
-    PREVENT_CONN = True
-    USE_LOCAL_PATTERNS = True
+system = platform.system()
 
 
 class OS:
@@ -56,43 +41,68 @@ class OS:
 
 from logger.path_helpers import win_get_localappdata
 
-config_folder = win_get_localappdata() / HOST / APP_NAME
+CONFIG_FOLDER = win_get_localappdata() / HOST / APP_NAME
 
 
-# Because we're using the config folder defined here, in the logger class and import
-# We have to import the logger after
-from logger import create_logger, reset_log_file
+log = None
+updater = None
+SETTINGS = None
+STEAM = None
 
-log = create_logger("Globals", LOG_LEVEL)
-if not IS_DEBUG:
-    reset_log_file()
 
-log.info(f"[INIT] Running Application.")
+def __init_logging():
+    """
+    Jaaaaaaaank
+    """
+    global log
+    from logger import create_logger, reset_log_file
 
-# Print flags
-for action in _parser._actions:
-    if action.option_strings:
-        if "-h" in action.option_strings or "--help" in action.option_strings:
-            continue
-        log.info(f"[INIT] Run with flag {action.option_strings}: {action.help}")
+    log = create_logger("Globals", LOG_LEVEL)
 
-from updater import Updater
+    if not IS_DEBUG:
+        reset_log_file()
 
-updater = Updater(REPO_OWNER, REPO_NAME)
+    log.info(f"[INIT] Running Application.")
 
-from settings import Settings
+    log.info(f"Debug:                  {IS_DEBUG}")
+    log.info(f"App Version:            {APP_VERSION}")
+    log.info(f"Target System:          {system}")
+    log.info(f"Config Folder:          {CONFIG_FOLDER}")
+    log.info(f"Prevent Connections:    {PREVENT_CONN}")
+    log.info(f"Use Local Patterns:     {USE_LOCAL_PATTERNS}")
 
-SETTINGS = Settings()
-SETTINGS.load_config()
+    # Print flags
+    for action in PARSER._actions:
+        if action.option_strings:
+            if "-h" in action.option_strings or "--help" in action.option_strings:
+                continue
+            log.info(f"[INIT] Run with flag {action.option_strings}: {action.help}")
 
-from utils import steam_helper
 
-STEAM = steam_helper.SteamHelper()
+def __init_updater():
+    global updater
+    from updater import Updater
 
-# Worker Signals hook not initialised here yet, so won't print to GUI console
-log.info(f"Debug:                  {IS_DEBUG}")
-log.info(f"App Version:            {APP_VERSION}")
-log.info(f"Target System:          {system}")
-log.info(f"Config Folder:          {config_folder}")
-log.info(f"Prevent Connections:    {PREVENT_CONN}")
-log.info(f"Use Local Patterns:     {USE_LOCAL_PATTERNS}")
+    updater = Updater(REPO_OWNER, REPO_NAME)
+
+
+def __init_settings():
+    global SETTINGS
+    from settings import SettingsManager
+
+    SETTINGS = SettingsManager()
+    SETTINGS.load()
+
+
+def __init_steam_helper():
+    global STEAM
+    from utils import steam_helper
+
+    STEAM = steam_helper.SteamHelper()
+
+
+def init_globals():
+    __init_updater()
+    __init_settings()
+    __init_steam_helper()
+    __init_logging()

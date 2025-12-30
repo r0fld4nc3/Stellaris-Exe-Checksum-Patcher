@@ -1,5 +1,3 @@
-from ui import StellarisChecksumPatcherGUI  # isort: skip
-
 log = None
 
 
@@ -21,13 +19,29 @@ def show_message_box(title: str, msg: str):
 
 
 if __name__ == "__main__":
+    from utils.argument_parse import ARGUMENTS
+
+    if ARGUMENTS.no_conn:
+        from utils import network_blocker
+
+        network_blocker.enable_network_blocking()
+
     from logger import create_logger  # isort: skip
     from logger.logs import LOG_FILE  # isort: skip
 
     log = create_logger("Entry_Point", 0)
     log.info("Application Entry Point")
 
+    if ARGUMENTS.no_conn:  # Can only log after creation of course.
+        log.info("Network blocking is ENABLED (--no-conn flag)")
+
+    import conf_globals
+
+    conf_globals.init_globals()
+
     try:
+        from ui import StellarisChecksumPatcherGUI
+
         app = StellarisChecksumPatcherGUI()
         app.show()
     except Exception as e:

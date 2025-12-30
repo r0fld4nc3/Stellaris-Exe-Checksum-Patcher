@@ -3,9 +3,13 @@
 set -e
 set -o pipefail
 
-SRC_DIR="./src"
-VENV_DIR="./venv-stellaris-checksum-patcher"
-PYPROJECT_FILE="./pyproject.toml"
+# Get the project root directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+SRC_DIR="$PROJECT_ROOT/src"
+VENV_DIR="$PROJECT_ROOT/venv-stellaris-checksum-patcher"
+PYPROJECT_FILE="$PROJECT_ROOT/pyproject.toml"
 MAIN_FILE="$SRC_DIR/main.py"
 PYTHON_BIN="python3"
 USE_UV=false
@@ -60,6 +64,9 @@ sync_dependencies() {
     fi
 
     printf "Ensuring dependencies from %s are up to date...\n" "$PYPROJECT_FILE"
+
+    # Change to project root for dependency installation
+    cd "$PROJECT_ROOT"
 
     if [ "$USE_UV" = true ]; then
         if ! uv pip install --upgrade pip setuptools; then

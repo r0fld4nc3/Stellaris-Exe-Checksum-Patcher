@@ -1,4 +1,5 @@
 import argparse
+import os
 import platform
 import shutil
 import subprocess
@@ -78,8 +79,12 @@ def main():
 
     # Additional conditional arguments
     if arg_platform == "windows":
-        cmd.extend(["--windows-icon-from-ico=src/ui/icons/checksum_patcher_icon.ico", "--windows-console-mode=disable"])
+        cmd.extend(["--windows-icon-from-ico=src/ui/icons/checksum_patcher_icon.ico", "--windows-console-mode=attach"])
     else:
+        if arg_platform == "linux":
+            # Set compiler optimisation flags
+            os.environ["CCFLAGS"] = "-O3"  # -march=native -flto
+            # os.environ["LDFLAGS"] = "-Wl,-s"  # Strip symbols and Garbage
         cmd.extend(
             [
                 "--product-name=Stellaris-Checksum-Patcher",
