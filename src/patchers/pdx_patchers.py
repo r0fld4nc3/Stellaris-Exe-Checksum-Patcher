@@ -221,6 +221,9 @@ class GamePatcher:
 
         log.debug(f"{game_install_path=}")
 
+        if not game_install_path or game_install_path is None:
+            return None
+
         if not game_install_path.exists():
             return None
 
