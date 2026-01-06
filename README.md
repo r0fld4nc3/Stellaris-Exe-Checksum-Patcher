@@ -7,6 +7,8 @@ If you'd like to support me:
 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://www.ko-fi.com/r0fld4nc3)
 
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/r0fld4nc3)
+
 An easy and painless way to patch the game's executable to enable Achievements being earnable with mods that change the game's Checksum.
 
 ## ⤵️ Usage
