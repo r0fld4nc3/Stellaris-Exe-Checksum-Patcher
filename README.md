@@ -125,14 +125,15 @@ cd Stellaris-Exe-Checksum-Patcher
 ## 🟢 Patches
 * **Patch Executable**
   * This method will automatically check for a Steam installation and patch the executable.
-  * It will create a versioned backup of the current game binary.
   * If it cannot find the installation, will prompt via dialog for the installation folder.
+  * It will create a versioned backup of the current game binary.
+  * Applies selected (or default) patches. Select patches from the **Configuration Window**
   * Will remember the installation location for next time.
 
 * **Fix Save**
-  * Prompt for a save file to work on.
   * Select desired fixes/changes to apply to the save file.
-  * A backup is created in the Application's cofiguration directory under "save games".
+  * Prompt for a save file to work on.
+  * A backup is created in the Application's configuration directory under "save games".
   * Attempts to apply the selected fixes.
 
 # 🗒️ Notes
