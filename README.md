@@ -3,7 +3,7 @@
 [![Latest Release](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge&label=Latest%20Release)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest)
 [![All-Time Downloads](https://img.shields.io/github/downloads/r0fld4nc3/stellaris-exe-checksum-patcher/total?style=for-the-badge&label=Total%20Downloads)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
 
-Tip me a coffee:
+If you'd like to support me:
 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://www.ko-fi.com/r0fld4nc3)
 
