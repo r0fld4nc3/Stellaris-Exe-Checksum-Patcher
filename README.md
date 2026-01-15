@@ -17,7 +17,7 @@ The binary is compiled using [Nuitka](https://nuitka.net/), which is frequently 
 
 The source code is open and available in this repository for your review. If you have concerns, you can compile the executable yourself from the source.
 
-For more details see [issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/issues/39) where you may find this discussion and the source for these claims.
+For more details see [Issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/issues/39) where you may find this discussion and the source for these claims.
 
 ## ⤵️ Usage
 * Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
