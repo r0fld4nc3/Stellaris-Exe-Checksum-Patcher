@@ -11,6 +11,16 @@ If you'd like to support me:
 
 An easy and painless way to patch the game's executable to enable Achievements being earnable with mods that change the game's Checksum.
 
+## ⚠️ Antivirus False Positives
+
+Some antivirus software (including Bitdefender, Windows Defender, and others) may flag this executable as a PUP (Potentially Unwanted Program) or Trojan. **This is a false positive.**
+
+The binary is compiled using [Nuitka](https://nuitka.net/), which is frequently used by malware authors due to its source code protection. Antivirus software often flags Nuitka-compiled binaries preemptively as a precaution, even for legitimate applications.
+
+The source code is open and available in this repository for your review. If you have concerns, you can compile the executable yourself from the source.
+
+For more details see [issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/issues/39) where you may find this discussion and the source for these claims.
+
 ## ⤵️ Usage
 * Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
 
