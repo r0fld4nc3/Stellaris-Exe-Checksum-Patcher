@@ -201,7 +201,7 @@ def create_stellaris_config() -> GameSavePatchConfig:
             ),
             SavePatchOption(
                 id="set_ironman_no",
-                display_name="Covert to Regular Save",
+                display_name="Convert to Regular Save",
                 description="Convert the Ironman save file back to a regular save.",
                 option_type=SavePatchOptionType.BOOLEAN,
                 default_value=False,
