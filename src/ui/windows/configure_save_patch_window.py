@@ -130,7 +130,7 @@ class ConfigureSavePatchDialog(QDialog):
             checkbox = QCheckBox(option.display_name)
             checkbox.setToolTip(option.description)
             checkbox.setChecked(option.default_value)
-            checkbox.setEnabled(option.enabled)
+            checkbox.setEnabled(option.user_can_change)
 
             # Store ID as property for later easy retrieval
             checkbox.setProperty("option_id", option.id)
@@ -147,7 +147,7 @@ class ConfigureSavePatchDialog(QDialog):
     def get_configuration(self) -> patcher_models.GameSavePatchConfig:
         for patch_id, checkbox_widget_ref in self.option_checkboxes.items():
             self.current_config.set_enabled(patch_id, checkbox_widget_ref.isChecked())
-            log.info(f"{patch_id}: {self.current_config.get_option(patch_id).enabled}", silent=True)
+            log.info(f"{patch_id}: {self.current_config.get_option(patch_id).user_can_change}", silent=True)
 
         return self.current_config
 

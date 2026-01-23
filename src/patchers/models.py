@@ -132,7 +132,7 @@ class SavePatchOption:
     description: str
     option_type: SavePatchOptionType.BOOLEAN
     default_value: bool = False
-    enabled: bool = True
+    user_can_change: bool = True
     choices: List[str] = field(default_factory=list)  # For CHOICE types
 
     def __post_init__(self):
@@ -158,18 +158,18 @@ class GameSavePatchConfig:
             if opt.id != option_id:
                 continue
 
-            opt.enabled = enabled
+            opt.user_can_change = enabled
 
     def is_enabled(self, option_id: str) -> bool:
         option = self.get_option(option_id)
 
-        return option.enabled if option else False
+        return option.user_can_change if option else False
 
     def get_available_options(self) -> List[SavePatchOption]:
         return [opt for opt in self.patch_options]
 
     def get_enabled_options(self) -> List[SavePatchOption]:
-        return [opt for opt in self.patch_options if opt.enabled]
+        return [opt for opt in self.patch_options if opt.user_can_change]
 
 
 # ============================================================================
@@ -189,7 +189,7 @@ def create_stellaris_config() -> GameSavePatchConfig:
                 description="Update achievement list to latest version from remote source.",
                 option_type=SavePatchOptionType.BOOLEAN,
                 default_value=True,
-                enabled=True,
+                user_can_change=True,
             ),
             SavePatchOption(
                 id="set_ironman_yes",
@@ -197,7 +197,7 @@ def create_stellaris_config() -> GameSavePatchConfig:
                 description="Enable Ironman mode in the save file.",
                 option_type=SavePatchOptionType.BOOLEAN,
                 default_value=False,
-                enabled=True,
+                user_can_change=True,
             ),
             SavePatchOption(
                 id="set_ironman_no",
@@ -205,15 +205,15 @@ def create_stellaris_config() -> GameSavePatchConfig:
                 description="Convert the Ironman save file back to a regular save.",
                 option_type=SavePatchOptionType.BOOLEAN,
                 default_value=False,
-                enabled=True,
+                user_can_change=True,
             ),
             SavePatchOption(
                 id="convert_ironman",
                 display_name="Force Convert to Ironman",
-                description="Force ironman flag such that the save file now becomes an Ironman save. Last resort option in case converting to ironman did not work.",
+                description="Force ironman flag such that the save file now becomes an Ironman save. More aggressive option in case converting to ironman did not work.",
                 option_type=SavePatchOptionType.BOOLEAN,
                 default_value=False,
-                enabled=True,
+                user_can_change=True,
             ),
         ],
     )
