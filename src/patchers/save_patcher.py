@@ -607,7 +607,6 @@ class StellarisSavePatcher(SavePatcher):
                     continue
 
                 if not cheated_on_save_handled:
-                    # Check if next is cheated_on_save
                     if stripped.startswith(CHEATED_ON_SAVE_LINE):
                         # Log find
                         log.info(f"Found {stripped} ({i + 1})", silent=True)
