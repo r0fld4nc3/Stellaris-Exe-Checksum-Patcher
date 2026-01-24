@@ -1,4 +1,3 @@
-import base64
 import datetime
 import os
 import shutil
@@ -6,6 +5,7 @@ import ssl
 import zipfile
 from enum import Enum
 from pathlib import Path
+from typing import Union
 
 import certifi
 import requests
@@ -42,6 +42,9 @@ if not ACHIEVEMENTS_DISTRIBUTED_FILE.exists():
     # We're not running a compiled build
     ACHIEVEMENTS_DISTRIBUTED_FILE = Path(__file__).parent.parent / "achievements" / ACHIEVEMENTS_FILE_NAME
 
+GAMESTATE_YES = "yes"
+GAMESTATE_NO = "no"
+
 NAME_EQ_LINE = "name="
 GALAXY_EQ_LINE = "galaxy="
 ACHIEVEMENT_EQ_LINE = "achievement="
@@ -51,12 +54,20 @@ IRONMAN_EQ_LINE = "ironman="
 IRONMAN_YES = f"{IRONMAN_EQ_LINE}yes"
 IRONMAN_NO = f"{IRONMAN_EQ_LINE}no"
 
+CHEATED_ON_SAVE_LINE = "cheated_on_save="
+
 
 class IronmanMode(Enum):
     NONE = 0  # Don't address ironman flag
     SET_ENABLE = 1  # Convert existing ironman=no to ironman=yes
     SET_DISABLE = 2  # Convert existing ironman=yes to ironman=no
     FORCE_ADD = 3  # Always add, even if not present
+
+
+class CheatedMode(Enum):
+    SET_NO = 0
+    SET_YES = 1
+    KEEP = 2
 
 
 class SavePatcher:
@@ -221,7 +232,7 @@ class SavePatcher:
             log.debug(f"Stored timestamps for {len(files_access_times)} files.", silent=True)
 
         try:
-            log.info(f"Repackaging files from {source_dir} to {output_file}")
+            log.info(f"Repackaging files from '{source_dir}' to '{output_file}'")
             with zipfile.ZipFile(output_file, "w", zipfile.ZIP_DEFLATED) as zf:
                 for file in source_dir.iterdir():
                     if not file.is_file():
@@ -361,10 +372,22 @@ class StellarisSavePatcher(SavePatcher):
 
         return ironman_mode
 
+    def get_cheated_on_save_mode_to_set(self) -> CheatedMode:
+        fix_cheated_mode = self.config.is_enabled("set_cheated_save_no") if self.config else False
+
+        if fix_cheated_mode:
+            cheated_mode = CheatedMode.SET_NO
+        else:
+            cheated_mode = CheatedMode.KEEP
+
+        return cheated_mode
+
     def repair_save(self, save_file):
         save_dir = Path(save_file).parent
         save_file_name = Path(save_file).name
         save_file_times = (os.stat(save_file).st_atime, os.stat(save_file).st_mtime)
+
+        fix_achievements = self.get_update_achievements()
 
         # Store original timestamps
         save_file_times = (os.stat(save_file).st_atime, os.stat(save_file).st_mtime)
@@ -394,11 +417,12 @@ class StellarisSavePatcher(SavePatcher):
         meta_file = Path(repair_dir) / "meta"
 
         # --- Pull latest achievements file ---
-        self.achievements = self.pull_latest_achievements_file()
-        if not self.achievements or self.achievements == "":
-            log.error(f"Unable to fix save: Could not retrieve achievements.")
-            shutil.rmtree(repair_dir)
-            return False
+        if fix_achievements:
+            self.achievements = self.pull_latest_achievements_file()
+            if not self.achievements or self.achievements == "":
+                log.error(f"Unable to fix save: Could not retrieve achievements.")
+                shutil.rmtree(repair_dir)
+                return False
 
         # --- Process gamestate ---
         if not self._process_gamestate(gamestate_file):
@@ -427,15 +451,19 @@ class StellarisSavePatcher(SavePatcher):
         log.info(f"Finished repairing save.")
         return True
 
-    def _process_gamestate(self, gamestate_file: str | Path):
+    def _process_gamestate(self, gamestate_file: str | Path) -> bool:
         log.info(f"Process gamestate: '{gamestate_file}'")
         _encoding = detect_file_encoding(gamestate_file)
 
         ironman_mode = self.get_ironman_fix()
         update_achievements = self.get_update_achievements()
 
+        # Cheated save
+        cheated_mode = self.get_cheated_on_save_mode_to_set()
+
         log.info(f"Achievement fix: {update_achievements}", silent=True)
         log.info(f"Ironman fix: {ironman_mode}", silent=True)
+        log.info(f"Cheated save fix: {cheated_mode}", silent=True)
 
         try:
             with gamestate_file.open("r", encoding=_encoding) as f:
@@ -461,6 +489,7 @@ class StellarisSavePatcher(SavePatcher):
         clusters_found = False
         achievements_inserted = False
         ironman_handled = False
+        cheated_on_save_handled = False
 
         i = 0
         while i < len(lines):
@@ -571,6 +600,40 @@ class StellarisSavePatcher(SavePatcher):
                                 ironman_handled = True
                                 continue
 
+            if cheated_mode != CheatedMode.KEEP:
+                if in_achievements_block or in_galaxy_block:
+                    new_lines.append(stripped)
+                    i += 1
+                    continue
+
+                if not cheated_on_save_handled:
+                    # Check if next is cheated_on_save
+                    if stripped.startswith(CHEATED_ON_SAVE_LINE):
+                        # Log find
+                        log.info(f"Found {stripped} ({i + 1})", silent=True)
+
+                        # Get indentation for current line
+                        indent_level = len(line) - len(line.lstrip())
+                        indent = "\t" * (indent_level // 4) if indent_level > 0 else ""
+
+                        # Set cheated line with fix with proper indentation
+                        if cheated_mode == CheatedMode.SET_NO:
+                            flag = GAMESTATE_NO
+                        elif cheated_mode == CheatedMode.SET_YES:
+                            flag = GAMESTATE_NO
+                        else:
+                            # Parse the current flag and keep
+                            flag = stripped.split("=")[2]
+                            log.warning(
+                                f"Did not find matching CheatedMode to set. Defaulting to parse current and keep with flag: '{flag}'"
+                            )
+
+                        new_lines.append(f"{indent}{CHEATED_ON_SAVE_LINE}{flag}\n")
+
+                        cheated_on_save_handled = True
+                        i += 1
+                        continue
+
             new_lines.append(line)
             i += 1
 
@@ -578,6 +641,13 @@ class StellarisSavePatcher(SavePatcher):
             log.info(f"Repaired achievements line.")
         else:
             log.warning(f"Did not fix achievements line. Already present or not configured.")
+
+        if cheated_mode:
+            if cheated_on_save_handled:
+                cheated_mode = self.get_cheated_on_save_mode_to_set()
+                log.info(f"Addressed cheated on save flag. Set to '{cheated_mode}'")
+            else:
+                log.warning(f"Did not address cheated save flag.")
 
         # Validate only if we're updating achievements
         if update_achievements and not achievements_found and not clusters_found:
@@ -594,7 +664,7 @@ class StellarisSavePatcher(SavePatcher):
 
         return True
 
-    def _process_meta(self, meta_file: str | Path):
+    def _process_meta(self, meta_file: Union[str, Path]) -> bool:
         _encoding = detect_file_encoding(meta_file)
 
         try:

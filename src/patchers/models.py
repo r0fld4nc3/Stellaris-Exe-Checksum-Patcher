@@ -215,6 +215,14 @@ def create_stellaris_config() -> GameSavePatchConfig:
                 default_value=False,
                 user_can_change=True,
             ),
+            SavePatchOption(
+                id="set_cheated_save_no",
+                display_name="Fix cheated save",
+                description="Sets the cheated on save flag to no.",
+                option_type=SavePatchOptionType.BOOLEAN,
+                default_value=False,
+                user_can_change=True,
+            ),
         ],
     )
 
