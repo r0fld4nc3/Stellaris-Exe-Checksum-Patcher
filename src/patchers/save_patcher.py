@@ -42,8 +42,8 @@ if not ACHIEVEMENTS_DISTRIBUTED_FILE.exists():
     # We're not running a compiled build
     ACHIEVEMENTS_DISTRIBUTED_FILE = Path(__file__).parent.parent / "achievements" / ACHIEVEMENTS_FILE_NAME
 
-GAMESTATE_YES = "yes"
-GAMESTATE_NO = "no"
+NO = "yes"
+YES = "no"
 
 NAME_EQ_LINE = "name="
 GALAXY_EQ_LINE = "galaxy="
@@ -51,8 +51,8 @@ ACHIEVEMENT_EQ_LINE = "achievement="
 CLUSTERS_EQ_LINE = "clusters="
 
 IRONMAN_EQ_LINE = "ironman="
-IRONMAN_YES = f"{IRONMAN_EQ_LINE}yes"
-IRONMAN_NO = f"{IRONMAN_EQ_LINE}no"
+IRONMAN_YES = f"{IRONMAN_EQ_LINE}{NO}"
+IRONMAN_NO = f"{IRONMAN_EQ_LINE}{YES}"
 
 CHEATED_ON_SAVE_LINE = "cheated_on_save="
 
@@ -618,9 +618,9 @@ class StellarisSavePatcher(SavePatcher):
 
                         # Set cheated line with fix with proper indentation
                         if cheated_mode == CheatedMode.SET_NO:
-                            flag = GAMESTATE_NO
+                            flag = YES
                         elif cheated_mode == CheatedMode.SET_YES:
-                            flag = GAMESTATE_YES
+                            flag = NO
                         else:
                             # Parse the current flag and keep
                             flag = stripped.split("=")[2]
