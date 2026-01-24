@@ -8,8 +8,11 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFileDialog,
+    QLineEdit,
+    QListView,
     QPushButton,
     QTextBrowser,
+    QWidget,
 )
 
 from conf_globals import LOG_LEVEL, OS, SETTINGS
@@ -77,6 +80,9 @@ class EventFilterMoveResize(EventFilterOvr):
         self.mouse_press_area = None
         self.resize_start_geometry = None
 
+        # Widgets that should never start a window-drag even if inside a drag handle
+        self._never_drag_widgets = (QPushButton, QTextBrowser, QComboBox, QCheckBox, QLineEdit, QListView)
+
     def eventFilter(self, obj, event):
         if not isinstance(event, QMouseEvent):
             return False
@@ -98,32 +104,50 @@ class EventFilterMoveResize(EventFilterOvr):
         return False
 
     def handle_mouse_press(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            # --- Prioritise resizing ---
-            self.mouse_press_area = self.get_mouse_area(event)
+        if event.button() != Qt.MouseButton.LeftButton:
+            return False
 
-            if self.mouse_press_area:
-                self.start_pos = event.globalPosition().toPoint()
-                self.resize_start_geometry = self.window.geometry()
-                self.resizing = True
-                self.update_cursor(event)
+        # --- Prioritise resizing ---
+        self.mouse_press_area = self.get_mouse_area(event)
+        if self.mouse_press_area:
+            self.start_pos = event.globalPosition().toPoint()
+            self.resize_start_geometry = self.window.geometry()
+            self.resizing = True
+            self.update_cursor(event)
+            return True
+
+        # --- Window dragging only from allowed handles ---
+        widget_under_mouse = self.window.childAt(event.position().toPoint())
+
+        # Ignore drag if press is on widget with specific no-drag flag
+        if self._has_ancestor_property(widget_under_mouse, "noWindowDrag"):
+            return False
+
+        # Don't drag when clicking in interactive controls
+        if widget_under_mouse is not None and isinstance(widget_under_mouse, self._never_drag_widgets):
+            return False
+
+        # Only drag if click is within allowed list region
+        if not self._has_ancestor_property(widget_under_mouse, "windowDragHandle"):
+            return False
+
+        self.start_pos = event.globalPosition().toPoint()
+        self.window_start_pos = self.window.pos()
+        self.dragging = True
+        self.window.setCursor(Qt.CursorShape.ClosedHandCursor)
+        return True
+
+    def _has_ancestor_property(self, w: QWidget | None, prop: str) -> bool:
+        """
+        True if widget or any parent widget up to (and including) the main window has Qt property == True.
+        """
+        cur = w
+        while cur is not None:
+            if bool(cur.property(prop)):
                 return True
-
-            # --- Check widget under mouse ---
-            widget_under_mouse = self.window.childAt(event.pos())
-
-            non_draggable_widgets = (QPushButton, QTextBrowser, QComboBox, QCheckBox)
-
-            if widget_under_mouse is None or not isinstance(widget_under_mouse, non_draggable_widgets):
-                self.start_pos = event.globalPosition().toPoint()
-                self.window_start_pos = self.window.pos()
-                self.dragging = True
-                self.window.setCursor(Qt.CursorShape.ClosedHandCursor)
-
-                # print(f"DRAG STARTED: mouse at {self.start_pos}, window at {self.window_start_pos}")
-
-                return True
-
+            if cur is self.window:
+                break
+            cur = cur.parentWidget()
         return False
 
     def handle_mouse_move(self, event):
@@ -159,7 +183,7 @@ class EventFilterMoveResize(EventFilterOvr):
         """Determine which edge/corner is being pressed for resizing"""
         rect = self.window.rect()
         x, y, w, h = rect.x(), rect.y(), rect.width(), rect.height()
-        pos = event.pos()
+        pos = event.position().toPoint()
 
         left = pos.x() <= self.MARGIN
         right = pos.x() >= w - self.MARGIN

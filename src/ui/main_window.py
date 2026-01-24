@@ -138,6 +138,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.window_functions_container_handle.setObjectName("WindowFunctionsContainer")
         self.window_functions_container_handle.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.hlayout_window_functions = QHBoxLayout(self.window_functions_container_handle)
+        self.window_functions_container_handle.setProperty("windowDragHandle", True)
 
         # --- Layout After Terminal ---
         self.hlayout_after_terminal_display = QHBoxLayout()
@@ -159,13 +160,16 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.main_frame.setContentsMargins(10, 10, 10, 10)
         self.main_frame.setLineWidth(5)
         self.main_frame.setMidLineWidth(0)
+        self.main_frame.setProperty("windowDragHandle", True)
 
         self.lbl_title = QLabel("Patcher")
         self.lbl_title.setObjectName("TitleLabel")
         self.lbl_title.setSizePolicy(size_policy_app_version_label)
+        self.lbl_title.setProperty("windowDragHandle", True)
 
         self.lbl_app_version = QLabel(f"{self._APP_VERSION}-{TRACKING_BRANCH}{'-debug' if IS_DEBUG else ''}")
         self.lbl_app_version.setSizePolicy(size_policy_app_version_label)
+        self.lbl_app_version.setProperty("windowDragHandle", True)
 
         # --- Themed Exit Button ---
         self.btn_themed_exit_app = QPushButton("X")
