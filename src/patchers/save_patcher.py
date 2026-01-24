@@ -620,7 +620,7 @@ class StellarisSavePatcher(SavePatcher):
                         if cheated_mode == CheatedMode.SET_NO:
                             flag = GAMESTATE_NO
                         elif cheated_mode == CheatedMode.SET_YES:
-                            flag = GAMESTATE_NO
+                            flag = GAMESTATE_YES
                         else:
                             # Parse the current flag and keep
                             flag = stripped.split("=")[2]
