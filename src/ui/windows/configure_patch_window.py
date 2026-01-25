@@ -22,10 +22,7 @@ from PySide6.QtWidgets import (
 
 from app_services import services
 from config.path_helpers import os_darwin, os_linux, os_windows
-from patch_patterns.patterns import (
-    get_patterns_config_local,
-    get_patterns_config_remote,
-)
+from patch_patterns.patterns import get_patterns_config_remote
 from patchers import MultiGamePatcher, PatchConfiguration
 from patchers import models as patcher_models
 from thread_utils import Threader
@@ -588,7 +585,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         if state in (Qt.CheckState.Checked.value, Qt.CheckState.Unchecked.value):
             # We don't need to set for --no-conn
             if not self.svc.config.prevent_conn:
-                self.svc.settings.settings.force_local_patterns = state
+                self.svc.settings.settings.force_local_patterns = bool(state)
         else:
             log.warning("Checkbox in Partially Checked state. We shouldn't be here.", silent=True)
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from config.definitions import APP_VERSION, TRACKING_BRANCH
 from config.path_helpers import system
-from config.runtime import get_config
+from config.runtime import get_config as get_app_cfg
 from thread_utils import WorkerSignals
 
 
@@ -31,7 +31,7 @@ class LoggerWithSignals(logging.Logger):
             self.signals.progress.emit("[WARN] " + str(msg))
 
     def error(self, msg, *args, silent=False, **kwargs):
-        _version_print_msg = f"System Info: '{system()} {APP_VERSION}{'-' + TRACKING_BRANCH if TRACKING_BRANCH else ''}' 'Use Local Patterns: {get_config().use_local_patterns}'"
+        _version_print_msg = f"System Info: '{system()} {APP_VERSION}{'-' + TRACKING_BRANCH if TRACKING_BRANCH else ''}' 'Use Local Patterns: Config={get_app_cfg().use_local_patterns}'"
 
         super().error(msg, *args, **kwargs)
         if not silent:

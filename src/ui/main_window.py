@@ -859,7 +859,13 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         msgbox.exec_()
 
     def fetch_patterns(self):
-        can_fetch_remote = all([not self.app_config.prevent_conn, not self.app_config.use_local_patterns])
+        can_fetch_remote = all(
+            [
+                not self.app_config.prevent_conn,
+                not self.app_config.use_local_patterns,
+                not self.settings.settings.force_local_patterns,
+            ]
+        )
 
         log.info(f"Can fetch remote: {can_fetch_remote}", silent=True)
 

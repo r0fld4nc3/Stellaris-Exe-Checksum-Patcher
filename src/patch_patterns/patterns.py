@@ -28,8 +28,12 @@ def get_patterns_config_remote() -> dict:
     config = services().config
     settings = services().settings
 
-    if config.prevent_conn:
-        log.info("Force local patterns is off. Returning local patterns.", silent=True)
+    _force_local_patterns = any(
+        (config.prevent_conn, config.use_local_patterns, settings.settings.force_local_patterns)
+    )
+
+    if _force_local_patterns:
+        log.info("Forced local patterns. Returning local patterns.", silent=True)
         return get_patterns_config_local()
 
     last_checked = settings.settings.patch_patterns_update_last_checked
