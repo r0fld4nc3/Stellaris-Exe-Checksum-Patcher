@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import ssl
+import tempfile
 import zipfile
 from enum import Enum
 from pathlib import Path
@@ -359,18 +360,12 @@ class StellarisSavePatcher(SavePatcher):
     def repair_save(self, save_file):
         save_dir = Path(save_file).parent
         save_file_name = Path(save_file).name
-        save_file_times = (os.stat(save_file).st_atime, os.stat(save_file).st_mtime)
 
         # Store original timestamps
         save_file_times = (os.stat(save_file).st_atime, os.stat(save_file).st_mtime)
 
         log.info(f"Save Directory: {save_dir}")
         log.info(f"Save Name: {save_file_name}")
-
-        # --- Setup directory ---
-        repair_dir = save_dir / "save_repair"
-        Path(repair_dir).mkdir(parents=True, exist_ok=True)
-        log.debug(f"Repair Directory: {repair_dir}")
 
         # --- Backup with timestamp ---
         backup_file = self.create_timestamped_backup(save_file)
@@ -379,45 +374,48 @@ class StellarisSavePatcher(SavePatcher):
             return False
         log.info(f"Backup created at: {backup_file}")
 
-        # --- Extract save archive ---
-        if not self.extract_save_archive(save_file, repair_dir):
-            log.error(f"Failed to extract the save file, aborting repair!")
-            return False
+        with tempfile.TemporaryDirectory(prefix="save_repair_") as temp_dir:
+            # --- Setup directory ---
+            repair_dir = Path(temp_dir) / "save_repair"
+            Path(repair_dir).mkdir(parents=True, exist_ok=True)
+            log.debug(f"Repair Directory: {repair_dir}")
 
-        # --- Define file paths ---
-        gamestate_file = Path(repair_dir) / "gamestate"
-        meta_file = Path(repair_dir) / "meta"
+            # --- Extract save archive ---
+            if not self.extract_save_archive(save_file, repair_dir):
+                log.error(f"Failed to extract the save file, aborting repair!")
+                return False
 
-        # --- Pull latest achievements file ---
-        self.achievements = self.pull_latest_achievements_file()
-        if not self.achievements or self.achievements == "":
-            log.error(f"Unable to fix save: Could not retrieve achievements.")
-            shutil.rmtree(repair_dir)
-            return False
+            # --- Define file paths ---
+            gamestate_file = Path(repair_dir) / "gamestate"
+            meta_file = Path(repair_dir) / "meta"
 
-        # --- Process gamestate ---
-        if not self._process_gamestate(gamestate_file):
-            log.error(f"Failed to process gamestate for {save_file_name}")
-            shutil.rmtree(repair_dir)
-            return False
+            # --- Pull latest achievements file ---
+            self.achievements = self.pull_latest_achievements_file()
+            if not self.achievements:
+                log.error(f"Unable to fix save: Could not retrieve achievements.")
+                shutil.rmtree(repair_dir)
+                return False
 
-        # --- Process meta ---
-        if not self._process_meta(meta_file):
-            log.error(f"Failed to process meta for {save_file_name}")
-            shutil.rmtree(repair_dir)
-            return False
+            # --- Process gamestate ---
+            if not self._process_gamestate(gamestate_file):
+                log.error(f"Failed to process gamestate for {save_file_name}")
+                shutil.rmtree(repair_dir)
+                return False
 
-        # --- Repackage save archive ---
-        if not self.repackage_save_archive(repair_dir, save_file, preserve_timestamps=True):
-            log.error(f"Failed to rebuild save file!")
-            shutil.rmtree(repair_dir)
-            return False
+            # --- Process meta ---
+            if not self._process_meta(meta_file):
+                log.error(f"Failed to process meta for {save_file_name}")
+                shutil.rmtree(repair_dir)
+                return False
 
-        # --- Restore original timestamps ---
-        os.utime(save_file, save_file_times)
+            # --- Repackage save archive ---
+            if not self.repackage_save_archive(repair_dir, save_file, preserve_timestamps=True):
+                log.error(f"Failed to rebuild save file!")
+                shutil.rmtree(repair_dir)
+                return False
 
-        # --- Cleanup ---
-        shutil.rmtree(repair_dir)
+            # --- Restore original timestamps ---
+            os.utime(save_file, save_file_times)
 
         log.info(f"Finished repairing save.")
         return True
