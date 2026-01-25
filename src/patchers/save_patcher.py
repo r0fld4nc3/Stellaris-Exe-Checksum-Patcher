@@ -1,5 +1,5 @@
-import base64
 import datetime
+import logging
 import os
 import shutil
 import ssl
@@ -10,23 +10,16 @@ from pathlib import Path
 import certifi
 import requests
 
-from conf_globals import (
-    LOG_LEVEL,
-    OS,
-    PREVENT_CONN,
-    REPO_BRANCH,
-    REPO_NAME,
-    REPO_OWNER,
-    SETTINGS,
-)
-from logger import create_logger
+from app_services import services
+from config.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
+from config.path_helpers import os_darwin, os_linux, os_windows
 
 # 3rd Party
 from utils.encodings import detect_file_encoding
 
 from .models import GameSavePatchConfig
 
-log = create_logger("Save Patcher", LOG_LEVEL)
+log = logging.getLogger("Save Patcher")
 
 WINDOWS_PARADOX_INTERACTIVE_PATHS = [Path.home() / "Documents" / "Paradox Interactive"]
 
@@ -36,11 +29,13 @@ MACOS_PARADOX_INTERACTIVE_PATHS = [Path.home() / "Documents" / "Paradox Interact
 
 ACHIEVEMENTS_FILE_NAME = "achievements.txt"
 ACHIEVEMENTS_URL = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/src/achievements/{ACHIEVEMENTS_FILE_NAME}"
-ACHIEVEMENTS_FILE_LOCAL = SETTINGS.config_dir / ACHIEVEMENTS_FILE_NAME
-ACHIEVEMENTS_DISTRIBUTED_FILE = Path(__file__).parent / ACHIEVEMENTS_FILE_NAME
-if not ACHIEVEMENTS_DISTRIBUTED_FILE.exists():
+ACHIEVEMENTS_FILE_LOCAL = services().config.config_dir / ACHIEVEMENTS_FILE_NAME
+
+if not services().config.frozen:
     # We're not running a compiled build
     ACHIEVEMENTS_DISTRIBUTED_FILE = Path(__file__).parent.parent / "achievements" / ACHIEVEMENTS_FILE_NAME
+else:
+    ACHIEVEMENTS_DISTRIBUTED_FILE = services().config.working_dir / ACHIEVEMENTS_FILE_NAME
 
 NAME_EQ_LINE = "name="
 GALAXY_EQ_LINE = "galaxy="
@@ -105,11 +100,11 @@ class SavePatcher:
         if not self.game_name:
             return False
 
-        if OS.WINDOWS:
+        if os_windows():
             potential_paths = WINDOWS_PARADOX_INTERACTIVE_PATHS
-        elif OS.LINUX:
+        elif os_linux():
             potential_paths = LINUX_PARADOX_INTERACTIVE_PATHS
-        elif OS.MACOS:
+        elif os_darwin():
             potential_paths = MACOS_PARADOX_INTERACTIVE_PATHS
         else:
             potential_paths = []
@@ -827,8 +822,10 @@ class StellarisSavePatcher(SavePatcher):
     def load_local_achievements_file(self) -> str:
         log.info("Loading local achievements file.")
 
+        config = services().config
+
         if not ACHIEVEMENTS_FILE_LOCAL.exists():
-            config_dir = SETTINGS.config_dir
+            config_dir = config.config_dir
             copy_dest = config_dir / ACHIEVEMENTS_FILE_NAME
 
             try:
@@ -854,7 +851,9 @@ class StellarisSavePatcher(SavePatcher):
     def pull_latest_achievements_file(self) -> str:
         log.info("Pulling latest Achievements file from GitHub repository.")
 
-        if PREVENT_CONN:
+        config = services().config
+
+        if config.prevent_conn:
             log.info(f"Will not fetch achievements file from remote as prevent connections is active.")
             return self.load_local_achievements_file()
 

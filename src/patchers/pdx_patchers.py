@@ -3,20 +3,21 @@
 import binascii
 import datetime
 import json
+import logging
 import mmap
 import platform
 import re
 import shutil
+
+from app_services import services
+from config.path_helpers import os_darwin
 
 from .models import *
 
 from pathlib import Path  # isort: skip
 from typing import Optional, Dict, List, Union  # isort: skip
 
-from conf_globals import LOG_LEVEL, SETTINGS, OS, STEAM  # isort: skip
-from logger import create_logger  # isort: skip
-
-log = create_logger("PDX Patchers", LOG_LEVEL)  # isort: skip
+log = logging.getLogger("PDX Patchers")  # isort: skip
 
 
 class GamePatcher:
@@ -137,13 +138,13 @@ class GamePatcher:
         """Create a backup of the file"""
 
         # If max is 0, don't create or delete any backups
-        max_allowed_backups = SETTINGS.settings.max_allowed_binary_backups
+        max_allowed_backups = services().settings.settings.max_allowed_binary_backups
 
         if max_allowed_backups <= 0:
             log.info(f"Backup creation disabled (max_allowed_binary_backups = {max_allowed_backups})", silent=True)
             return True
 
-        if OS.MACOS:
+        if os_darwin():
             if file_path.is_dir() and ".app" in file_path.name.lower():
                 binary_dir = file_path.parent
             else:
@@ -173,7 +174,7 @@ class GamePatcher:
             return False
 
     def _delete_backups(self, backup_directory: Path) -> None:
-        max_allowed_backups = SETTINGS.settings.max_allowed_binary_backups
+        max_allowed_backups = services().settings.settings.max_allowed_binary_backups
 
         log.info(f"Deleting backups if reached or over max allowance: {max_allowed_backups}", silent=True)
         log.info(f"Processing backup directory: {backup_directory}", silent=True)
@@ -202,7 +203,7 @@ class GamePatcher:
             for backup_item in backups[:num_to_delete]:
                 log.info(f"Remove: '{backup_item}", silent=True)
                 try:
-                    if OS.MACOS:
+                    if os_darwin():
                         shutil.rmtree(backup_item)
                     else:
                         backup_item.unlink()
@@ -217,7 +218,7 @@ class GamePatcher:
         """
         log.info("Locating game install...")
 
-        game_install_path = STEAM.get_game_install_path(self.game_name)
+        game_install_path = services().steam_helper.get_game_install_path(self.game_name)
 
         log.debug(f"{game_install_path=}")
 

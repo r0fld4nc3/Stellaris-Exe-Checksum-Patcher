@@ -1,5 +1,6 @@
 # built-ins
 import json
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -8,12 +9,14 @@ from typing import Optional, Union
 import vdf
 
 from app_ids import APP_IDS
-from conf_globals import LOG_LEVEL, OS, SETTINGS
-from logger import create_logger
+from app_services import services
+from config.path_helpers import os_darwin, os_linux, os_windows
 from utils import registry_helper
 from utils.encodings import safe_read_file_encode
 
-log = create_logger("Steam Helper", LOG_LEVEL)
+log = logging.getLogger("Steam Helper")
+
+_current: Optional["SteamHelper"] = None
 
 # KEY_LOCAL_MACHINE
 STEAM_REGISTRY_PATH_32 = r"SOFTWARE\Valve\Steam"
@@ -246,7 +249,7 @@ class SteamHelper:
     def get_steam_install_path(self) -> Optional[Path]:
         log.info("Acquiring Steam installation...")
 
-        saved_path_str = SETTINGS.settings.steam_install_path
+        saved_path_str = services().settings.settings.steam_install_path
         if saved_path_str:
             saved_path = Path(saved_path_str)
             if saved_path.exists():
@@ -256,20 +259,20 @@ class SteamHelper:
 
         steam_path_str: Optional[str] = None
 
-        if OS.WINDOWS:
+        if os_windows():
             # Try 64-bit first
             steam_path_str = registry_helper.read_key(STEAM_REGISTRY_PATH_64, STEAM_INSTALL_LOCATION_KEY)
 
             # Try 32-bit if 64 failed.
             if not steam_path_str:
                 steam_path_str = registry_helper.read_key(STEAM_REGISTRY_PATH_32, STEAM_INSTALL_LOCATION_KEY)
-        elif OS.LINUX:
+        elif os_linux():
             search_paths = LINUX_DISTRO_PATHS
             for distro_path in search_paths:
                 if Path(distro_path).exists():
                     steam_path_str = str(distro_path)
                     break
-        elif OS.MACOS:
+        elif os_darwin():
             search_paths = MACOS_DISTRO_PATHS
             for distro_path in search_paths:
                 if Path(distro_path).exists():
@@ -278,7 +281,7 @@ class SteamHelper:
 
         if steam_path_str:
             self.steam_install = Path(steam_path_str)
-            SETTINGS.settings.steam_install_path = self.steam_install.resolve().as_posix()
+            services().settings.settings.steam_install_path = self.steam_install.resolve().as_posix()
             return self.steam_install
         else:
             log.error("Unable to acquire Steam installation.")
@@ -349,7 +352,7 @@ class SteamHelper:
 
 
 def validate_game_files_app_id(app_id: int | str) -> None:
-    steam_bin_win = SETTINGS.settings.steam_install_path + "/steam.exe"
+    steam_bin_win = services().settings.settings.steam_install_path + "/steam.exe"
 
     steam_cmd_url = f"{STEAM_CLIENT_INVOKE_URL}{STEAM_CLIENT_INVOKE_VALIDATE}/{app_id}"
 
@@ -357,7 +360,7 @@ def validate_game_files_app_id(app_id: int | str) -> None:
     log.info(f"Steam Validate Integrity Command: {steam_cmd_url}", silent=True)
 
     try:
-        if OS.WINDOWS:
+        if os_windows():
             # Windows specific flags for process detachment
             DETACHED_PROCESS = 0x00000008
             CREATE_NEW_PROCESS_GROUP = 0x00000200
@@ -373,7 +376,7 @@ def validate_game_files_app_id(app_id: int | str) -> None:
                 log.info(f"Attempting with os.startfile({steam_cmd_url})", silent=True)
                 # Fallback: Let OS handle the protocol
                 os.startfile(steam_cmd_url)
-        elif OS.LINUX:
+        elif os_linux():
             subprocess.Popen(
                 ["xdg-open", steam_cmd_url],
                 start_new_session=True,
@@ -381,7 +384,7 @@ def validate_game_files_app_id(app_id: int | str) -> None:
                 stderr=subprocess.DEVNULL,
                 stdin=subprocess.DEVNULL,
             )
-        elif OS.MACOS:
+        elif os_darwin():
             subprocess.Popen(
                 ["open", steam_cmd_url],
                 start_new_session=True,
@@ -405,14 +408,14 @@ def verify_game_files_app_name(app_name: str) -> None:
 
 
 def launch_game_app_id(app_id: int | str) -> None:
-    steam_bin = SETTINGS.settings.steam_install_path
+    steam_bin = services().settings.settings.steam_install_path
     steam_cmd_url = f"{STEAM_CLIENT_INVOKE_URL}{STEAM_CLIENT_INVOKE_RUN}/{app_id}"
 
     log.info(f"Launching game with App ID: {app_id}")
     log.info(f"Steam Launch Command: {steam_cmd_url}", silent=True)
 
     try:
-        if OS.WINDOWS:
+        if os_windows():
             DETACHED_PROCESS = 0x00000008
             CREATE_NEW_PROCESS_GROUP = 0x00000200
 
@@ -424,7 +427,7 @@ def launch_game_app_id(app_id: int | str) -> None:
                 )
             else:
                 os.startfile(steam_cmd_url)
-        elif OS.LINUX:
+        elif os_linux():
             subprocess.Popen(
                 ["xdg-open", steam_cmd_url],
                 start_new_session=True,
@@ -432,7 +435,7 @@ def launch_game_app_id(app_id: int | str) -> None:
                 stderr=subprocess.DEVNULL,
                 stdin=subprocess.DEVNULL,
             )
-        elif OS.MACOS:
+        elif os_darwin():
             subprocess.Popen(
                 ["open", steam_cmd_url],
                 start_new_session=True,
@@ -453,3 +456,29 @@ def launch_game_app_name(app_name: str) -> None:
         return
 
     launch_game_app_id(app_id)
+
+
+def init() -> SteamHelper:
+    global _current
+
+    if _current:
+        if isinstance(_current, SteamHelper):
+            return _current
+        else:
+            raise RuntimeError(f"Current SteamHelper Instance is invalid: {_current}")
+
+    _current = SteamHelper()
+
+    return _current
+
+
+def get() -> SteamHelper:
+    global _current
+
+    if not isinstance(_current, SteamHelper):
+        raise RuntimeError(f"Current SteamHelper Instance is invalid: {_current}")
+
+    if not _current or _current is None:
+        raise RuntimeError(f"SteamHelper is not valid or uninitialised: {_current}")
+
+    return _current

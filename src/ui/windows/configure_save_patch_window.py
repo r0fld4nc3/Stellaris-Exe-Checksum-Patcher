@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, List
 
 from PySide6.QtCore import Qt
@@ -14,11 +15,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from conf_globals import LOG_LEVEL
-from logger import create_logger
 from patchers import models as patcher_models
 
-log = create_logger("Save Patch Config", LOG_LEVEL)
+log = logging.getLogger("Save Patch Config")
 
 
 class ConfigureSavePatchDialog(QDialog):

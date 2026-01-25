@@ -9,16 +9,15 @@ Ideally, this is placed as one of the first things to run in
 the project's entry point.
 """
 
+import logging
 import socket
 import sys
-
-from logger import create_logger
 
 _original_socket = socket.socket
 _original_create_connection = socket.create_connection
 _network_blocked = False
 
-log = create_logger("NETBLOCK", 0)
+log = logging.getLogger("NETBLOCK")
 
 
 class NetworkBlockedError(RuntimeError):
@@ -80,7 +79,7 @@ def enable_network_blocking():
     socket.gethostbyaddr = _block_operation("socket.gethostbyaddr")
 
     _network_blocked = True
-    print(f"Network access has been disabled.", file=sys.stderr)
+    log.info(f"Network access has been disabled.", file=sys.stderr)
 
 
 def disable_network_blocking():
@@ -97,7 +96,7 @@ def disable_network_blocking():
     socket.create_connection = _original_create_connection
 
     _network_blocked = False
-    print(f"Network access has been restored.", file=sys.stderr)
+    log.info(f"Network access has been restored.", file=sys.stderr)
 
 
 def is_blocked():

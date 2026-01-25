@@ -1,3 +1,5 @@
+import logging
+
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
@@ -12,10 +14,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from conf_globals import LOG_LEVEL, SETTINGS
-from logger import create_logger
+from app_services import services
 
-log = create_logger("Welcome Dialog", LOG_LEVEL)
+log = logging.getLogger("Welcome Dialog")
 
 
 class WelcomeDialog(QDialog):
@@ -28,6 +29,9 @@ class WelcomeDialog(QDialog):
     FONT_SIZE_H3 = "24px"
     FONT_SIZE_H4 = "22px"
     FONT_SIZE_TEXT = "18px"
+
+    svc = services()
+    settings = svc.settings
 
     def __init__(self, font: QFont, window_icon: QIcon, parent=None):
         super().__init__(parent)
@@ -198,7 +202,7 @@ class WelcomeDialog(QDialog):
 
         # Confirm and Don't Show Again
         # Make it dynamic! Appear only if never accepted!
-        has_accepted = SETTINGS.settings.accepted_welcome_dialog
+        has_accepted = self.settings.settings.accepted_welcome_dialog
         if not has_accepted:
             btn_confirm = QPushButton("Understood! - Don't Show Again")
             # Override button font
@@ -220,8 +224,8 @@ class WelcomeDialog(QDialog):
         content_layout.addLayout(button_layout)
 
     def _on_confirm(self):
-        with SETTINGS.batch_update():
-            SETTINGS.settings.accepted_welcome_dialog = True
+        with self.settings.batch_update():
+            self.settings.settings.accepted_welcome_dialog = True
         self.accept()
 
     def adapt_to_screen_size(self, parent=None, width_pct: int = 50, height_pct: int = 80):

@@ -1,3 +1,4 @@
+import logging
 import random
 from enum import Enum
 from pathlib import Path
@@ -5,10 +6,7 @@ from typing import Optional
 
 from PySide6.QtGui import QFontDatabase, QIcon
 
-from conf_globals import LOG_LEVEL
-from logger import create_logger
-
-log = create_logger("Resource Manager", LOG_LEVEL)
+log = logging.getLogger("Resource Manager")
 
 # --- Base Paths ---
 # Determines root path for resources

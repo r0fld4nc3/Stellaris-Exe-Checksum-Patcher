@@ -1,27 +1,26 @@
+import logging
 import os
 import subprocess
 import time
 from pathlib import Path
 
-from conf_globals import LOG_LEVEL, OS
+from config.path_helpers import os_darwin, os_linux, os_windows
 
-from logger import create_logger  # isort: skip
-
-log = create_logger("utils.platform", LOG_LEVEL)
+log = logging.getLogger("utils.platform")
 
 
 def open_in_file_manager(path: Path):
     path = path.resolve()
 
     try:
-        if OS.WINDOWS:
+        if os_windows():
             subprocess.run(["explorer.exe", "/select,", str(path)])
-        elif OS.LINUX:
+        elif os_linux():
             if path.is_file():
                 # On UNIX open the directory not file itself
                 path = path.parent
             subprocess.run(["xdg-open", str(path)])
-        elif OS.MACOS:
+        elif os_darwin():
             subprocess.run(["open", "-R", str(path)])
         else:
             log.warning("No known Operating System")

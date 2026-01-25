@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -15,12 +16,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from conf_globals import LOG_LEVEL, OS, SETTINGS
-from logger import create_logger
+from app_services import services
+from config.path_helpers import os_darwin
 from patchers import MultiGamePatcher
 from patchers import models as patcher_models
 
-log = create_logger("UI UTILS", LOG_LEVEL)
+log = logging.getLogger("UI UTILS")
 
 
 def set_icon_gray(icon: QIcon, size=(32, 32)):
@@ -307,9 +308,9 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
 
     # Check saved path in settings
     saved_path_str = (
-        SETTINGS.game(configuration.game).proton_install_path
+        services().settings.game(configuration.game).proton_install_path
         if configuration.is_proton
-        else SETTINGS.game(configuration.game).install_path
+        else services().settings.game(configuration.game).install_path
     )
 
     log.info(f"Retrieved saved path from settings: '{saved_path_str}'", silent=True)
@@ -326,7 +327,7 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
     log.info(f"Attempting to auto-locate game installation.")
     auto_located_path = game_patcher.locate_game_install()
 
-    if OS.MACOS and not configuration.is_proton:
+    if os_darwin() and not configuration.is_proton:
         auto_located_path = auto_located_path / path_postfix
 
     if auto_located_path:

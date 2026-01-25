@@ -1,13 +1,14 @@
+import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from conf_globals import LOG_LEVEL, OS
-from logger import create_logger
+from app_services import services
+from config.path_helpers import os_darwin, os_linux, os_windows
 
-log = create_logger("Patcher Models", LOG_LEVEL)
+log = logging.getLogger("Patcher Models")
 
 CONST_VERSION_LATEST_KEY = "latest"
 
@@ -26,11 +27,11 @@ class Platform(Enum):
 
     @classmethod
     def detect_current(cls) -> "Platform":
-        if OS.LINUX:
+        if os_linux():
             return cls.LINUX_NATIVE
-        elif OS.WINDOWS:
+        elif os_windows():
             return cls.WINDOWS
-        elif OS.MACOS:
+        elif os_darwin():
             return cls.MACOS
         else:
             return cls.WINDOWS  # Default
@@ -74,7 +75,7 @@ class PatchConfiguration:
         return cls(
             game=selected_game,
             version=CONST_VERSION_LATEST_KEY,
-            platform=(OS.WINDOWS or OS.LINUX_PROTON),
+            platform=(os_windows() or (os_linux() and services().config.use_proton)),
             selected_patches=[],
         )
 

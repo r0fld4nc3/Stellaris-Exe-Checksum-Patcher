@@ -1,11 +1,9 @@
+import logging
 from pathlib import Path
 
 import chardet
 
-from conf_globals import LOG_LEVEL
-from logger import create_logger
-
-log = create_logger("Encodings", LOG_LEVEL)
+log = logging.getLogger("Encodings")
 
 # https://www.ibm.com/docs/en/zos-connect/zosconnect/3.0?topic=SS4SVW_3.0.0%2Fdesigning%2Fccsid_list.htm
 # https://uic.io/en/charset/supported_list/

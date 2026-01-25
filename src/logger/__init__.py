@@ -1,1 +1,1 @@
-from .logs import create_logger, reset_log_file
+from .logs import configure_logging, reset_log_file
