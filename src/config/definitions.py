@@ -1,7 +1,6 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final
 
 APP_VERSION = [2, 2, 0]
 HOST: str = "r0fld4nc3"
