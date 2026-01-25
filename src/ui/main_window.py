@@ -905,14 +905,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 log.info(f"Using saved platform for {precached_game}: {platform}", silent=True)
             except ValueError:
                 log.warning(f"Invalid saved platform '{last_platform_str}', auto-detecting", silent=True)
-                if os_windows():
-                    platform = patcher_models.Platform.WINDOWS
-                elif os_linux():
-                    platform = (
-                        patcher_models.Platform.WINDOWS if self.app_config.use_proton else patcher_models.Platform.LINUX
-                    )
-                elif os_darwin():
-                    platform = patcher_models.Platform.DARWIN
+                platform = system() if not self.configuration.is_proton else patcher_models.Platform.WINDOWS
         else:
             platform = system()
             log.info(f"No saved platform, auto-detected: {platform}", silent=True)
