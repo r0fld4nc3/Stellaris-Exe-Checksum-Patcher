@@ -12,6 +12,7 @@ import requests
 from app_services import services
 from config.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
 from config.path_helpers import os_darwin, os_linux, os_windows
+from patchers.models import Platform
 
 log = logging.getLogger("Patterns")  # isort: skip
 
@@ -19,14 +20,6 @@ PATTERNS_FILE_NAME = "patterns.json"
 PATTERNS_URL = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/src/patch_patterns/{PATTERNS_FILE_NAME}"
 PATTERNS_LOCAL = services().config.config_dir / PATTERNS_FILE_NAME
 PATTERNS_DISTRIBUTED_FILE = Path(__file__).parent / PATTERNS_FILE_NAME
-
-
-# Also stated in pdx_patchers.py - keep in sync or import from there
-class Platform(Enum):
-    WINDOWS = "windows"
-    LINUX_NATIVE = "linux"
-    LINUX_PROTON = "linux_proton"  # Maps to windows in patterns
-    MACOS = "macos"
 
 
 def get_patterns_config_remote() -> dict:
@@ -72,9 +65,9 @@ def get_patterns_config_remote() -> dict:
         if os_windows() or (os_linux() and config.use_proton):
             config_key = Platform.WINDOWS
         elif os_linux() and not config.use_proton:
-            config_key = Platform.LINUX_NATIVE
+            config_key = Platform.WINDOWS
         elif os_darwin:
-            config_key = Platform.MACOS
+            config_key = Platform.DARWIN
         else:
             log.warning("Unsupported OS detected. Defaulting to Windows patterns")
             config_key = Platform.WINDOWS
@@ -85,9 +78,9 @@ def get_patterns_config_remote() -> dict:
             with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
                 f.write(json.dumps(patterns_data, indent=2))
 
-        log.info(f"[Remote] Loading patterns for '{config_key.value}'")
+        log.info(f"[Remote] Loading patterns for '{config_key}'")
 
-        return patterns_data.get(config_key.value)
+        return patterns_data.get(config_key)
 
     except requests.exceptions.Timeout:
         log.error("Request timed out.")

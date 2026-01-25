@@ -352,16 +352,11 @@ class ConfigurePatchOptionsDialog(QDialog):
         return False
 
     def _get_current_platform(self) -> patcher_models.Platform:
-        if os_windows():
-            return patcher_models.Platform.WINDOWS
-        elif os_linux():
-            if self._should_use_proton():
-                return patcher_models.Platform.WINDOWS
-            return patcher_models.Platform.LINUX_NATIVE
-        elif os_darwin():
-            if self._should_use_proton():
-                return patcher_models.Platform.WINDOWS
-            return patcher_models.Platform.MACOS
+        return (
+            patcher_models.Platform.detect_current()
+            if not self._should_use_proton()
+            else patcher_models.Platform.WINDOWS
+        )
 
     def _validate_configuration(self, config: PatchConfiguration) -> bool:
         log.info(f"Validating patch configuration: {config}", silent=True)
@@ -448,7 +443,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         else:
             # No saved platform, auto-detect
             self._current_platform = self._get_current_platform()
-            log.info(f"No saved platform, auto-detected: {self._current_platform.value}")
+            log.info(f"No saved platform, auto-detected: {self._current_platform}")
 
         if os_linux() or os_darwin():
             use_proton = self._current_platform == patcher_models.Platform.WINDOWS
@@ -489,7 +484,7 @@ class ConfigurePatchOptionsDialog(QDialog):
             self.patch_options_configuration.version = target_version
             log.info(f"Set config version: {target_version}")
         else:
-            log.warning(f"No version with patches available for {game_name} on {self._current_platform.value}")
+            log.warning(f"No version with patches available for {game_name} on {self._current_platform}")
 
         self.version_combobox.blockSignals(False)
 
@@ -522,7 +517,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         # Use stored platform if available, otherwise detect it
         if not self._current_platform:
             self._current_platform = self._get_current_platform()
-            log.warning(f"Platform was not set, auto-detected from system: {self._current_platform.value}")
+            log.warning(f"Platform was not set, auto-detected from system: {self._current_platform}")
 
         # Determine if current UI selection matches initial config
         is_initial_config = (

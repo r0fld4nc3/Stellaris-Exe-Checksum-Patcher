@@ -64,7 +64,7 @@
                     }
                 }
             },
-            "macos": {
+            "darwin": {
                 "description": "Settings for macOS builds.",
                 "exe_filename": "stellaris.app",
                 "path_postfix": "Contents/MacOS/stellaris",
@@ -135,7 +135,7 @@
                     }
                 }
             },
-            "macos": {
+            "darwin": {
                 "description": "Settings for macOS builds.",
                 "exe_filename": "stellaris.app",
                 "path_postfix": "Contents/MacOS/stellaris",
@@ -212,7 +212,7 @@
                     }
                 }
             },
-            "macos": {
+            "darwin": {
                 "description": "Settings for macOS builds.",
                 "exe_filename": "stellaris.app",
                 "path_postfix": "Contents/MacOS/stellaris",
@@ -283,7 +283,7 @@
                     }
                 }
             },
-            "macos": {
+            "darwin": {
                 "description": "Settings for macOS builds.",
                 "exe_filename": "stellaris.app",
                 "path_postfix": "Contents/MacOS/stellaris",

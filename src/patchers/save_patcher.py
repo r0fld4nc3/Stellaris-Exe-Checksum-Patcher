@@ -47,7 +47,7 @@ IRONMAN_YES = f"{IRONMAN_EQ_LINE}yes"
 IRONMAN_NO = f"{IRONMAN_EQ_LINE}no"
 
 
-class IronmanMode(Enum):
+class IronmanMode(int, Enum):
     NONE = 0  # Don't address ironman flag
     SET_ENABLE = 1  # Convert existing ironman=no to ironman=yes
     SET_DISABLE = 2  # Convert existing ironman=yes to ironman=no

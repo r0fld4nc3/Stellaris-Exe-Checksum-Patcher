@@ -6,35 +6,27 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 from app_services import services
-from config.path_helpers import os_darwin, os_linux, os_windows
+from config import definitions
+from config.path_helpers import os_darwin, os_linux, os_windows, system
 
 log = logging.getLogger("Patcher Models")
 
 CONST_VERSION_LATEST_KEY = "latest"
 
 
-class TRANSLATION_LAYER_ENUM:
+class TRANSLATION_LAYER_ENUM(str, Enum):
     NATIVE = "Native"
     PROTON = "Proton"
 
 
-# Also stated in patterns.py - keep in sync or import from there
-class Platform(Enum):
-    WINDOWS = "windows"
-    LINUX_NATIVE = "linux"
-    LINUX_PROTON = "linux_proton"  # Maps to windows in patterns
-    MACOS = "macos"
+class Platform(str, Enum):
+    WINDOWS = definitions.OS_TYPE.WINDOWS.lower()
+    LINUX = definitions.OS_TYPE.LINUX.lower()
+    DARWIN = definitions.OS_TYPE.DARWIN.lower()
 
     @classmethod
     def detect_current(cls) -> "Platform":
-        if os_linux():
-            return cls.LINUX_NATIVE
-        elif os_windows():
-            return cls.WINDOWS
-        elif os_darwin():
-            return cls.MACOS
-        else:
-            return cls.WINDOWS  # Default
+        return system().lower()
 
 
 @dataclass
@@ -116,7 +108,7 @@ class GameExecutable:
 # ============================================================================
 
 
-class SavePatchOptionType(Enum):
+class SavePatchOptionType(str, Enum):
     """Types of save patch options available"""
 
     BOOLEAN = "boolean"  # On/Off toggle

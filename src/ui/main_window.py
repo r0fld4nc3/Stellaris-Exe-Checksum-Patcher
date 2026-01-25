@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
 
 from app_services import services
 from config.definitions import APP_VERSION, SUPPORTED_GAMES, TRACKING_BRANCH
-from config.path_helpers import os_darwin, os_linux, os_windows
+from config.path_helpers import os_darwin, os_linux, os_windows, system
 
 # Patch Patterns
 from patch_patterns.patterns import (
@@ -317,7 +317,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             _last_platform = self.settings.game(self.configuration.game).last_patched_platform
             if _last_platform:
                 if os_linux() or os_darwin():
-                    self.configuration.is_proton = _last_platform.lower() == patcher_models.Platform.WINDOWS.value
+                    self.configuration.is_proton = _last_platform.lower() == patcher_models.Platform.WINDOWS
 
     def load_app_styles(self):
         """Loads Styles, Icons and Fonts"""
@@ -471,16 +471,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         patches_to_apply = [patch_name for patch_name in self.configuration.selected_patches]
 
         # --- Determine platform ---
-        platform = None
-        if os_linux():
-            if self.configuration.is_proton:
-                platform = patcher_models.Platform.WINDOWS
-            else:
-                platform = patcher_models.Platform.LINUX_NATIVE
-        elif os_windows():
-            platform = patcher_models.Platform.WINDOWS
-        elif os_darwin():
-            platform = patcher_models.Platform.MACOS
+        platform = (
+            patcher_models.Platform.detect_current()
+            if not self.configuration.is_proton
+            else patcher_models.Platform.WINDOWS
+        )
 
         if self.patch_config_dialog and not patches_to_apply:
             log.warning(f"Aborting Patch process. No patches selected for configuration: {self.configuration}")
@@ -499,7 +494,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             ]
 
         with self.settings.batch_update():
-            self.settings.game(self.configuration.game).last_patched_platform = platform.value
+            self.settings.game(self.configuration.game).last_patched_platform = platform
             self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
 
         log.info(f"Patches to apply: {patches_to_apply}", silent=True)
@@ -732,16 +727,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
             # TODO: Create helper method for this repeated pattern
             # --- Determine platform ---
-            platform = None
-            if os_linux():
-                if self.configuration.is_proton:
-                    platform = patcher_models.Platform.WINDOWS
-                else:
-                    platform = patcher_models.Platform.LINUX_NATIVE
-            elif os_windows():
-                platform = patcher_models.Platform.WINDOWS
-            elif os_darwin():
-                platform = patcher_models.Platform.MACOS
+            platform = (
+                patcher_models.Platform.detect_current()
+                if not self.configuration.is_proton
+                else patcher_models.Platform.WINDOWS
+            )
 
             available_patches = self.multi_game_patcher.get_available_patches_for_game(
                 self.configuration.game, self.configuration.version, platform=platform
@@ -906,32 +896,20 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         if last_platform_str:
             try:
                 platform = patcher_models.Platform(last_platform_str.lower())
-                log.info(f"Using saved platform for {precached_game}: {platform.value}", silent=True)
+                log.info(f"Using saved platform for {precached_game}: {platform}", silent=True)
             except ValueError:
                 log.warning(f"Invalid saved platform '{last_platform_str}', auto-detecting", silent=True)
                 if os_windows():
                     platform = patcher_models.Platform.WINDOWS
                 elif os_linux():
                     platform = (
-                        patcher_models.Platform.WINDOWS
-                        if self.app_config.use_proton
-                        else patcher_models.Platform.LINUX_NATIVE
+                        patcher_models.Platform.WINDOWS if self.app_config.use_proton else patcher_models.Platform.LINUX
                     )
                 elif os_darwin():
-                    platform = patcher_models.Platform.MACOS
+                    platform = patcher_models.Platform.DARWIN
         else:
-            # No saved platform, detect from OS
-            if os_windows():
-                platform = patcher_models.Platform.WINDOWS
-            elif os_linux():
-                platform = (
-                    patcher_models.Platform.WINDOWS
-                    if self.app_config.use_proton
-                    else patcher_models.Platform.LINUX_NATIVE
-                )
-            elif os_darwin():
-                platform = patcher_models.Platform.MACOS
-            log.info(f"No saved platform, auto-detected: {platform.value}", silent=True)
+            platform = system()
+            log.info(f"No saved platform, auto-detected: {platform}", silent=True)
 
         # Get available version and find first one with patches available
         all_versions = self.multi_game_patcher.get_available_versions(precached_game)
@@ -944,13 +922,13 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             if patches:
                 selected_version = version
                 log.info(
-                    f"Selected version '{version}' for {precached_game} on {platform.value} ({len(patches)}) patches available.",
+                    f"Selected version '{version}' for {precached_game} on {platform} ({len(patches)}) patches available.",
                     silent=True,
                 )
                 break
         else:
             log.warning(
-                f"No version with patches found for {precached_game} on {platform.value}, using fallback '{selected_version}'",
+                f"No version with patches found for {precached_game} on {platform}, using fallback '{selected_version}'",
                 silent=True,
             )
 
