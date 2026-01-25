@@ -264,7 +264,7 @@ class SavePatcher:
 
         # Determine backup directory
         if backup_base_dir is None:
-            backup_base_dir = SETTINGS.config_dir / "saves_backup"
+            backup_base_dir = services().config.config_dir / "saves_backup"
 
         timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
         backup_dir = backup_base_dir / save_file.parent.name / timestamp_str
