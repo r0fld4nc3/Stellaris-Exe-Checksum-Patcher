@@ -679,9 +679,21 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # self.threader.signals.failed.connect() # TODO
         thread_repair_save.signals.started.connect(self.disable_ui_elements)
         thread_repair_save.signals.finished.connect(self.enable_ui_elements)
+        thread_repair_save.signals.finished.connect(self.on_finished_save_repair)
         thread_repair_save.signals.finished.connect(lambda: self.remove_thread(thread_id))  # Removes thead by ID
         self.active_threads.append(thread_repair_save)
         thread_repair_save.start()
+
+    def on_finished_save_repair(self) -> None:
+        if self.app_config.is_cheated_save:
+            msgbox = QMessageBox(self)
+            msgbox.setWindowTitle("Cheated Save")
+            msgbox.setText("WARNING: Save is a cheated save and the fixes might not work.")
+            msgbox.setStyleSheet("QLabel{ color: white}")
+            msgbox.exec_()
+
+        # Reset the variable
+        self.app_config.is_cheated_save = False
 
     def open_configure_patch_options_window(self):
         log.info("Opening patch configuration window", silent=True)
