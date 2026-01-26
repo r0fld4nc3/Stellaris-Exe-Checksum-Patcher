@@ -700,7 +700,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             self.patch_config_dialog = ConfigurePatchOptionsDialog(
                 patcher=self.multi_game_patcher,
                 configuration=config_copy,
-                font=QFont(self.app_font_bold, 10),
+                font=QFont(self.app_font_bold, 12),
                 window_icon=self.windowIcon(),
                 parent=self,
             )
