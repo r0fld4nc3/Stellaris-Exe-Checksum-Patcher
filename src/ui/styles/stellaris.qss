@@ -134,6 +134,10 @@ QTextBrowser#ProjectLink {
     color: white;
 }
 
+QMenu::item {
+    color: white;
+}
+
 /* ANY widget that is disabled */
 QWidget[enabled="false"] {
     background-color: rgb(80, 80, 80);
