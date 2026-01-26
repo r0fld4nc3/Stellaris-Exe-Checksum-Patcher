@@ -1112,8 +1112,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             width = int(screen_geometry.width() * (width_pct * 0.01))
             height = int(screen_geometry.height() * (height_pct * 0.01))
 
-        # Set minimum size
-        self.setMinimumSize(800, 600)
+        # Set minimum size to screen percentage
+        min_w = int(screen_geometry.width() * (30 * 0.01))
+        min_h = int(screen_geometry.height() * (20 * 0.01))
+        log.info(f"Set Minimum Size: ({min_w=}, {min_h})")
+        self.setMinimumSize(min_w, min_h)
 
         # Set initial size
         self.resize(width, height)
