@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_VERSION = [2, 2, 0]
+APP_VERSION = [2, 1, 1]
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
