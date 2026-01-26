@@ -150,6 +150,7 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         self.version_combobox = QComboBox()
         self.version_combobox.setFont(self.font)
+        self.version_combobox.setMaximumWidth(140)
 
         selection_layout.addWidget(QLabel("Game:"))
         selection_layout.addWidget(self.game_combobox, 1)
@@ -166,6 +167,7 @@ class ConfigurePatchOptionsDialog(QDialog):
             self.use_proton_picker.setFont(self.font)
             selection_layout.addWidget(self.use_proton_picker)
             self.use_proton_picker.currentTextChanged.connect(self._on_binary_type_changed)
+            self.use_proton_picker.setMinimumWidth(100)
 
         # --- Patches Area (Scrollable) ---
         self.patches_scroll_area = QScrollArea()
