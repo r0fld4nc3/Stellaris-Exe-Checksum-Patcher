@@ -338,7 +338,7 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         return PatchConfiguration(
             game=selected_game,
-            version=patcher_models.CONST_VERSION_LATEST_KEY,
+            version=patcher_models.KEY_VERSION_LATEST,
             is_proton=(os_windows() or self._should_use_proton()),
         )
 
@@ -469,8 +469,8 @@ class ConfigurePatchOptionsDialog(QDialog):
         ):
             target_version = self.patch_options_configuration.version
         # Otherwise, prefer 'latest' if available
-        elif patcher_models.CONST_VERSION_LATEST_KEY in available_versions_with_patches:
-            target_version = patcher_models.CONST_VERSION_LATEST_KEY
+        elif patcher_models.KEY_VERSION_LATEST in available_versions_with_patches:
+            target_version = patcher_models.KEY_VERSION_LATEST
         # Fall back to first available version
         elif available_versions_with_patches:
             target_version = available_versions_with_patches[0]

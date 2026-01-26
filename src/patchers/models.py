@@ -11,7 +11,7 @@ from config.path_helpers import os_darwin, os_linux, os_windows, system
 
 log = logging.getLogger("Patcher Models")
 
-CONST_VERSION_LATEST_KEY = "latest"
+KEY_VERSION_LATEST = "latest"
 
 
 class TRANSLATION_LAYER_ENUM(str, Enum):
@@ -66,15 +66,13 @@ class PatchConfiguration:
 
         return cls(
             game=selected_game,
-            version=CONST_VERSION_LATEST_KEY,
+            version=KEY_VERSION_LATEST,
             platform=(os_windows() or (os_linux() and services().config.use_proton)),
             selected_patches=[],
         )
 
     def with_game(self, game: str) -> "PatchConfiguration":
-        return PatchConfiguration(
-            game=game, version=CONST_VERSION_LATEST_KEY, is_proton=self.is_proton, selected_patches=[]
-        )
+        return PatchConfiguration(game=game, version=KEY_VERSION_LATEST, is_proton=self.is_proton, selected_patches=[])
 
 
 @dataclass

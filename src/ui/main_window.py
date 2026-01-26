@@ -279,11 +279,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Cache Configuration ---
         self.multi_game_patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
 
-        self.selected_version = patcher_models.CONST_VERSION_LATEST_KEY
+        self.selected_version = patcher_models.KEY_VERSION_LATEST
 
         self.configuration = patcher_models.PatchConfiguration(
             game="",
-            version=patcher_models.CONST_VERSION_LATEST_KEY,
+            version=patcher_models.KEY_VERSION_LATEST,
             is_proton=(os_windows() or (self.app_config.use_proton)),
         )
         self.save_configuration: patcher_models.GameSavePatchConfig = None
@@ -914,7 +914,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         all_versions = self.multi_game_patcher.get_available_versions(precached_game)
         last_patched_version = self.settings.game(precached_game).last_patched_version
         log.info(f"Last patched version: {last_patched_version}", silent=True)
-        selected_version = patcher_models.CONST_VERSION_LATEST_KEY  # Default fallback
+        selected_version = patcher_models.KEY_VERSION_LATEST  # Default fallback
 
         for version in all_versions:
             patches = self.multi_game_patcher.get_available_patches_for_game(precached_game, version, platform)

@@ -564,7 +564,7 @@ class MultiGamePatcher:
         self.logger.info(f"Available games: {self.games}", silent=True)
         return self.games
 
-    def get_available_versions(self, game_name: str, version: str = CONST_VERSION_LATEST_KEY) -> List[str]:
+    def get_available_versions(self, game_name: str, version: str = KEY_VERSION_LATEST) -> List[str]:
         """Get available versions for a specific game"""
         game_config: dict = self.patterns_config.get(game_name)
 
@@ -575,7 +575,7 @@ class MultiGamePatcher:
                 return versions
         return []
 
-    def get_game_patcher(self, game_name: str, version: str = CONST_VERSION_LATEST_KEY) -> Optional[GamePatcher]:
+    def get_game_patcher(self, game_name: str, version: str = KEY_VERSION_LATEST) -> Optional[GamePatcher]:
         self.logger.info(f"Get game patcher for game: '{game_name}': '{version}'", silent=True)
 
         if game_name not in self.games:
@@ -604,7 +604,7 @@ class MultiGamePatcher:
         return GamePatcher(game_name=game_name, version_config=version_config)
 
     def get_available_patches_for_game(
-        self, game_name: str, version: str = CONST_VERSION_LATEST_KEY, platform: Optional[Platform] = None
+        self, game_name: str, version: str = KEY_VERSION_LATEST, platform: Optional[Platform] = None
     ) -> Dict[str, PatchPattern]:
 
         platform_str = platform if platform else "None"
