@@ -88,7 +88,8 @@ class Updater:
         else:
             releases = response.json()[:max_fetch]
 
-        log.debug(f"Releases: {releases}")
+        log.debug("Dumping fetched releases.")
+        log.debug(f"Releases: {json.dumps(releases, indent=2)}")
 
         return releases
 
@@ -141,7 +142,7 @@ class Updater:
         log.debug(f"{has_update=}")
 
         if has_update:
-            log.info(f"This release {current} is outdated with remote {remote_release_name} ({remote_release_tag})")
+            log.info(f"This release {current} is outdated with remote: {remote_release_name})")
             return True
         else:
             log.debug(
