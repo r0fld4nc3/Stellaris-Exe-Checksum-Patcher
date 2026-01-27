@@ -298,7 +298,6 @@ class SettingsManager:
 
                 all_old_files.add(item)
 
-            # TODO: Sort most recent
             if access_sort:
                 found = max(access_sort.items(), key=lambda x: x[1])[0]
                 log.info(f"Selected most recent file for migration: {found.name}", silent=True)

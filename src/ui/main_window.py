@@ -740,7 +740,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
             log.info(f"Configuration updated: {self.configuration}", silent=True)
 
-            # TODO: Create helper method for this repeated pattern
             # --- Determine platform ---
             platform = (
                 patcher_models.Platform.detect_current()
