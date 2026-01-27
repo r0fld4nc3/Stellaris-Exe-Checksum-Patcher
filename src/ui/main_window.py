@@ -336,6 +336,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         conf_game = self.configuration.game
 
         self.window_title = f"{conf_game} Patcher"
+        self.window_title_update_available = self.window_title + " (UPDATE AVAILABLE)"
         self.window_title_with_app_version = (
             f"{self.window_title} ({self._APP_VERSION}){'-debug' if self.app_config.debug else ''}"
         )
@@ -352,6 +353,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Label Title ---
         self.lbl_title.setText(self.window_title)
+        if self.settings.settings.update_available:
+            self.lbl_title.setText(self.window_title_update_available)
         self.lbl_title.setFont(QFont(self.app_font_bold, 24))
         self.lbl_title.setMinimumSize(QSize(24, 36))
         self.lbl_title.setMaximumSize(QSize(16777215, 36))
@@ -795,6 +798,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         last_checked = self.settings.settings.update_last_checked
         now = int(time.time())
 
+        log.debug("Trigger update check.")
         log.debug(
             f"{self._APP_VERSION} == {self._prev_app_version} = {self._APP_VERSION == self._prev_app_version}",
             silent=True,
@@ -836,8 +840,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             )
             html += '<span style=" font-weight:700;"> (UPDATE AVAILABLE)</span></p></body></html>'
             self.txt_browser_project_link.setHtml(html)
-            self.lbl_title.setText(self.lbl_title.text() + " (UPDATE AVAILABLE)")
+            self.lbl_title.setText(self.window_title_update_available)
             self.settings.settings.update_available = True
+        else:
+            self.lbl_title.setText(self.window_title)
 
     def open_faq_window(self):
         msgbox = QMessageBox(self)
