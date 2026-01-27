@@ -1,12 +1,13 @@
 import copy
 import logging
+import re
 import sys
 import time
 from pathlib import Path
 from typing import List, Optional, Union
 
-from PySide6.QtCore import QSize, Qt, QThreadPool, QUrl, Slot
-from PySide6.QtGui import QFont
+from PySide6.QtCore import QSize, Qt, QThreadPool, Slot
+from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QApplication,
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QMessageBox,
+    QPlainTextEdit,
     QPushButton,
     QSizePolicy,
     QTextBrowser,
@@ -96,6 +98,34 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         width = 966 if width < 1 else width
         height = 821 if height < 1 else height
 
+        # Pre-compiled regex patterns for terminal log
+        self._log_pattern = re.compile(r"(\[(DEBUG|INFO|WARN|ERROR)\])(.*)")
+
+        # Pre-compiled colour map
+        self._colour_map = {
+            "ERROR": QColor("#E20000"),
+            "WARN": QColor("#EAA353"),
+            "INFO": QColor("#FFFFFF"),
+            "DEBUG": QColor("#888888"),
+        }
+
+        # Pre-create text formats (is good performance)
+        self._formats = {}
+        for level, colour in self._colour_map.items():
+            bold_fmt = QTextCharFormat()
+            bold_fmt.setForeground(colour)
+            bold_fmt.setFontWeight(QFont.Bold)
+
+            # Normal message
+            normal_fmt = QTextCharFormat()
+            normal_fmt.setForeground(colour)
+
+            self._formats[level] = (bold_fmt, normal_fmt)
+
+        # Set a default format
+        self._default_format = QTextCharFormat()
+        self._default_format.setForeground(self._colour_map["INFO"])
+
         # --- Base Size---
         self.resize(width, height)
 
@@ -148,7 +178,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Widgets ---
         # --- Main Frame ---
         self.main_frame = QFrame()
-        self.main_frame.setMinimumSize(QSize(650, 500))
+        # self.main_frame.setMinimumSize(QSize(650, 500))
         self.main_frame.setFrameShape(QFrame.WinPanel)
         self.main_frame.setFrameShadow(QFrame.Plain)
         self.main_frame.setContentsMargins(10, 10, 10, 10)
@@ -174,13 +204,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_themed_exit_app.clicked.connect(self.app_quit)
 
         # --- Terminal Display ---
-        self.terminal_display = QTextBrowser()
+        self.terminal_display = QPlainTextEdit()
         self.terminal_display.setObjectName("TerminalDisplay")
+        self.terminal_display.setReadOnly(True)
         self.terminal_display.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored))
         self.terminal_display.setFrameShape(QFrame.Box)
         self.terminal_display.setFrameShadow(QFrame.Sunken)
         self.terminal_display.setLineWidth(2)
-        self.terminal_display.setOpenExternalLinks(True)
+        # self.terminal_display.setOpenExternalLinks(True)
 
         # --- Terminal Display Size Policy ---
         size_policy_terminal_display = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
@@ -397,19 +428,32 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_configure_patch_options.setFixedSize(QSize(48, 48))
 
     @Slot(str)
-    def terminal_display_log(self, t_log):
-        self.terminal_display.insertPlainText(f"{t_log}\n")
-        self.refresh_terminal_log()
+    def terminal_display_log(self, t_log: str):
+        cursor = self.terminal_display.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        self.terminal_display.setTextCursor(cursor)
+
+        match = self._log_pattern.match(t_log)
+
+        if match:
+            level_tag = match.group(1)
+            level_name = match.group(2)
+            msg = match.group(3)
+
+            bold_fmt, normal_fmt = self._formats[level_name]
+
+            cursor.insertText(level_tag, bold_fmt)
+            cursor.insertText(msg + "\n", normal_fmt)
+        else:
+            cursor.insertText(t_log + "\n", self._default_format)
+
+        self.terminal_display.ensureCursorVisible()
 
     def set_terminal_clickable(self, is_clickable: bool):
         if is_clickable:
             self.terminal_display.setTextInteractionFlags(~Qt.LinksAccessibleByMouse)  # the ~ negates the flag
         else:
             self.terminal_display.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
-
-    def refresh_terminal_log(self):
-        # Could potentially not be useful anymore. Here to force redraw of elements in the QTextBrowser.
-        self.terminal_display.update()
 
     def enable_ui_elements(self):
         self.btn_patch_executable.setEnabled(True)
@@ -1119,7 +1163,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # Set minimum size to screen percentage
         min_w = int(screen_geometry.width() * (30 * 0.01))
-        min_h = int(screen_geometry.height() * (20 * 0.01))
+        min_h = int(screen_geometry.height() * (20 * 0.01))  # TODO: Fix
         log.info(f"Set Minimum Size: ({min_w=}, {min_h})", silent=True)
         self.setMinimumSize(min_w, min_h)
 
