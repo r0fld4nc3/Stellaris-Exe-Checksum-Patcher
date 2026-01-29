@@ -11,7 +11,7 @@ If you'd like to support me:
 
 An easy and painless way to patch the game's executable to enable Achievements being earnable with mods that change the game's Checksum.
 
-## ⚠️ Antivirus False Positives
+# ⚠️ Antivirus False Positives
 
 Some antivirus software (including Bitdefender, Windows Defender, and others) may flag this executable as a PUP (Potentially Unwanted Program) or Trojan. **This is a false positive.**
 
@@ -21,7 +21,7 @@ The source code is open and available in this repository for your review. If you
 
 For more details see [Issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/issues/39) where you may find this discussion and the source for these claims.
 
-## ⤵️ Usage
+# Usage
 * Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
 
 | Platform                                                                                                                             | Version              |
@@ -32,7 +32,7 @@ For more details see [Issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Chec
 
 Please refer to the below **Build & Run From Source** section if you don't wish to run the binary file.
 
-## ⚙️ Compile Source
+# ⚙️ Build Source
 
 The following describes the steps needed to compile the source code to a one-file distributable binary/executable. The result should be a single file that is the packaged application into a runnable binary.
 
@@ -68,7 +68,7 @@ cd Stellaris-Exe-Checksum-Patcher
 uv run ./builds/build-nuitka.py
 ```
 
-## ⚙️ Sync & Run From Source
+# ⚙️ Sync & Run From Source
 
 The following describes the steps needed to run the source code without the need to compile a binary/executable. This is useful for fast development iteration as it offsets the burden to each user.
 
@@ -120,7 +120,7 @@ cd Stellaris-Exe-Checksum-Patcher
     * Open a terminal and `cd` into the `Stellaris-Exe-Checksum-Patcher/scripts` directory.
     * Run `chmod +x dev-run.sh; ./dev-run.sh`
 
-## ❗ Disclaimer ❗
+# Disclaimer
 * Remember to **NOT** upload the modified Stellaris executable to download or distribution sites.
 * Use at your own risk. By using this software, you agree that I, the developer, take no responsibility for your actions, what you choose to do with the modified file and any and all damages that may present themselves by using this software.
 * The goal of this is to simply offer a faster and more automated way to enable mod compatibility with Achievements for a better personal experience.
@@ -134,7 +134,7 @@ cd Stellaris-Exe-Checksum-Patcher
 <img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-07-02.png" width="762">
 </p>
 
-## 🟢 Patches
+# Patches
 * **Patch Executable**
   * This method will automatically check for a Steam installation and patch the executable.
   * If it cannot find the installation, will prompt via dialog for the installation folder.
@@ -148,14 +148,14 @@ cd Stellaris-Exe-Checksum-Patcher
   * A backup is created in the Application's configuration directory under "save games".
   * Attempts to apply the selected fixes.
 
-# 🗒️ Notes
+# Notes
 * **This tool is currently only hosted on this GitHub project. In doubt, please compare your file and version/date to the SHA256 and MD5 table. I will try to keep it as up to date as possible with the current release**
 
 * ### "Windows protected your PC" Warning
   * This is a common issue with unsigned or newly signed certificates. There isn't much I can do about it unless I generate a signature/certificate, pay and upload it to Microsoft. I can assure you this is nothing to be concerned about, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
 
 
-# 🔐 SHA256
+# SHA256
 
 | File                               | SHA256                                                                                 | MD5                                                    |
 |------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
@@ -163,16 +163,16 @@ cd Stellaris-Exe-Checksum-Patcher
 | Stellaris-Checksum-Patcher-win.exe | <sub><sup>509ce651e8e34a5efaf1ec1ea29041a2c5fec6602a85ea985eff78944c90ef73</sup></sub> | <sub><sup>7c2d9e0bce51bb78d692047cafe26d24</sup></sub> |
 
 
-# 🔎 My Stance
+# My Stance
 The sole reason for this patch comes mostly for the fact that we are barred from amazing Quality of Life and Visual mods if we wish to hunt for those Achievements, which can only be obtained by playing Ironman. 
 
-I don't wish to make it so that it becomes easier or _cheesier_ or _cheatier_ to acquire those Achievements as personally that would also completely devalue the effort made. I do support there being no access to the console or any other way to circumvent certain aspects that deter from the challenge, and I understand how difficult or nearly impossible it is to dynamically regulate which mods would be valid for Ironman and which ones would not.
+I don't wish to make it so that it becomes easier, _cheesier_ or _cheatier_ to acquire those Achievements as personally that would also completely devalue the effort made. I do support there being no access to the console or any other way to circumvent certain aspects that deter from the challenge, and I understand how difficult or nearly impossible it is to dynamically regulate which mods would be valid for Ironman and which ones would not.
 
 **Therefore, I do not condone and do not support bypassing this restriction by the developers with the aim of installing content that would enable cheating or unfairly facilitate the acquisition of Achievements, nor was this application made with that belief in mind.**
 
-I understand I cannot regulate this either and therefore ask for sensibility and fairness when playing Ironman with the patch in place. These achievements and everything surrounding them were done with great care and passion by fellow people, and it is our responsibility to care for and respect their creations which they poured their hearts and hours into.
+I understand I cannot regulate this either and therefore ask for sensibility and fairness when playing Ironman with the patch in place. These achievements and everything surrounding them were done with great care and passion by fellow people, and it is our responsibility to be respectful to their creations which they poured their hearts and hours into.
 
-## Sources
+# Sources
 This method was a side project mainly for learning purposes and honing skills.
 
 This method is based off of these following guides:
