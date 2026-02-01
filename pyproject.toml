@@ -1,6 +1,6 @@
 [project]
 name = "Stellaris-Exe-Checksum-Patcher"
-version = "2025.0.0"
+version = "2.1.1"
 description = "Patches the Stellaris binary so that playing Ironman mode with mods allows the collection of achievements."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -18,7 +18,7 @@ keywords = [
 requires-python = ">= 3.13, <3.14" # 3.14 does not yet support PySide6
 
 dependencies = [
-  "PySide6~=6.9.2",
+  "PySide6-Essentials~=6.10.1",
   "requests~=2.32.5",
   "vdf~=3.4",
   "chardet~=5.2.0",
@@ -29,7 +29,3 @@ Repository = "https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher.git"
 
 [dependency-groups]
 dev = ["nuitka~=2.8.9"]
-
-[project.optional-dependencies]
-# Hardlocked dev dependencies
-dev = ["PySide6==6.9.2", "requests==2.32.5", "vdf==3.4", "chardet==5.2.0"]

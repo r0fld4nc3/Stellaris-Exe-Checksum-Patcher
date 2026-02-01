@@ -1,32 +1,27 @@
-import base64
 import datetime
+import logging
 import os
 import shutil
 import ssl
+import tempfile
 import zipfile
 from enum import Enum
 from pathlib import Path
+from typing import Optional, Union
 
 import certifi
 import requests
 
-from conf_globals import (
-    LOG_LEVEL,
-    OS,
-    PREVENT_CONN,
-    REPO_BRANCH,
-    REPO_NAME,
-    REPO_OWNER,
-    SETTINGS,
-)
-from logger import create_logger
+from app_services import services
+from config.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
+from config.path_helpers import os_darwin, os_linux, os_windows
 
 # 3rd Party
 from utils.encodings import detect_file_encoding
 
 from .models import GameSavePatchConfig
 
-log = create_logger("Save Patcher", LOG_LEVEL)
+log = logging.getLogger("Save Patcher")
 
 WINDOWS_PARADOX_INTERACTIVE_PATHS = [Path.home() / "Documents" / "Paradox Interactive"]
 
@@ -36,11 +31,16 @@ MACOS_PARADOX_INTERACTIVE_PATHS = [Path.home() / "Documents" / "Paradox Interact
 
 ACHIEVEMENTS_FILE_NAME = "achievements.txt"
 ACHIEVEMENTS_URL = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/src/achievements/{ACHIEVEMENTS_FILE_NAME}"
-ACHIEVEMENTS_FILE_LOCAL = SETTINGS.config_dir / ACHIEVEMENTS_FILE_NAME
-ACHIEVEMENTS_DISTRIBUTED_FILE = Path(__file__).parent / ACHIEVEMENTS_FILE_NAME
-if not ACHIEVEMENTS_DISTRIBUTED_FILE.exists():
+ACHIEVEMENTS_FILE_LOCAL = services().config.config_dir / ACHIEVEMENTS_FILE_NAME
+
+if not services().config.frozen:
     # We're not running a compiled build
     ACHIEVEMENTS_DISTRIBUTED_FILE = Path(__file__).parent.parent / "achievements" / ACHIEVEMENTS_FILE_NAME
+else:
+    ACHIEVEMENTS_DISTRIBUTED_FILE = services().config.working_dir / ACHIEVEMENTS_FILE_NAME
+
+NO = "no"
+YES = "yes"
 
 NAME_EQ_LINE = "name="
 GALAXY_EQ_LINE = "galaxy="
@@ -48,15 +48,23 @@ ACHIEVEMENT_EQ_LINE = "achievement="
 CLUSTERS_EQ_LINE = "clusters="
 
 IRONMAN_EQ_LINE = "ironman="
-IRONMAN_YES = f"{IRONMAN_EQ_LINE}yes"
-IRONMAN_NO = f"{IRONMAN_EQ_LINE}no"
+IRONMAN_YES = f"{IRONMAN_EQ_LINE}{YES}"
+IRONMAN_NO = f"{IRONMAN_EQ_LINE}{NO}"
+
+CHEATED_ON_SAVE_LINE = "cheated_on_save="
 
 
-class IronmanMode(Enum):
+class IronmanMode(int, Enum):
     NONE = 0  # Don't address ironman flag
     SET_ENABLE = 1  # Convert existing ironman=no to ironman=yes
     SET_DISABLE = 2  # Convert existing ironman=yes to ironman=no
     FORCE_ADD = 3  # Always add, even if not present
+
+
+class CheatedMode(Enum):
+    SET_NO = 0
+    SET_YES = 1
+    KEEP = 2
 
 
 class SavePatcher:
@@ -105,11 +113,11 @@ class SavePatcher:
         if not self.game_name:
             return False
 
-        if OS.WINDOWS:
+        if os_windows():
             potential_paths = WINDOWS_PARADOX_INTERACTIVE_PATHS
-        elif OS.LINUX:
+        elif os_linux():
             potential_paths = LINUX_PARADOX_INTERACTIVE_PATHS
-        elif OS.MACOS:
+        elif os_darwin():
             potential_paths = MACOS_PARADOX_INTERACTIVE_PATHS
         else:
             potential_paths = []
@@ -221,7 +229,7 @@ class SavePatcher:
             log.debug(f"Stored timestamps for {len(files_access_times)} files.", silent=True)
 
         try:
-            log.info(f"Repackaging files from {source_dir} to {output_file}")
+            log.info(f"Repackaging files from '{source_dir}' to '{output_file}'")
             with zipfile.ZipFile(output_file, "w", zipfile.ZIP_DEFLATED) as zf:
                 for file in source_dir.iterdir():
                     if not file.is_file():
@@ -268,7 +276,7 @@ class SavePatcher:
 
         # Determine backup directory
         if backup_base_dir is None:
-            backup_base_dir = SETTINGS.config_dir / "saves_backup"
+            backup_base_dir = services().config.config_dir / "saves_backup"
 
         timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
         backup_dir = backup_base_dir / save_file.parent.name / timestamp_str
@@ -361,21 +369,25 @@ class StellarisSavePatcher(SavePatcher):
 
         return ironman_mode
 
+    def get_cheated_on_save_mode_to_set(self) -> CheatedMode:
+        fix_cheated_mode = self.config.is_enabled("set_cheated_save_no") if self.config else False
+
+        if fix_cheated_mode:
+            cheated_mode = CheatedMode.SET_NO
+        else:
+            cheated_mode = CheatedMode.KEEP
+
+        return cheated_mode
+
     def repair_save(self, save_file):
         save_dir = Path(save_file).parent
         save_file_name = Path(save_file).name
-        save_file_times = (os.stat(save_file).st_atime, os.stat(save_file).st_mtime)
 
         # Store original timestamps
         save_file_times = (os.stat(save_file).st_atime, os.stat(save_file).st_mtime)
 
         log.info(f"Save Directory: {save_dir}")
         log.info(f"Save Name: {save_file_name}")
-
-        # --- Setup directory ---
-        repair_dir = save_dir / "save_repair"
-        Path(repair_dir).mkdir(parents=True, exist_ok=True)
-        log.debug(f"Repair Directory: {repair_dir}")
 
         # --- Backup with timestamp ---
         backup_file = self.create_timestamped_backup(save_file)
@@ -384,58 +396,65 @@ class StellarisSavePatcher(SavePatcher):
             return False
         log.info(f"Backup created at: {backup_file}")
 
-        # --- Extract save archive ---
-        if not self.extract_save_archive(save_file, repair_dir):
-            log.error(f"Failed to extract the save file, aborting repair!")
-            return False
+        with tempfile.TemporaryDirectory(prefix="save_repair_") as temp_dir:
+            # --- Setup directory ---
+            repair_dir = Path(temp_dir) / "save_repair"
+            Path(repair_dir).mkdir(parents=True, exist_ok=True)
+            log.debug(f"Repair Directory: {repair_dir}")
 
-        # --- Define file paths ---
-        gamestate_file = Path(repair_dir) / "gamestate"
-        meta_file = Path(repair_dir) / "meta"
+            # --- Extract save archive ---
+            if not self.extract_save_archive(save_file, repair_dir):
+                log.error(f"Failed to extract the save file, aborting repair!")
+                return False
 
-        # --- Pull latest achievements file ---
-        self.achievements = self.pull_latest_achievements_file()
-        if not self.achievements or self.achievements == "":
-            log.error(f"Unable to fix save: Could not retrieve achievements.")
-            shutil.rmtree(repair_dir)
-            return False
+            # --- Define file paths ---
+            gamestate_file = Path(repair_dir) / "gamestate"
+            meta_file = Path(repair_dir) / "meta"
 
-        # --- Process gamestate ---
-        if not self._process_gamestate(gamestate_file):
-            log.error(f"Failed to process gamestate for {save_file_name}")
-            shutil.rmtree(repair_dir)
-            return False
+            # --- Pull latest achievements file ---
+            self.achievements = self.pull_latest_achievements_file()
+            if not self.achievements:
+                log.error(f"Unable to fix save: Could not retrieve achievements.")
+                shutil.rmtree(repair_dir)
+                return False
 
-        # --- Process meta ---
-        if not self._process_meta(meta_file):
-            log.error(f"Failed to process meta for {save_file_name}")
-            shutil.rmtree(repair_dir)
-            return False
+            # --- Process gamestate ---
+            if not self._process_gamestate(gamestate_file):
+                log.error(f"Failed to process gamestate for {save_file_name}")
+                shutil.rmtree(repair_dir)
+                return False
 
-        # --- Repackage save archive ---
-        if not self.repackage_save_archive(repair_dir, save_file, preserve_timestamps=True):
-            log.error(f"Failed to rebuild save file!")
-            shutil.rmtree(repair_dir)
-            return False
+            # --- Process meta ---
+            if not self._process_meta(meta_file):
+                log.error(f"Failed to process meta for {save_file_name}")
+                shutil.rmtree(repair_dir)
+                return False
 
-        # --- Restore original timestamps ---
-        os.utime(save_file, save_file_times)
+            # --- Repackage save archive ---
+            if not self.repackage_save_archive(repair_dir, save_file, preserve_timestamps=True):
+                log.error(f"Failed to rebuild save file!")
+                shutil.rmtree(repair_dir)
+                return False
 
-        # --- Cleanup ---
-        shutil.rmtree(repair_dir)
+            # --- Restore original timestamps ---
+            os.utime(save_file, save_file_times)
 
         log.info(f"Finished repairing save.")
         return True
 
-    def _process_gamestate(self, gamestate_file: str | Path):
+    def _process_gamestate(self, gamestate_file: str | Path) -> bool:
         log.info(f"Process gamestate: '{gamestate_file}'")
         _encoding = detect_file_encoding(gamestate_file)
 
         ironman_mode = self.get_ironman_fix()
         update_achievements = self.get_update_achievements()
 
+        # Cheated save
+        cheated_mode = self.get_cheated_on_save_mode_to_set()
+
         log.info(f"Achievement fix: {update_achievements}", silent=True)
         log.info(f"Ironman fix: {ironman_mode}", silent=True)
+        log.info(f"Cheated save fix: {cheated_mode}", silent=True)
 
         try:
             with gamestate_file.open("r", encoding=_encoding) as f:
@@ -461,6 +480,7 @@ class StellarisSavePatcher(SavePatcher):
         clusters_found = False
         achievements_inserted = False
         ironman_handled = False
+        cheated_on_save_handled = False
 
         i = 0
         while i < len(lines):
@@ -571,6 +591,39 @@ class StellarisSavePatcher(SavePatcher):
                                 ironman_handled = True
                                 continue
 
+            if not cheated_on_save_handled:
+                if in_achievements_block or in_galaxy_block:
+                    new_lines.append(stripped)
+                    i += 1
+                    continue
+
+                if stripped.startswith(CHEATED_ON_SAVE_LINE):
+                    # Log find
+                    log.info(f"Found flag '{stripped}' ({i + 1})", silent=True)
+
+                    # Get indentation for current line
+                    indent_level = len(line) - len(line.lstrip())
+                    indent = "\t" * (indent_level // 4) if indent_level > 0 else ""
+
+                    split = stripped.split("=")
+
+                    flag = None
+                    if len(split) > 1:
+                        flag: Optional[str] = split[1]
+
+                    # Set AppConfig flag for tracking
+                    if flag == YES:
+                        services().config.is_cheated_save = True
+                    else:
+                        services().config.is_cheated_save = False
+
+                    new_lines.append(f"{indent}{CHEATED_ON_SAVE_LINE}{flag}\n")
+
+                    cheated_on_save_handled = True
+
+                    i += 1
+                    continue
+
             new_lines.append(line)
             i += 1
 
@@ -594,7 +647,7 @@ class StellarisSavePatcher(SavePatcher):
 
         return True
 
-    def _process_meta(self, meta_file: str | Path):
+    def _process_meta(self, meta_file: Union[str, Path]) -> bool:
         _encoding = detect_file_encoding(meta_file)
 
         try:
@@ -827,8 +880,10 @@ class StellarisSavePatcher(SavePatcher):
     def load_local_achievements_file(self) -> str:
         log.info("Loading local achievements file.")
 
+        config = services().config
+
         if not ACHIEVEMENTS_FILE_LOCAL.exists():
-            config_dir = SETTINGS.config_dir
+            config_dir = config.config_dir
             copy_dest = config_dir / ACHIEVEMENTS_FILE_NAME
 
             try:
@@ -854,7 +909,9 @@ class StellarisSavePatcher(SavePatcher):
     def pull_latest_achievements_file(self) -> str:
         log.info("Pulling latest Achievements file from GitHub repository.")
 
-        if PREVENT_CONN:
+        config = services().config
+
+        if config.prevent_conn:
             log.info(f"Will not fetch achievements file from remote as prevent connections is active.")
             return self.load_local_achievements_file()
 

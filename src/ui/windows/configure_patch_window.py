@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -19,20 +20,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from conf_globals import (
-    IS_DEBUG,
-    LOG_LEVEL,
-    OS,
-    PREVENT_CONN,
-    SETTINGS,
-    STEAM,
-    USE_LOCAL_PATTERNS,
-)
-from logger import create_logger
-from patch_patterns.patterns import (
-    get_patterns_config_local,
-    get_patterns_config_remote,
-)
+from app_services import services
+from config.path_helpers import os_darwin, os_linux, os_windows
+from patch_patterns.patterns import get_patterns_config_remote
 from patchers import MultiGamePatcher, PatchConfiguration
 from patchers import models as patcher_models
 from thread_utils import Threader
@@ -41,10 +31,12 @@ from utils.platform import open_in_file_manager
 from ..utils import find_game_path, prompt_install_dir, restore_window_focus
 from .welcome_dialog import WelcomeDialog
 
-log = create_logger("Patch Config", LOG_LEVEL)
+log = logging.getLogger("Patch Config")
 
 
 class ConfigurePatchOptionsDialog(QDialog):
+    svc = services()
+
     def __init__(
         self,
         patcher: MultiGamePatcher,
@@ -123,7 +115,13 @@ class ConfigurePatchOptionsDialog(QDialog):
     def _load_settings(self):
         log.info("Load Settings")
         # Reflect settings in UI
-        use_local_patterns = any([USE_LOCAL_PATTERNS, PREVENT_CONN, SETTINGS.settings.force_local_patterns])
+        use_local_patterns = any(
+            [
+                self.svc.config.use_local_patterns,
+                self.svc.config.prevent_conn,
+                self.svc.settings.settings.force_local_patterns,
+            ]
+        )
         log.debug(f"Has Attribute 'chkbox_use_local_patterns': {hasattr(self, 'chkbox_use_local_patterns')}")
         self.chkbox_use_local_patterns.setCheckState(
             Qt.CheckState.Checked if use_local_patterns else Qt.CheckState.Unchecked
@@ -152,6 +150,7 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         self.version_combobox = QComboBox()
         self.version_combobox.setFont(self.font)
+        self.version_combobox.setMaximumWidth(140)
 
         selection_layout.addWidget(QLabel("Game:"))
         selection_layout.addWidget(self.game_combobox, 1)
@@ -161,13 +160,14 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         # --- Linux Version Dropdown ---
         self.use_proton_picker = QComboBox()
-        if OS.LINUX or OS.MACOS:
+        if os_linux() or os_darwin():
             self.use_proton_picker.addItems(
                 [patcher_models.TRANSLATION_LAYER_ENUM.NATIVE, patcher_models.TRANSLATION_LAYER_ENUM.PROTON]
             )
             self.use_proton_picker.setFont(self.font)
             selection_layout.addWidget(self.use_proton_picker)
             self.use_proton_picker.currentTextChanged.connect(self._on_binary_type_changed)
+            self.use_proton_picker.setMinimumWidth(100)
 
         # --- Patches Area (Scrollable) ---
         self.patches_scroll_area = QScrollArea()
@@ -265,7 +265,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.max_backups_slider = QSlider(Qt.Horizontal)
         self.max_backups_slider.setMinimum(0)
         self.max_backups_slider.setMaximum(10)  # Reasonable max allowed backups
-        self.max_backups_slider.setValue(SETTINGS.settings.max_allowed_binary_backups)
+        self.max_backups_slider.setValue(self.svc.settings.settings.max_allowed_binary_backups)
         self.max_backups_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.max_backups_slider.setTickInterval(1)
         self.max_backups_slider.setToolTip("Drag to adjust maximum number of backups.")
@@ -292,7 +292,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         )
         self.chkbox_use_local_patterns.stateChanged.connect(self.callback_use_local_patterns)
         # Force update state when global enforcement rule is applied
-        if any((USE_LOCAL_PATTERNS, PREVENT_CONN)):
+        if any((self.svc.config.use_local_patterns, self.svc.config.prevent_conn)):
             self.chkbox_use_local_patterns.setEnabled(False)
             # SETTINGS.settings.force_local_patterns = Qt.CheckState.Unchecked.value
         utilities_layout.addWidget(self.chkbox_use_local_patterns)
@@ -308,8 +308,8 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.tab_widget.addTab(utilities_tab, "General Utilities")
 
     def _validate_steam_game_files(self):
-        install_path = SETTINGS.game(self.patch_options_configuration.game).install_path
-        app_id = STEAM.get_app_id_from_install_path(install_path)
+        install_path = self.svc.settings.game(self.patch_options_configuration.game).install_path
+        app_id = self.svc.steam_helper.get_app_id_from_install_path(install_path)
 
         # Remove the binary file before verifying
         game_binary = Path(install_path)
@@ -320,7 +320,7 @@ class ConfigurePatchOptionsDialog(QDialog):
             except Exception as e:
                 log.error(f"Failed to unlink game binary: {e}")
 
-        STEAM.validate_game_files_app_id(app_id)
+        self.svc.steam_helper.validate_game_files_app_id(app_id)
 
         try:
             main_window = self.parent() if self.parent() else self
@@ -340,27 +340,22 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         return PatchConfiguration(
             game=selected_game,
-            version=patcher_models.CONST_VERSION_LATEST_KEY,
-            is_proton=(OS.WINDOWS or self._should_use_proton()),
+            version=patcher_models.KEY_VERSION_LATEST,
+            is_proton=(os_windows() or self._should_use_proton()),
         )
 
     def _should_use_proton(self) -> bool:
-        """Determine if Proton should be used for Linux"""
-        if OS.LINUX or OS.MACOS and hasattr(self, "use_proton_picker"):
+        """Determine if Proton should be used and is picked bu User."""
+        if os_linux() or os_darwin() and hasattr(self, "use_proton_picker"):
             return self.use_proton_picker.currentText().lower() == patcher_models.TRANSLATION_LAYER_ENUM.PROTON.lower()
         return False
 
     def _get_current_platform(self) -> patcher_models.Platform:
-        if OS.WINDOWS:
-            return patcher_models.Platform.WINDOWS
-        elif OS.LINUX:
-            if self._should_use_proton():
-                return patcher_models.Platform.WINDOWS
-            return patcher_models.Platform.LINUX_NATIVE
-        elif OS.MACOS:
-            if self._should_use_proton():
-                return patcher_models.Platform.WINDOWS
-            return patcher_models.Platform.MACOS
+        return (
+            patcher_models.Platform.detect_current()
+            if not self._should_use_proton()
+            else patcher_models.Platform.WINDOWS
+        )
 
     def _validate_configuration(self, config: PatchConfiguration) -> bool:
         log.info(f"Validating patch configuration: {config}", silent=True)
@@ -412,14 +407,14 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.game_combobox.blockSignals(False)
 
         # Update platform UI
-        if OS.LINUX:
+        if os_linux():
             linux_version = (
                 patcher_models.TRANSLATION_LAYER_ENUM.PROTON
                 if self.patch_options_configuration.is_proton
                 else patcher_models.TRANSLATION_LAYER_ENUM.NATIVE
             )
             self.use_proton_picker.setCurrentText(linux_version)
-        elif OS.MACOS:
+        elif os_darwin():
             macos_version = (
                 patcher_models.TRANSLATION_LAYER_ENUM.PROTON
                 if self.patch_options_configuration.is_proton
@@ -434,7 +429,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.version_combobox.blockSignals(True)
         self.version_combobox.clear()
 
-        last_platform_str = SETTINGS.game(game_name).last_patched_platform
+        last_platform_str = self.svc.settings.game(game_name).last_patched_platform
 
         # Convert to Enum
         if last_platform_str:
@@ -447,9 +442,9 @@ class ConfigurePatchOptionsDialog(QDialog):
         else:
             # No saved platform, auto-detect
             self._current_platform = self._get_current_platform()
-            log.info(f"No saved platform, auto-detected: {self._current_platform.value}")
+            log.info(f"No saved platform, auto-detected: {self._current_platform}")
 
-        if OS.LINUX or OS.MACOS:
+        if os_linux() or os_darwin():
             use_proton = self._current_platform == patcher_models.Platform.WINDOWS
             log.info(f"{use_proton=}")
 
@@ -476,8 +471,8 @@ class ConfigurePatchOptionsDialog(QDialog):
         ):
             target_version = self.patch_options_configuration.version
         # Otherwise, prefer 'latest' if available
-        elif patcher_models.CONST_VERSION_LATEST_KEY in available_versions_with_patches:
-            target_version = patcher_models.CONST_VERSION_LATEST_KEY
+        elif patcher_models.KEY_VERSION_LATEST in available_versions_with_patches:
+            target_version = patcher_models.KEY_VERSION_LATEST
         # Fall back to first available version
         elif available_versions_with_patches:
             target_version = available_versions_with_patches[0]
@@ -488,7 +483,7 @@ class ConfigurePatchOptionsDialog(QDialog):
             self.patch_options_configuration.version = target_version
             log.info(f"Set config version: {target_version}")
         else:
-            log.warning(f"No version with patches available for {game_name} on {self._current_platform.value}")
+            log.warning(f"No version with patches available for {game_name} on {self._current_platform}")
 
         self.version_combobox.blockSignals(False)
 
@@ -521,7 +516,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         # Use stored platform if available, otherwise detect it
         if not self._current_platform:
             self._current_platform = self._get_current_platform()
-            log.warning(f"Platform was not set, auto-detected from system: {self._current_platform.value}")
+            log.warning(f"Platform was not set, auto-detected from system: {self._current_platform}")
 
         # Determine if current UI selection matches initial config
         is_initial_config = (
@@ -582,14 +577,17 @@ class ConfigurePatchOptionsDialog(QDialog):
     def _on_binary_type_changed(self, text):
         log.info(f"Binary type changed to: {text}", silent=True)
 
+        # Update AppConfig
+        self.svc.config.use_proton = self._should_use_proton()
+
         # Trigger re-update options
         self._on_version_changed(self.version_combobox.currentText())
 
     def callback_use_local_patterns(self, state):
         if state in (Qt.CheckState.Checked.value, Qt.CheckState.Unchecked.value):
             # We don't need to set for --no-conn
-            if not PREVENT_CONN:
-                SETTINGS.settings.force_local_patterns = state
+            if not self.svc.config.prevent_conn:
+                self.svc.settings.settings.force_local_patterns = bool(state)
         else:
             log.warning("Checkbox in Partially Checked state. We shouldn't be here.", silent=True)
 
@@ -610,8 +608,8 @@ class ConfigurePatchOptionsDialog(QDialog):
 
     def show_game_folder(self, auto_located_path: Optional[Path] = None, _retry_attempted: bool = False):
         paths = [
-            SETTINGS.game(self.patch_options_configuration.game).install_path,
-            SETTINGS.game(self.patch_options_configuration.game).proton_install_path,
+            self.svc.settings.game(self.patch_options_configuration.game).install_path,
+            self.svc.settings.game(self.patch_options_configuration.game).proton_install_path,
         ]
 
         # Attempt to find a valid executable from settings
@@ -627,16 +625,20 @@ class ConfigurePatchOptionsDialog(QDialog):
                 saved_path_posix = saved_path.resolve().as_posix()
                 log.info(f"Save: '{saved_path_posix}'")
 
-                if OS.WINDOWS:
-                    SETTINGS.game(self.patch_options_configuration.game).install_path = saved_path_posix
-                elif (OS.LINUX and OS.LINUX_PROTON) or (OS.LINUX and self.patch_options_configuration.is_proton):
-                    SETTINGS.game(self.patch_options_configuration.game).proton_install_path = saved_path_posix
+                if os_windows():
+                    self.svc.settings.game(self.patch_options_configuration.game).install_path = saved_path_posix
+                elif (os_linux() and self.svc.config.use_proton) or (
+                    os_linux() and self.patch_options_configuration.is_proton
+                ):
+                    self.svc.settings.game(self.patch_options_configuration.game).proton_install_path = saved_path_posix
                 else:
                     # Also account for proton cases
                     if self.patch_options_configuration.is_proton:
-                        SETTINGS.game(self.patch_options_configuration.game).proton_install_path = saved_path_posix
+                        self.svc.settings.game(self.patch_options_configuration.game).proton_install_path = (
+                            saved_path_posix
+                        )
                     else:
-                        SETTINGS.game(self.patch_options_configuration.game).install_path = saved_path_posix
+                        self.svc.settings.game(self.patch_options_configuration.game).install_path = saved_path_posix
 
         else:
             # Iterate once to test if any path exists
@@ -658,7 +660,7 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         if saved_path:
             # MacOS specific case
-            if OS.MACOS:
+            if os_darwin():
                 if saved_path.is_file():
                     saved_path = saved_path.parent.parent.parent
 
@@ -714,12 +716,12 @@ class ConfigurePatchOptionsDialog(QDialog):
             self.max_backup_value_label.setText(str(value))
 
         # Save to settings
-        SETTINGS.settings.max_allowed_binary_backups = value
+        self.svc.settings.settings.max_allowed_binary_backups = value
 
         log.info(f"Maximum allowed backups set to: {value}")
 
     def show_app_config_folder(self):
-        config_dir = SETTINGS.config_dir
+        config_dir = self.svc.config.config_dir
 
         if config_dir.exists() and config_dir.is_dir():
             log.info(f"App Config Folder: {config_dir}", silent=True)

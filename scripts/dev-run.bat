@@ -75,7 +75,7 @@ if "%USE_UV%"=="true" (
         exit /b 1
     )
     REM Sync dependencies into the active environment
-    uv sync --active
+    uv sync --active --no-group dev
     if !ERRORLEVEL! neq 0 (
         echo Error: Failed to sync dependencies using uv.
         exit /b 1

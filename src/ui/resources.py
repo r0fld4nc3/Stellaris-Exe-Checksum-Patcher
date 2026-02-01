@@ -1,3 +1,4 @@
+import logging
 import random
 from enum import Enum
 from pathlib import Path
@@ -5,10 +6,7 @@ from typing import Optional
 
 from PySide6.QtGui import QFontDatabase, QIcon
 
-from conf_globals import LOG_LEVEL
-from logger import create_logger
-
-log = create_logger("Resource Manager", LOG_LEVEL)
+log = logging.getLogger("Resource Manager")
 
 # --- Base Paths ---
 # Determines root path for resources
@@ -18,12 +16,12 @@ FONTS_PATH = BASE_PATH / "fonts"
 STYLES_PATH = BASE_PATH / "styles"
 
 
-class IconAchievementState(Enum):
+class IconAchievementState(str, Enum):
     LOCKED = "locked"
     UNLOCKED = "unlocked"
 
 
-class AppIcon(Enum):
+class AppIcon(str, Enum):
     WINDOW_WIN = "checksum_patcher_icon.ico"
     WINDOW_UNIX = "checksum_patcher_icon.png"
     PATCH_ICON = "patch_icon.png"
@@ -31,18 +29,18 @@ class AppIcon(Enum):
     CONFIGURE_ICON = "configure_icon_big.png"
 
 
-class AppFont(Enum):
+class AppFont(str, Enum):
     ORBITRON_BOLD = "Orbitron-Bold.ttf"
 
 
-class AppStyle(Enum):
+class AppStyle(str, Enum):
     STELLARIS = "stellaris"
     CK3 = "ck3"
 
 
 class ResourceManager:
     def __init__(self, default_game: Optional[str] = None):
-        self._current_game = default_game or AppStyle.STELLARIS.value  # Add a default
+        self._current_game = default_game or AppStyle.STELLARIS  # Add a default
 
         self._icon_cache = {}
         self._icon_achievement_cache = {}
@@ -65,8 +63,8 @@ class ResourceManager:
         game_base = ICONS_PATH / game
 
         return {
-            "achievements_locked": game_base / "achievements" / IconAchievementState.LOCKED.value,
-            "achievements_unlocked": game_base / "achievements" / IconAchievementState.UNLOCKED.value,
+            "achievements_locked": game_base / "achievements" / IconAchievementState.LOCKED,
+            "achievements_unlocked": game_base / "achievements" / IconAchievementState.UNLOCKED,
             "icons": game_base,
             "styles": STYLES_PATH / game,
         }
@@ -84,19 +82,19 @@ class ResourceManager:
             return self._icon_cache[cache_key]
 
         # Try game-specific icon
-        game_icon_path = ICONS_PATH / target_game / icon.value
+        game_icon_path = ICONS_PATH / target_game / icon
         if game_icon_path.exists():
             q_icon = QIcon(str(game_icon_path))
             self._icon_cache[cache_key] = q_icon
             return q_icon
 
-        common_icon_path = ICONS_PATH / icon.value
+        common_icon_path = ICONS_PATH / icon
         if common_icon_path.exists():
             q_icon = QIcon(str(common_icon_path))
             self._icon_cache[cache_key] = q_icon
             return q_icon
 
-        log.warning(f"Icon not found: '{icon.value}' for game {target_game}", silent=True)
+        log.warning(f"Icon not found: '{icon}' for game {target_game}", silent=True)
         return QIcon()
 
     def cache_startup(self):
@@ -149,7 +147,7 @@ class ResourceManager:
             log.warning(f"No achievement icons available for {target_game}.", silent=True)
 
             # Fallback
-            game_achievements = self._icon_achievement_cache.get(AppStyle.STELLARIS.value, {})
+            game_achievements = self._icon_achievement_cache.get(AppStyle.STELLARIS, {})
 
             if not game_achievements:
                 return {IconAchievementState.LOCKED: QIcon(), IconAchievementState.UNLOCKED: QIcon()}
@@ -174,7 +172,7 @@ class ResourceManager:
         if font in self._font_cache:
             return self._font_cache[font]
 
-        file_path = FONTS_PATH / font.value
+        file_path = FONTS_PATH / font
         if not file_path.exists():
             log.warning(f"Font file not found: {file_path}", silent=True)
             return ""
@@ -201,7 +199,7 @@ class ResourceManager:
             log.warning(f"Stylesheet not found: {file_path}", silent=True)
 
             # Fallback
-            file_path = STYLES_PATH / f"{AppStyle.STELLARIS.value}.qss"
+            file_path = STYLES_PATH / f"{AppStyle.STELLARIS}.qss"
             if not file_path.exists():
                 return ""
 

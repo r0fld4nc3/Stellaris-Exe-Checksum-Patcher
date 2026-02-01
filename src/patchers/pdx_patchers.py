@@ -3,20 +3,21 @@
 import binascii
 import datetime
 import json
+import logging
 import mmap
-import platform
 import re
 import shutil
+
+from app_services import services
+from config.path_helpers import os_darwin, system
+from patchers import models
 
 from .models import *
 
 from pathlib import Path  # isort: skip
 from typing import Optional, Dict, List, Union  # isort: skip
 
-from conf_globals import LOG_LEVEL, SETTINGS, OS, STEAM  # isort: skip
-from logger import create_logger  # isort: skip
-
-log = create_logger("PDX Patchers", LOG_LEVEL)  # isort: skip
+log = logging.getLogger("PDX Patchers")  # isort: skip
 
 
 class GamePatcher:
@@ -36,15 +37,8 @@ class GamePatcher:
 
         for platform_key, platform_data in self.config.items():
             # Maps platform keys to enum values
-            if platform_key == Platform.WINDOWS.value:
-                platform_enum = Platform.WINDOWS
-            elif platform_key == Platform.LINUX_NATIVE.value:
-                platform_enum = Platform.LINUX_NATIVE
-            elif platform_key == Platform.MACOS.value:
-                platform_enum = Platform.MACOS
-            else:
-                # Skip unknown platforms
-                continue
+
+            platform_enum = platform_key
 
             # Parse patches for this platform
             patches = {}
@@ -67,9 +61,7 @@ class GamePatcher:
                 patches=patches,
             )
 
-        # Linux Proton uses Windows configuration
-        if Platform.WINDOWS in platforms:
-            platforms[Platform.LINUX_PROTON] = platforms[Platform.WINDOWS]
+            log.debug(f"{platforms=}")
 
         return platforms
 
@@ -78,11 +70,10 @@ class GamePatcher:
 
     def get_available_patches(self, platform: Optional[Union[Platform, str]] = None) -> Dict[str, PatchPattern]:
         if platform is None:
-            platform = self.detect_platform()
+            platform = models.Platform.detect_current()
         elif isinstance(platform, str):
             try:
-                platform = Platform(platform.lower())
-                self.logger.info(f"Converted platform string to Enum: {platform}", silent=True)
+                platform = platform.lower()
             except ValueError:
                 self.logger.error(f"Invalid platform string: '{platform}'")
                 return {}
@@ -94,7 +85,7 @@ class GamePatcher:
 
     def get_patch(self, patch_name: str, platform: Optional[Platform] = None) -> Optional[PatchPattern]:
         if platform is None:
-            platform = self.detect_platform()
+            platform = models.Platform.detect_current()
 
         patches = self.get_available_patches(platform)
 
@@ -106,7 +97,7 @@ class GamePatcher:
 
     def get_executable_info(self, platform: Optional[Platform] = None) -> Optional[GameExecutable]:
         if platform is None:
-            platform = self.detect_platform()
+            platform = models.Platform.detect_current()
 
         platform_config = self.get_platform_config(platform)
         if platform_config:
@@ -121,29 +112,17 @@ class GamePatcher:
         self.exe_info = None
         return None
 
-    def detect_platform(self) -> Platform:
-        system = platform.system().lower()
-
-        if system == Platform.WINDOWS.value:
-            return Platform.WINDOWS
-        elif system == Platform.LINUX_NATIVE.value:
-            return Platform.LINUX_NATIVE
-        elif system == "darwin":
-            return Platform.MACOS
-        else:
-            raise ValueError(f"Unsupported platform: {system}")
-
     def _create_backup(self, file_path: Path) -> bool:
         """Create a backup of the file"""
 
         # If max is 0, don't create or delete any backups
-        max_allowed_backups = SETTINGS.settings.max_allowed_binary_backups
+        max_allowed_backups = services().settings.settings.max_allowed_binary_backups
 
         if max_allowed_backups <= 0:
             log.info(f"Backup creation disabled (max_allowed_binary_backups = {max_allowed_backups})", silent=True)
             return True
 
-        if OS.MACOS:
+        if os_darwin():
             if file_path.is_dir() and ".app" in file_path.name.lower():
                 binary_dir = file_path.parent
             else:
@@ -173,7 +152,7 @@ class GamePatcher:
             return False
 
     def _delete_backups(self, backup_directory: Path) -> None:
-        max_allowed_backups = SETTINGS.settings.max_allowed_binary_backups
+        max_allowed_backups = services().settings.settings.max_allowed_binary_backups
 
         log.info(f"Deleting backups if reached or over max allowance: {max_allowed_backups}", silent=True)
         log.info(f"Processing backup directory: {backup_directory}", silent=True)
@@ -202,7 +181,7 @@ class GamePatcher:
             for backup_item in backups[:num_to_delete]:
                 log.info(f"Remove: '{backup_item}", silent=True)
                 try:
-                    if OS.MACOS:
+                    if os_darwin():
                         shutil.rmtree(backup_item)
                     else:
                         backup_item.unlink()
@@ -217,7 +196,7 @@ class GamePatcher:
         """
         log.info("Locating game install...")
 
-        game_install_path = STEAM.get_game_install_path(self.game_name)
+        game_install_path = services().steam_helper.get_game_install_path(self.game_name)
 
         log.debug(f"{game_install_path=}")
 
@@ -259,7 +238,7 @@ class GamePatcher:
         """
 
         if platform is None:
-            platform = self.detect_platform()
+            platform = models.Platform.detect_current()
 
         log.info(f"Attempting to apply {len(patch_names)} patches: {patch_names}")
 
@@ -275,7 +254,7 @@ class GamePatcher:
         for patch_name in patch_names:
             patch = self.get_patch(patch_name, platform)
             if not patch:
-                log.warning(f"Patch '{patch_name}' not found for platform {platform.value}")
+                log.warning(f"Patch '{patch_name}' not found for platform {platform}")
                 results[patch_name] = False
                 continue
 
@@ -311,7 +290,7 @@ class GamePatcher:
             return results
 
         if create_backup:
-            if platform == Platform.MACOS and not file_path.suffix.lower() == ".exe":
+            if platform == Platform.DARWIN and not file_path.suffix.lower() == ".exe":
                 # Backup the .app folder, not the binary content inside
                 backup_success = self._create_backup(file_path.parent.parent.parent)
             else:
@@ -441,14 +420,14 @@ class GamePatcher:
         """
 
         if platform is None:
-            platform = self.detect_platform()
+            platform = models.Platform.detect_current()
 
         log.info(f"Attempting to patch: {patch_name}")
 
         patch = self.get_patch(patch_name, platform)
         log.info(f"{patch=}", silent=True)
         if not patch:
-            self.logger.error(f"Patch '{patch_name}' not found for platform {platform.value}")
+            self.logger.error(f"Patch '{patch_name}' not found for platform {platform}")
             return False
 
         # Enforce file_path type
@@ -526,7 +505,7 @@ class GamePatcher:
         log.info(f"Checking if patched: {patch_name}")
 
         if platform is None:
-            platform = self.detect_platform()
+            platform = models.Platform.detect_current()
 
         patch = self.get_patch(patch_name, platform)
         if not patch:
@@ -585,7 +564,7 @@ class MultiGamePatcher:
         self.logger.info(f"Available games: {self.games}", silent=True)
         return self.games
 
-    def get_available_versions(self, game_name: str, version: str = CONST_VERSION_LATEST_KEY) -> List[str]:
+    def get_available_versions(self, game_name: str) -> List[str]:
         """Get available versions for a specific game"""
         game_config: dict = self.patterns_config.get(game_name)
 
@@ -596,7 +575,7 @@ class MultiGamePatcher:
                 return versions
         return []
 
-    def get_game_patcher(self, game_name: str, version: str = CONST_VERSION_LATEST_KEY) -> Optional[GamePatcher]:
+    def get_game_patcher(self, game_name: str, version: str = KEY_VERSION_LATEST) -> Optional[GamePatcher]:
         self.logger.info(f"Get game patcher for game: '{game_name}': '{version}'", silent=True)
 
         if game_name not in self.games:
@@ -625,20 +604,10 @@ class MultiGamePatcher:
         return GamePatcher(game_name=game_name, version_config=version_config)
 
     def get_available_patches_for_game(
-        self, game_name: str, version: str = CONST_VERSION_LATEST_KEY, platform: Optional[Platform] = None
+        self, game_name: str, version: str = KEY_VERSION_LATEST, platform: Optional[Platform] = None
     ) -> Dict[str, PatchPattern]:
-        if platform is not None and not isinstance(platform, Platform):
-            platform = Platform(platform)
 
-        # Normalize platform to Enum
-        if isinstance(platform, str):
-            try:
-                platform = Platform(platform.lower())
-            except ValueError:
-                self.logger.error(f"Invalid platform: '{platform}'")
-                return {}
-
-        platform_str = platform.value if platform else "None"
+        platform_str = platform if platform else "None"
 
         self.logger.info(
             f"Getting available patches for '{game_name}': '{version}' {'on ' + platform_str if platform else ''}",

@@ -1,17 +1,20 @@
 import os  # isort: skip
-import sys  # isort: skip
 import json  # isort: skip
 import shutil  # isort: skip
 import tempfile  # isort: skip
 from pathlib import Path  # isort: skip
+import logging
 from dataclasses import asdict, dataclass, field
 from typing import Optional, Union
 
-from conf_globals import CONFIG_FOLDER, LOG_LEVEL  # isort: skip
-from logger import create_logger  # isort: skip
+from config.runtime import get_config
+
 from utils.encodings import detect_file_encoding  # isort: skip
 
-log = create_logger("Settings", LOG_LEVEL)
+
+log = logging.getLogger("Settings")
+
+_current: Optional["AppSettings"] = None
 
 
 @dataclass
@@ -19,7 +22,7 @@ class AutoSaveHookedSettingsClass:
     # Manager hook to intercept attr calls in order to auto-save
     _manager: Optional["SettingsManager"] = field(default=None, init=False, repr=False, compare=False)
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value):
         # Skip internal attributes
         if name.startswith("_"):
             object.__setattr__(self, name, value)
@@ -69,7 +72,7 @@ class SettingsManager:
     """Manages application settings with automatic persistence."""
 
     def __init__(self, config_file_name: str = "stellaris-checksum-patcher-settings-v2.json"):
-        self.config_dir = Path(CONFIG_FOLDER)
+        self.config_dir = Path(get_config().config_dir)
         self.config_file = self.config_dir / config_file_name
         self.settings = AppSettings()
         self.settings._manager = self  # Link manager to class
@@ -295,7 +298,6 @@ class SettingsManager:
 
                 all_old_files.add(item)
 
-            # TODO: Sort most recent
             if access_sort:
                 found = max(access_sort.items(), key=lambda x: x[1])[0]
                 log.info(f"Selected most recent file for migration: {found.name}", silent=True)
@@ -392,3 +394,30 @@ class _BatchContext:
             self.manager.save_settings()
         else:
             log.warning("Batch update completed without marked as dirty.", silent=True)
+
+
+def init() -> SettingsManager:
+    global _current
+
+    if _current is not None:
+        if isinstance(_current, SettingsManager):
+            return _current
+        else:
+            raise RuntimeError(f"Current Settings Instance is invalid: {_current}")
+
+    _current = SettingsManager()
+    _current.load()
+
+    return _current
+
+
+def get() -> SettingsManager:
+    global _current
+
+    if not isinstance(_current, SettingsManager):
+        raise RuntimeError(f"Current Settings Instance is invalid: {_current}")
+
+    if not _current or _current is None:
+        raise RuntimeError(f"Settings is not valid or uninitialised: {_current}")
+
+    return _current

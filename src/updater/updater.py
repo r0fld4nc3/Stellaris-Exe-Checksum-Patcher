@@ -1,14 +1,17 @@
 import json
+import logging
 import ssl
 import time
+from typing import Optional
 
 import certifi
 import requests
 
-from conf_globals import LOG_LEVEL, PREVENT_CONN  # isort: skip
-from logger import create_logger  # isort: skip
+from app_services import services
 
-log = create_logger("Updater", LOG_LEVEL)
+log = logging.getLogger("Updater")
+
+_current: Optional["Updater"] = None
 
 
 class Updater:
@@ -34,7 +37,7 @@ class Updater:
         self.has_new_version = False
 
     def check_for_update(self):
-        if PREVENT_CONN:
+        if services().config.prevent_conn:
             log.info(f"Update turned off due to prevent connections argument being active.")
             return False
 
@@ -61,7 +64,7 @@ class Updater:
 
         releases = []
 
-        if PREVENT_CONN:
+        if services().config.prevent_conn:
             log.info(f"Update turned off due to prevent connections argument being active.")
             return releases
 
@@ -77,15 +80,16 @@ class Updater:
             response = requests.get(api_call, timeout=60, verify=certifi.where())
         except requests.ConnectionError as con_err:
             log.warning(f"Unable to establish connection to update repo.")
-            log.error(con_err)
+            log.error(con_err, silent=True)
             return False
 
         if not response.status_code == 200:
-            log.error("Not a valid repository.")
+            log.error(f"Not a valid repository: {self.repo} ({self.api})")
         else:
             releases = response.json()[:max_fetch]
 
-        log.debug(f"Releases: {releases}")
+        log.debug("Dumping fetched releases.")
+        log.debug(f"Releases: {json.dumps(releases, indent=2)}")
 
         return releases
 
@@ -138,7 +142,7 @@ class Updater:
         log.debug(f"{has_update=}")
 
         if has_update:
-            log.info(f"This release {current} is outdated with remote {remote_release_name} ({remote_release_tag})")
+            log.info(f"This release {current} is outdated with remote: {remote_release_name})")
             return True
         else:
             log.debug(
@@ -191,3 +195,29 @@ class Updater:
     def set_local_version(self, version: str):
         self.local_version = self.construct_version_list_from_str(version)
         log.info(f"Set local version {version}", silent=True)
+
+
+def init(user: str = "", repo_name: str = "") -> Updater:
+    global _current
+
+    if _current:
+        if isinstance(_current, Updater):
+            return _current
+        else:
+            raise RuntimeError(f"Current Updater Instance is invalid: {_current}")
+
+    _current = Updater(user=user, repo_name=repo_name)
+
+    return _current
+
+
+def get() -> Updater:
+    global _current
+
+    if not isinstance(_current, Updater):
+        raise RuntimeError(f"Current Updater Instance is invalid: {_current}")
+
+    if not _current or _current is None:
+        raise RuntimeError(f"Updater is not valid or uninitialised: {_current}")
+
+    return _current

@@ -1,4 +1,5 @@
 import json
+import logging
 import shutil
 import ssl
 import time
@@ -8,49 +9,39 @@ from pathlib import Path
 import certifi
 import requests
 
-from conf_globals import (
-    LOG_LEVEL,
-    OS,
-    PREVENT_CONN,
-    REPO_BRANCH,
-    REPO_NAME,
-    REPO_OWNER,
-    SETTINGS,
-    UPDATE_CHECK_COOLDOWN,
-    USE_LOCAL_PATTERNS,
-)
+from app_services import services
+from config.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
+from config.path_helpers import os_darwin, os_linux, os_windows
+from patchers.models import Platform
 
-from logger import create_logger  # isort: skip
-
-log = create_logger("Patterns", LOG_LEVEL)  # isort: skip
+log = logging.getLogger("Patterns")  # isort: skip
 
 PATTERNS_FILE_NAME = "patterns.json"
 PATTERNS_URL = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/src/patch_patterns/{PATTERNS_FILE_NAME}"
-PATTERNS_LOCAL = SETTINGS.config_dir / PATTERNS_FILE_NAME
+PATTERNS_LOCAL = services().config.config_dir / PATTERNS_FILE_NAME
 PATTERNS_DISTRIBUTED_FILE = Path(__file__).parent / PATTERNS_FILE_NAME
-
-
-# Also stated in pdx_patchers.py - keep in sync or import from there
-class Platform(Enum):
-    WINDOWS = "windows"
-    LINUX_NATIVE = "linux"
-    LINUX_PROTON = "linux_proton"  # Maps to windows in patterns
-    MACOS = "macos"
 
 
 def get_patterns_config_remote() -> dict:
     log.info(f"Fetching patterns from remote: {PATTERNS_URL}")
 
-    if PREVENT_CONN:
-        log.info("Force local patterns is off. Returning local patterns.", silent=True)
+    config = services().config
+    settings = services().settings
+
+    _force_local_patterns = any(
+        (config.prevent_conn, config.use_local_patterns, settings.settings.force_local_patterns)
+    )
+
+    if _force_local_patterns:
+        log.info("Forced local patterns. Returning local patterns.", silent=True)
         return get_patterns_config_local()
 
-    last_checked = SETTINGS.settings.patch_patterns_update_last_checked
+    last_checked = settings.settings.patch_patterns_update_last_checked
     now = int(time.time())
     check_delta = now - last_checked
 
     if not last_checked:
-        SETTINGS.settings.patch_patterns_update_last_checked = now
+        settings.settings.patch_patterns_update_last_checked = now
 
     # Force SSL context to fix Thread issues
     try:
@@ -58,12 +49,12 @@ def get_patterns_config_remote() -> dict:
     except Exception as e:
         log.error(f"Failed to create SSL context: {e}", silent=True)
 
-    if check_delta < UPDATE_CHECK_COOLDOWN:
+    if check_delta < config.update_check_cooldown:
         log.info(f"Update cooldown still in effect: {check_delta} seconds remaining")
         # Return local file
         return get_patterns_config_local()
     else:
-        SETTINGS.settings.patch_patterns_update_last_checked = now
+        settings.settings.patch_patterns_update_last_checked = now
 
     try:
         response = requests.get(PATTERNS_URL, timeout=10, verify=certifi.where())
@@ -75,25 +66,25 @@ def get_patterns_config_remote() -> dict:
         log.info(f"Successfully fetched remote patterns.")
         log.info(json.dumps(patterns_data, indent=2), silent=True)
 
-        if OS.WINDOWS or (OS.LINUX and OS.LINUX_PROTON):
+        if os_windows() or (os_linux() and config.use_proton):
             config_key = Platform.WINDOWS
-        elif OS.LINUX and not OS.LINUX_PROTON:
-            config_key = Platform.LINUX_NATIVE
-        elif OS.MACOS:
-            config_key = Platform.MACOS
+        elif os_linux() and not config.use_proton:
+            config_key = Platform.WINDOWS
+        elif os_darwin:
+            config_key = Platform.DARWIN
         else:
             log.warning("Unsupported OS detected. Defaulting to Windows patterns")
             config_key = Platform.WINDOWS
 
         # Save patterns file
-        if not USE_LOCAL_PATTERNS or not SETTINGS.settings.force_local_patterns:
+        if not config.use_local_patterns or not settings.settings.force_local_patterns:
             log.info(f"Saving remote patterns to config dir: {PATTERNS_LOCAL}")
             with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
                 f.write(json.dumps(patterns_data, indent=2))
 
-        log.info(f"[Remote] Loading patterns for '{config_key.value}'")
+        log.info(f"[Remote] Loading patterns for '{config_key}'")
 
-        return patterns_data.get(config_key.value)
+        return patterns_data.get(config_key)
 
     except requests.exceptions.Timeout:
         log.error("Request timed out.")
@@ -112,11 +103,13 @@ def get_patterns_config_remote() -> dict:
 def get_patterns_config_local() -> dict:
     log.info(f"Fetching patterns from local: {PATTERNS_LOCAL}")
 
+    config = services().config
+
     if not PATTERNS_LOCAL.exists():
         log.error(f"Expected local patterns file does not exist: {PATTERNS_LOCAL}")
 
         # Copy from local distribution to config dir
-        config_dir = SETTINGS.config_dir
+        config_dir = config_dir
         copy_dest = config_dir / PATTERNS_FILE_NAME
 
         try:

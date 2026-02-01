@@ -73,7 +73,7 @@ sync_dependencies() {
             printf "Error: Failed to upgrade pip and setuptools using uv.\n" >&2
             return 1
         fi
-        if ! uv sync --active; then
+        if ! uv sync --active --no-group dev; then
             printf "Error: Failed to sync dependencies using uv.\n" >&2
             return 1
         fi
@@ -101,7 +101,7 @@ run_project() {
     fi
 
     printf "Running the project...\n"
-    if ! python "$MAIN_FILE"; then
+    if ! python "$MAIN_FILE" "$@"; then
         printf "Error: Failed to run the Python project.\n" >&2
         return 1
     fi
@@ -112,8 +112,8 @@ main() {
     create_or_find_virtualenv
     activate_virtualenv
     sync_dependencies
-    run_project
+    run_project "$@"
     printf "\nScript finished successfully.\n"
 }
 
-main
+main "$@"

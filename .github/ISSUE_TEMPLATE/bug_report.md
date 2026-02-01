@@ -44,7 +44,7 @@ Steps to reproduce the behavior:
 
 ### **Desktop and Software Version (please complete the following information):**
  - OS: [e.g. Windows 11]
- - Game Version: [e.g. 4.3 Cetus Open Beta]
+ - Game Version: [if applicable, e.g. 4.3 Cetus Open Beta]
  - App Version: [e.g. 2.0.0-incompatible-with-4.x.x]
 
 ## **Additional context**

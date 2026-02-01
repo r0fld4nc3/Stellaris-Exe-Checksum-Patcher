@@ -1,39 +1,32 @@
+import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from conf_globals import LOG_LEVEL, OS
-from logger import create_logger
+from app_services import services
+from config import definitions
+from config.path_helpers import os_darwin, os_linux, os_windows, system
 
-log = create_logger("Patcher Models", LOG_LEVEL)
+log = logging.getLogger("Patcher Models")
 
-CONST_VERSION_LATEST_KEY = "latest"
+KEY_VERSION_LATEST = "latest"
 
 
-class TRANSLATION_LAYER_ENUM:
+class TRANSLATION_LAYER_ENUM(str, Enum):
     NATIVE = "Native"
     PROTON = "Proton"
 
 
-# Also stated in patterns.py - keep in sync or import from there
-class Platform(Enum):
-    WINDOWS = "windows"
-    LINUX_NATIVE = "linux"
-    LINUX_PROTON = "linux_proton"  # Maps to windows in patterns
-    MACOS = "macos"
+class Platform(str, Enum):
+    WINDOWS = definitions.OS_TYPE.WINDOWS.lower()
+    LINUX = definitions.OS_TYPE.LINUX.lower()
+    DARWIN = definitions.OS_TYPE.DARWIN.lower()
 
     @classmethod
     def detect_current(cls) -> "Platform":
-        if OS.LINUX:
-            return cls.LINUX_NATIVE
-        elif OS.WINDOWS:
-            return cls.WINDOWS
-        elif OS.MACOS:
-            return cls.MACOS
-        else:
-            return cls.WINDOWS  # Default
+        return system().lower()
 
 
 @dataclass
@@ -73,15 +66,13 @@ class PatchConfiguration:
 
         return cls(
             game=selected_game,
-            version=CONST_VERSION_LATEST_KEY,
-            platform=(OS.WINDOWS or OS.LINUX_PROTON),
+            version=KEY_VERSION_LATEST,
+            platform=(os_windows() or (os_linux() and services().config.use_proton)),
             selected_patches=[],
         )
 
     def with_game(self, game: str) -> "PatchConfiguration":
-        return PatchConfiguration(
-            game=game, version=CONST_VERSION_LATEST_KEY, is_proton=self.is_proton, selected_patches=[]
-        )
+        return PatchConfiguration(game=game, version=KEY_VERSION_LATEST, is_proton=self.is_proton, selected_patches=[])
 
 
 @dataclass
@@ -115,7 +106,7 @@ class GameExecutable:
 # ============================================================================
 
 
-class SavePatchOptionType(Enum):
+class SavePatchOptionType(str, Enum):
     """Types of save patch options available"""
 
     BOOLEAN = "boolean"  # On/Off toggle
@@ -132,7 +123,7 @@ class SavePatchOption:
     description: str
     option_type: SavePatchOptionType.BOOLEAN
     default_value: bool = False
-    enabled: bool = True
+    user_can_change: bool = True
     choices: List[str] = field(default_factory=list)  # For CHOICE types
 
     def __post_init__(self):
@@ -158,18 +149,18 @@ class GameSavePatchConfig:
             if opt.id != option_id:
                 continue
 
-            opt.enabled = enabled
+            opt.user_can_change = enabled
 
     def is_enabled(self, option_id: str) -> bool:
         option = self.get_option(option_id)
 
-        return option.enabled if option else False
+        return option.user_can_change if option else False
 
     def get_available_options(self) -> List[SavePatchOption]:
         return [opt for opt in self.patch_options]
 
     def get_enabled_options(self) -> List[SavePatchOption]:
-        return [opt for opt in self.patch_options if opt.enabled]
+        return [opt for opt in self.patch_options if opt.user_can_change]
 
 
 # ============================================================================
@@ -189,7 +180,7 @@ def create_stellaris_config() -> GameSavePatchConfig:
                 description="Update achievement list to latest version from remote source.",
                 option_type=SavePatchOptionType.BOOLEAN,
                 default_value=True,
-                enabled=True,
+                user_can_change=True,
             ),
             SavePatchOption(
                 id="set_ironman_yes",
@@ -197,23 +188,23 @@ def create_stellaris_config() -> GameSavePatchConfig:
                 description="Enable Ironman mode in the save file.",
                 option_type=SavePatchOptionType.BOOLEAN,
                 default_value=False,
-                enabled=True,
+                user_can_change=True,
             ),
             SavePatchOption(
                 id="set_ironman_no",
-                display_name="Covert to Regular Save",
+                display_name="Convert to Regular Save",
                 description="Convert the Ironman save file back to a regular save.",
                 option_type=SavePatchOptionType.BOOLEAN,
                 default_value=False,
-                enabled=True,
+                user_can_change=True,
             ),
             SavePatchOption(
                 id="convert_ironman",
                 display_name="Force Convert to Ironman",
-                description="Force ironman flag such that the save file now becomes an Ironman save. Last resort option in case converting to ironman did not work.",
+                description="Force ironman flag such that the save file now becomes an Ironman save. More aggressive option in case converting to ironman did not work.",
                 option_type=SavePatchOptionType.BOOLEAN,
                 default_value=False,
-                enabled=True,
+                user_can_change=True,
             ),
         ],
     )

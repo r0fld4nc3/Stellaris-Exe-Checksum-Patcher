@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -8,16 +9,20 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFileDialog,
+    QLineEdit,
+    QListView,
     QPushButton,
     QTextBrowser,
+    QWidget,
 )
 
-from conf_globals import LOG_LEVEL, OS, SETTINGS
-from logger import create_logger
+from app_services import services
+from config.path_helpers import os_darwin, os_linux
 from patchers import MultiGamePatcher
 from patchers import models as patcher_models
+from utils.platform import WAYLAND, X11
 
-log = create_logger("UI UTILS", LOG_LEVEL)
+log = logging.getLogger("UI UTILS")
 
 
 def set_icon_gray(icon: QIcon, size=(32, 32)):
@@ -77,6 +82,19 @@ class EventFilterMoveResize(EventFilterOvr):
         self.mouse_press_area = None
         self.resize_start_geometry = None
 
+        # Widgets that should never start a window-drag even if inside a drag handle
+        self._never_drag_widgets = (QPushButton, QTextBrowser, QComboBox, QCheckBox, QLineEdit, QListView)
+
+    def _use_native_controls(self) -> bool:
+        """
+        Determine if native move/resize controls should be used on Linux.
+        """
+        if not os_linux():
+            return False
+
+        qt_platform = get_qt_platform()
+        return qt_platform in {WAYLAND, X11}
+
     def eventFilter(self, obj, event):
         if not isinstance(event, QMouseEvent):
             return False
@@ -98,37 +116,106 @@ class EventFilterMoveResize(EventFilterOvr):
         return False
 
     def handle_mouse_press(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            # --- Prioritise resizing ---
-            self.mouse_press_area = self.get_mouse_area(event)
+        if event.button() != Qt.MouseButton.LeftButton:
+            return False
 
-            if self.mouse_press_area:
+        # --- Prioritise resizing ---
+        self.mouse_press_area = self.get_mouse_area(event)
+        if self.mouse_press_area:
+            # Native (Wayland/X11)
+            if self._use_native_controls():
+                self._start_native_resize(event)
+            else:
                 self.start_pos = event.globalPosition().toPoint()
                 self.resize_start_geometry = self.window.geometry()
                 self.resizing = True
                 self.update_cursor(event)
+            return True
+
+        # --- Window dragging only from allowed handles ---
+        widget_under_mouse = self.window.childAt(event.position().toPoint())
+
+        # Ignore drag if press is on widget with specific no-drag flag
+        if self._has_ancestor_property(widget_under_mouse, "noWindowDrag"):
+            return False
+
+        # Don't drag when clicking in interactive controls
+        if widget_under_mouse is not None and isinstance(widget_under_mouse, self._never_drag_widgets):
+            return False
+
+        # Only drag if click is within allowed list region
+        if not self._has_ancestor_property(widget_under_mouse, "windowDragHandle"):
+            return False
+
+        # Native (Wayland/X11)
+        if self._use_native_controls():
+            self._start_native_move(event)
+        else:
+            self.start_pos = event.globalPosition().toPoint()
+            self.window_start_pos = self.window.pos()
+            self.dragging = True
+            self.window.setCursor(Qt.CursorShape.ClosedHandCursor)
+        return True
+
+    def _start_native_move(self, event):
+        """
+        Native window move controls for Wayland/X11
+        """
+        try:
+            # Get native window handle
+            wh = self.window.windowHandle()
+            if wh:
+                wh.startSystemMove()
+        except Exception as e:
+            log.error(f"Failed to start native move: {e}")
+
+    def _start_native_resize(self, event):
+        """
+        Native window resize controls for Wayland/X11
+        """
+
+        try:
+            # Map edge detection to Qt's resize edges
+            edge_map = {
+                "top-left": Qt.Edge.TopEdge | Qt.Edge.LeftEdge,
+                "top-right": Qt.Edge.TopEdge | Qt.Edge.RightEdge,
+                "bottom-left": Qt.Edge.BottomEdge | Qt.Edge.LeftEdge,
+                "bottom-right": Qt.Edge.BottomEdge | Qt.Edge.RightEdge,
+                "left": Qt.Edge.LeftEdge,
+                "right": Qt.Edge.RightEdge,
+                "top": Qt.Edge.TopEdge,
+                "bottom": Qt.Edge.BottomEdge,
+            }
+
+            edge = edge_map.get(self.mouse_press_area)
+            if edge:
+                # Get native window handle
+                wh = self.window.windowHandle()
+                if wh:
+                    wh.startSystemResize(edge)
+        except Exception as e:
+            log.error(f"Failed to start native resize: {e}")
+
+    def _has_ancestor_property(self, w: QWidget | None, prop: str) -> bool:
+        """
+        True if widget or any parent widget up to (and including) the main window has Qt property == True.
+        """
+        cur = w
+        while cur is not None:
+            if bool(cur.property(prop)):
                 return True
-
-            # --- Check widget under mouse ---
-            widget_under_mouse = self.window.childAt(event.pos())
-
-            non_draggable_widgets = (QPushButton, QTextBrowser, QComboBox, QCheckBox)
-
-            if widget_under_mouse is None or not isinstance(widget_under_mouse, non_draggable_widgets):
-                self.start_pos = event.globalPosition().toPoint()
-                self.window_start_pos = self.window.pos()
-                self.dragging = True
-                self.window.setCursor(Qt.CursorShape.ClosedHandCursor)
-
-                # print(f"DRAG STARTED: mouse at {self.start_pos}, window at {self.window_start_pos}")
-
-                return True
-
+            if cur is self.window:
+                break
+            cur = cur.parentWidget()
         return False
 
     def handle_mouse_move(self, event):
+        # Use native move/resize on Wayland/X11
+        if self._use_native_controls():
+            return False
+
         if self.dragging and not (event.buttons() & Qt.MouseButton.LeftButton):
-            # print("WARNING: Drag state out of sync, resetting")
+            log.debug("WARNING: Drag state out of sync, resetting")
             self.dragging = False
             self.restore_cursor()
             return False
@@ -139,7 +226,7 @@ class EventFilterMoveResize(EventFilterOvr):
         elif self.dragging:
             delta = event.globalPosition().toPoint() - self.start_pos
             new_pos = self.window_start_pos + delta
-            # print(f"DRAGGING: delta={delta}, moving window to {new_pos}")
+            # log.debug(f"DRAGGING: delta={delta}, moving window to {new_pos}")
             self.window.move(new_pos)
             return True
         return False
@@ -159,7 +246,7 @@ class EventFilterMoveResize(EventFilterOvr):
         """Determine which edge/corner is being pressed for resizing"""
         rect = self.window.rect()
         x, y, w, h = rect.x(), rect.y(), rect.width(), rect.height()
-        pos = event.pos()
+        pos = event.position().toPoint()
 
         left = pos.x() <= self.MARGIN
         right = pos.x() >= w - self.MARGIN
@@ -223,8 +310,8 @@ class EventFilterMoveResize(EventFilterOvr):
             rect.setBottom(event.globalPosition().y())
 
         # Apply minimum size constraints to prevent the window from inverting
-        min_width = 200  # Adjust as needed
-        min_height = 100  # Adjust as needed
+        min_width = 200
+        min_height = 100
 
         if rect.width() < min_width:
             if self.mouse_press_area in ["left", "top-left", "bottom-left"]:
@@ -249,6 +336,31 @@ def _restore_window_focus(window):
 
 def restore_window_focus(window):
     QTimer.singleShot(500, lambda: _restore_window_focus(window))
+
+
+def get_qt_platform() -> str:
+    """
+    Get Qt platform being used.
+
+    Returns:
+        Platform name like 'wayland', 'xcb', 'windows, 'cocoa' or empty `str` if unavailable."""
+
+    try:
+        app = QApplication.instance()
+        if app:
+            return app.platformName().lower()
+    except Exception as e:
+        log.error(f"Unable to detect Qt platform: {e}")
+
+    return ""
+
+
+def is_qt_platform_backend_wayland() -> bool:
+    return get_qt_platform() == WAYLAND
+
+
+def is_qt_platform_backend_x11() -> bool:
+    return get_qt_platform() == X11
 
 
 def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.PatchConfiguration) -> Optional[Path]:
@@ -283,9 +395,9 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
 
     # Check saved path in settings
     saved_path_str = (
-        SETTINGS.game(configuration.game).proton_install_path
+        services().settings.game(configuration.game).proton_install_path
         if configuration.is_proton
-        else SETTINGS.game(configuration.game).install_path
+        else services().settings.game(configuration.game).install_path
     )
 
     log.info(f"Retrieved saved path from settings: '{saved_path_str}'", silent=True)
@@ -302,7 +414,7 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
     log.info(f"Attempting to auto-locate game installation.")
     auto_located_path = game_patcher.locate_game_install()
 
-    if OS.MACOS and not configuration.is_proton:
+    if os_darwin() and not configuration.is_proton:
         auto_located_path = auto_located_path / path_postfix
 
     if auto_located_path:
