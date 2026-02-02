@@ -588,7 +588,7 @@ class MultiGamePatcher:
         # Let's fallback to first version we see
         if not version_config:
             self.logger.error(f"Version '{version}' not found for game '{game_name}'. Using fallback.")
-            versions = self.get_available_versions(game_name, version)
+            versions = self.get_available_versions(game_name)
             if versions:
                 log.info(f"Got available versions for '{game_name}': {versions}")
                 version = versions[0]  # Override

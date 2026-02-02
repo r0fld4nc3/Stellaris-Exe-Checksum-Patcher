@@ -761,21 +761,21 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # when the user accepts the dialog.
         _is_new_dialog = self.patch_config_dialog is None
 
+        # Store original config for comparison
+        original_config = copy.deepcopy(self.configuration)
+
         if not self.patch_config_dialog:
             # Pass a copy of the config
-            config_copy = copy.deepcopy(self.configuration)
-
             self.patch_config_dialog = ConfigurePatchOptionsDialog(
                 patcher=self.multi_game_patcher,
-                configuration=config_copy,
+                configuration=self.configuration,
                 font=QFont(self.app_font_bold, 12),
                 window_icon=self.windowIcon(),
                 parent=self,
             )
         else:
             # Refresh with a new copy if it exists
-            config_copy = copy.deepcopy(self.configuration)
-            self.patch_config_dialog.patch_options_configuration = config_copy
+            self.patch_config_dialog.patch_options_configuration = self.configuration
             self.patch_config_dialog._populate_options()  # Refresh UI
 
         # Set current game as last selected
@@ -810,8 +810,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.info(f"Selected patches: {selected_patches_str}")
 
             if (
-                self.last_conf_game != self.configuration.game
-                or self.configuration.selected_patches != config_copy.selected_patches
+                original_config.game != self.configuration.game
+                or original_config.version != self.configuration.version
+                or original_config.selected_patches != self.configuration.selected_patches
+                or original_config.is_proton != self.configuration.is_proton
             ):
                 self.swap_btn_patch_to_patch_binary()
         else:
