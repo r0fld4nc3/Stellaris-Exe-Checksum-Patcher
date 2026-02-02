@@ -68,7 +68,7 @@ def main():
         "--standalone",
         "--onefile",
         "--enable-plugin=pyside6",
-        "--include-qt-plugins=sensible",
+        # "--include-qt-plugins=sensible",
         "--include-data-dir=src/ui/fonts=ui/fonts",
         "--include-data-dir=src/ui/icons=ui/icons",
         "--include-data-dir=src/ui/styles=ui/styles",

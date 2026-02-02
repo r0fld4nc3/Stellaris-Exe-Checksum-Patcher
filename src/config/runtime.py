@@ -20,7 +20,7 @@ def build(
     saves_backup_dir = Path(get_os_env_config_folder() / app_author / app_name / "saves_backup")
 
     # App Frozen? (Compiled)
-    is_frozen: bool = getattr(sys, "frozen", False)
+    is_frozen: bool = getattr(sys, "frozen", False) or "__compiled__" in globals()
 
     # Ensure dirs exist early (or do it lazily when writing)
     config_dir.mkdir(parents=True, exist_ok=True)
