@@ -26,8 +26,8 @@ For more details see [Issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Chec
 
 | Platform                                                                                                                             | Version              |
 |--------------------------------------------------------------------------------------------------------------------------------------|----------------------|
-| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.0/Stellaris-Checksum-Patcher-win.exe)   | v2.1.0               |
-| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.0/Stellaris-Checksum-Patcher-linux)       | v2.1.0               |
+| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.1/Stellaris-Checksum-Patcher-win.exe)   | v2.1.1               |
+| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.1/Stellaris-Checksum-Patcher-linux)       | v2.1.1               |
 | macOS                                                                                                                                | Currently None       |
 
 Please refer to the below **Build & Run From Source** section if you don't wish to run the binary file.
@@ -159,8 +159,8 @@ cd Stellaris-Exe-Checksum-Patcher
 
 | File                               | SHA256                                                                                 | MD5                                                    |
 |------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
-| Stellaris-Checksum-Patcher-linux   | <sub><sup>791631b8ad432d69507d66e3f4b237c8ddfdb70e3c3383fc051de74a1b980f04</sup></sub> | <sub><sup>d306274ee77020541227722f0a1a9496</sup></sub> |
-| Stellaris-Checksum-Patcher-win.exe | <sub><sup>509ce651e8e34a5efaf1ec1ea29041a2c5fec6602a85ea985eff78944c90ef73</sup></sub> | <sub><sup>7c2d9e0bce51bb78d692047cafe26d24</sup></sub> |
+| Stellaris-Checksum-Patcher-linux   | <sub><sup>e73bbea7069e1ee1c25de54556d68e3a87e61f089a9e7fa82524c7e023ab46c6</sup></sub> | <sub><sup>3669c034b9fecd89a5068630c6bc354d</sup></sub> |
+| Stellaris-Checksum-Patcher-win.exe | <sub><sup>884e225cefc8bdf3e197aa4f9364128ee37a8029b75d1c19ec49bc6cc4d1de56</sup></sub> | <sub><sup>0e6aa799ffcd854544a7566c121fff86</sup></sub> |
 
 
 # My Stance
