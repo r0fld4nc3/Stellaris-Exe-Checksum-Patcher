@@ -94,7 +94,7 @@ def main():
         log.critical(e)
         log.error(error_msg)
 
-        # show_message_box("Initialisation Error", error_msg)
+        show_message_box("Initialisation Error", error_msg)
 
         raise
 
