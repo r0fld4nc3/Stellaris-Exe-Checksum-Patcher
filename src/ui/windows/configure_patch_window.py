@@ -55,6 +55,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.patch_options_configuration = configuration
         self._current_platform: Optional[patcher_models.Platform] = None
         self.font = font
+        self._display_key_to_pattern_key: dict[str, str] = {}
 
         # --- Style and Appearance ---
         # Qt.Window treats this is a top-level window while being able to receive a parent
@@ -429,6 +430,9 @@ class ConfigurePatchOptionsDialog(QDialog):
         self.version_combobox.blockSignals(True)
         self.version_combobox.clear()
 
+        # Clear key cache for new game
+        self._display_key_to_pattern_key.clear()
+
         last_platform_str = self.svc.settings.game(game_name).last_patched_platform
 
         # Convert to Enum
@@ -455,33 +459,43 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         # Add available versions provided they have patches
         available_versions_with_patches = []
-        for version in versions:
-            patches = self.patcher.get_available_patches_for_game(game_name, version, self._current_platform)
+        for version_key in versions:
+            # Build a cache of display versions and the real key they represent
+            # Visual nicety and cached retrieval is fast and won't break
+            # with formatting
+            display_version: str = version_key.capitalize() if not " " in version_key else version_key.title()
+            self._display_key_to_pattern_key[display_version] = version_key
+
+            patches = self.patcher.get_available_patches_for_game(game_name, version_key, self._current_platform)
             if patches:
-                self.version_combobox.addItem(version.capitalize())
-                available_versions_with_patches.append(version)
+                self.version_combobox.addItem(display_version)
+                available_versions_with_patches.append(version_key)
 
         # Determine version to select
-        target_version = None
+        target_version_key = None
 
         # If it's the same as current config, try to use that version
         if (
             game_name == self.patch_options_configuration.game
             and self.patch_options_configuration.version in available_versions_with_patches
         ):
-            target_version = self.patch_options_configuration.version
+            target_version_key = self.patch_options_configuration.version
         # Otherwise, prefer 'latest' if available
         elif patcher_models.KEY_VERSION_LATEST in available_versions_with_patches:
-            target_version = patcher_models.KEY_VERSION_LATEST
+            target_version_key = patcher_models.KEY_VERSION_LATEST
         # Fall back to first available version
         elif available_versions_with_patches:
-            target_version = available_versions_with_patches[0]
+            target_version_key = available_versions_with_patches[0]
 
-        if target_version:
-            self.version_combobox.setCurrentText(target_version.capitalize())
+        if target_version_key:
+            display_name = next(
+                (display for display, key in self._display_key_to_pattern_key.items() if key == target_version_key),
+                target_version_key.capitalize(),
+            )
+            self.version_combobox.setCurrentText(display_name)
             # Update current config version
-            self.patch_options_configuration.version = target_version
-            log.info(f"Set config version: {target_version}")
+            self.patch_options_configuration.version = target_version_key
+            log.info(f"Set config version: {target_version_key} (display: {display_name})")
         else:
             log.warning(f"No version with patches available for {game_name} on {self._current_platform}")
 
@@ -493,7 +507,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         # Update Utilities Game Title
         self.utilities_selected_game_label.setText(f"SELECTED GAME: {self.patch_options_configuration.game}")
 
-    def _on_version_changed(self, version_name: str):
+    def _on_version_changed(self, version_display_name: str):
         # Clear previous checkboxes
         while self.patches_layout.count():
             child = self.patches_layout.takeAt(0)
@@ -501,14 +515,17 @@ class ConfigurePatchOptionsDialog(QDialog):
                 child.widget().deleteLater()
 
         game_name = self.game_combobox.currentText()
-        if not game_name or not version_name:
+        if not game_name or not version_display_name:
             return
+
+        version_key: str = self._display_key_to_pattern_key.get(version_display_name, version_display_name)
+        log.debug(f"Display: '{version_display_name}' -> '{version_key}'")
 
         # Update current config to match UI
         self.patch_options_configuration.game = game_name
-        self.patch_options_configuration.version = version_name.lower()
+        self.patch_options_configuration.version = version_key
 
-        patcher = self.patcher.get_game_patcher(game_name, version_name.lower())
+        patcher = self.patcher.get_game_patcher(game_name, version_key)
         if not patcher:
             return
 
@@ -521,7 +538,7 @@ class ConfigurePatchOptionsDialog(QDialog):
         # Determine if current UI selection matches initial config
         is_initial_config = (
             game_name == self.patch_options_configuration.game
-            and version_name.lower() == self.patch_options_configuration.version.lower()
+            and version_key == self.patch_options_configuration.version
         )
 
         # Only use saved selection if it's in the initial config and list is not empty
@@ -570,7 +587,7 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         # Log current config
         log.info(
-            f"Displaying current config:\nGame={self.game_combobox.currentText()}\nVersion: {self.version_combobox.currentText().lower()}\nPlatform: {self._current_platform}",
+            f"Displaying current config:\nGame={self.game_combobox.currentText()}\nVersion: {self.version_combobox.currentText()}\nPlatform: {self._current_platform}",
             silent=True,
         )
 
@@ -599,12 +616,25 @@ class ConfigurePatchOptionsDialog(QDialog):
             if isinstance(checkbox, QCheckBox) and checkbox.isChecked():
                 selected_patches.append(checkbox.property("patch_name"))
 
-        return PatchConfiguration(
-            game=self.game_combobox.currentText(),
-            version=self.version_combobox.currentText().lower(),
-            is_proton=self._should_use_proton(),
-            selected_patches=selected_patches,
+        self.patch_options_configuration.game = self.game_combobox.currentText()
+
+        # Get the key name from the display name
+        display_version: str = self.version_combobox.currentText()
+        self.patch_options_configuration.version = self._display_key_to_pattern_key.get(
+            display_version, display_version
         )
+
+        self.patch_options_configuration.is_proton = self._should_use_proton()
+        self.patch_options_configuration.selected_patches = selected_patches
+
+        log.info(
+            f"Returning configuration: Game={self.patch_options_configuration.game}, "
+            f"Version={self.patch_options_configuration.version}, "
+            f"Proton={self.patch_options_configuration.is_proton}, "
+            f"Patches({len(selected_patches)})={selected_patches}"
+        )
+
+        return self.patch_options_configuration
 
     def show_game_folder(self, auto_located_path: Optional[Path] = None, _retry_attempted: bool = False):
         paths = [
