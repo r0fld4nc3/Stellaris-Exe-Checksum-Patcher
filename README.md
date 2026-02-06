@@ -5,11 +5,11 @@
 
 If you'd like to support me:
 
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://www.ko-fi.com/r0fld4nc3)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://www.ko-fi.com/r0fld4nc3) or [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/r0fld4nc3)
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/r0fld4nc3)
+---
 
-An easy and painless way to patch the game's executable to enable Achievements being earnable with mods that change the game's Checksum.
+### An easy and painless way to patch the game's executable to enable Achievements being earnable with mods that change the game's Checksum.
 
 # ⚠️ Antivirus False Positives
 
@@ -20,6 +20,8 @@ The binary is compiled using [Nuitka](https://nuitka.net/), which is frequently 
 The source code is open and available in this repository for your review. If you have concerns, you can compile the executable yourself from the source.
 
 For more details see [Issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/issues/39) where you may find this discussion and the source for these claims.
+
+**Update - February 6:** If you would like to use a different binary that is not compiled with Nuitka which has the probability to have a reduced virus warning chance, please use the provided [`PyInstaller`-labelled executable in Releases](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.1/Stellaris-Checksum-Patcher-PyInstaller-win.exe). Currently only available for Windows.
 
 # Usage
 * Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
