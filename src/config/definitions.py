@@ -8,7 +8,7 @@ APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
 
 REPO_BRANCH: str = "dev"
-TRACKING_BRANCH: str = "dev"
+TRACKING_BRANCH: str = "pyinstaller"
 
 SUPPORTED_GAMES = ("Stellaris",)
 
