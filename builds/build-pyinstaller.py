@@ -7,7 +7,7 @@ from pathlib import Path
 
 ENTRY_POINT_NAME = "main"
 BUILD_DIRS: set[str] = {"build", "dist"}
-SPEC_FILE: str = f"{ENTRY_POINT_NAME}.spec"
+SPEC_FILE: str = ""
 BUILD_SOURCE: str = "PyInstaller"
 
 
@@ -216,6 +216,9 @@ def main():
         output_filename = OUTPUT_FILENAME_WIN
     else:
         output_filename = FILENAME
+
+    # Update SPEC file name
+    SPEC_FILE = f"{str(output_filename)}.spec"
 
     print(f"Detected system platform: {SYS_PLATFORM}")
     print(f"Building for platform: {arg_platform}")
