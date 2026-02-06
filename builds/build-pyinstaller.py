@@ -175,6 +175,7 @@ def main():
     # Build command
     # Windows uses semicolon (;), Linux/Mac use colon (:):
     data_separator = ";" if arg_platform == "windows" else ":"
+
     cmd = [
         "uv",
         "run",
@@ -183,18 +184,32 @@ def main():
         "--clean",
         "--noconfirm",
         f"--name={output_filename}",
-        # Add data files
-        f"--add-data=src/ui/fonts{data_separator}ui/fonts",
-        f"--add-data=src/ui/icons{data_separator}ui/icons",
-        f"--add-data=src/ui/styles{data_separator}ui/styles",
-        f"--add-data=src/achievements{data_separator}achievements",
-        f"--add-data=src/patch_patterns/patterns.json{data_separator}patch_patterns",
-        # PySide6 hooks
-        "--hidden-import=PySide6.QtCore",
-        "--hidden-import=PySide6.QtGui",
-        "--hidden-import=PySide6.QtWidgets",
-        "--collect-submodules=PySide6",
+        # Where to attempt to find modules
+        f"--paths={project_root/ 'src'}",
     ]
+
+    # Data files
+    cmd.extend(
+        [
+            # Add data files
+            f"--add-data=src/ui/fonts{data_separator}ui/fonts",
+            f"--add-data=src/ui/icons{data_separator}ui/icons",
+            f"--add-data=src/ui/styles{data_separator}ui/styles",
+            f"--add-data=src/achievements{data_separator}achievements",
+            f"--add-data=src/patch_patterns/patterns.json{data_separator}patch_patterns",
+        ]
+    )
+
+    # Hidden imports for missed modules
+    cmd.extend(
+        [
+            # PySide6 hooks
+            "--hidden-import=PySide6.QtCore",
+            "--hidden-import=PySide6.QtGui",
+            "--hidden-import=PySide6.QtWidgets",
+            "--collect-submodules=PySide6",
+        ]
+    )
 
     # Additional conditional arguments
     if arg_platform == "windows":
