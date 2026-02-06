@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 ENTRY_POINT_NAME = "main"
-BUILD_DIRS: set[int] = {"build", "dist"}
+BUILD_DIRS: set[str] = {"build", "dist"}
 SPEC_FILE: str = f"{ENTRY_POINT_NAME}.spec"
 BUILD_SOURCE: str = "PyInstaller"
 

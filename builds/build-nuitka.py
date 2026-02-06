@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 ENTRY_POINT_NAME = "main"
-BUILD_DIRS: set[int] = {f"{ENTRY_POINT_NAME}.build", f"{ENTRY_POINT_NAME}.dist", f"{ENTRY_POINT_NAME}.onefile-build"}
+BUILD_DIRS: set[str] = {f"{ENTRY_POINT_NAME}.build", f"{ENTRY_POINT_NAME}.dist", f"{ENTRY_POINT_NAME}.onefile-build"}
 BUILD_SOURCE: str = "Nuitka"
 
 
