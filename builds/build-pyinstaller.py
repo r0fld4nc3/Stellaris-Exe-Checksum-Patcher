@@ -135,7 +135,7 @@ def find_openssl_dlls() -> list[Path]:
     for dll_name in openssl_dll_names:
         dll_path = dlls_dir / dll_name
         if dll_path.exists():
-            dll_paths.append(dll_paths)
+            dll_paths.append(dll_path)
             print(f"    Found: {dll_name}")
 
     if not dll_paths:
