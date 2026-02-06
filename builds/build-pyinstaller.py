@@ -98,14 +98,6 @@ def process_args() -> argparse.Namespace:
         help="Target platform for the build (default: auto-detect)",
     )
 
-    parser.add_argument(
-        "-p",
-        "--platform",
-        choices=["linux", "windows", "auto"],
-        default="auto",
-        help="Target platform for the build (default: auto-detect)",
-    )
-
     parser.add_argument("-kb", "--keep-build", action="store_true", help="Keep build files after building.")
 
     parser.add_argument(
