@@ -64,9 +64,26 @@ cd Stellaris-Exe-Checksum-Patcher
 
 * In the project's main directory.
 * Run:
+
+#### Nuitka:
 ```shell
 uv run ./builds/build-nuitka.py
 ```
+
+Available arguments:
+- `-p`, `--platform` `[linux, windows, auto]`: Target platform for the build (default: auto-detect)
+- `-kb`, `--keep-build`: Keep build files after building.
+
+#### PyInstaller:
+```shell
+uv run ./builds/build-pyinstaller.py
+```
+
+Available arguments:
+- `-p`, `--platform` `[linux, windows, auto]`: Target platform for the build (default: auto-detect)
+- `-kb`, `--keep-build`: Keep build files after building.
+- `--skip-bootloader`: Skip custom PyInstaller bootloader build (use standard PyInstaller bootloader).
+- `--force-bootloader`: Force rebuild of custom bootloader even if one exists.
 
 # ⚙️ Sync & Run From Source
 
