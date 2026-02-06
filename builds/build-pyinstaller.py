@@ -203,6 +203,10 @@ def main():
     # Hidden imports for missed modules
     cmd.extend(
         [
+            # SSL-related packages. Collect everything to bundle
+            "--collect-all=requests",
+            "--collect-all=urllib3",
+            "--collect-all=certifi",
             # PySide6 hooks
             "--hidden-import=PySide6.QtCore",
             "--hidden-import=PySide6.QtGui",
