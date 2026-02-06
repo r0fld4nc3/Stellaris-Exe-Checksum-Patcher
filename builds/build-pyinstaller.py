@@ -107,7 +107,7 @@ def process_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--force-bootlader", action="store_true", help="Force rebuild of custom bootloader even if one exists"
+        "--force-bootloader", action="store_true", help="Force rebuild of custom bootloader even if one exists"
     )
 
     args = parser.parse_args()
