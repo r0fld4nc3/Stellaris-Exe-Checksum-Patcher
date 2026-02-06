@@ -121,7 +121,7 @@ def main():
     args = process_args()
 
     # Handle custom bootloader
-    if not args.bootloader:
+    if not args.skip_bootloader:
         if args.force_bootloader or not check_bootloader_exists():
             print("Custom bootloader not found or rebuild requested.")
 
