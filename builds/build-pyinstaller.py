@@ -106,6 +106,32 @@ def build_custom_bootloader(project_root: Path) -> bool:
         print(f"\nERROR: Unexpected error during bootloader build: {e}")
 
 
+def find_openssl_dlls() -> list[Path]:
+    dll_paths = []
+
+    sys_platform = platform.system().lower()
+
+    if sys_platform == "windows":
+        # Check python directory
+        python_dir = Path(sys.executable).parent
+        dlls_dir = python_dir / "DLLs"
+
+        # OpenSSL DLLs
+        openssl_dll_names = ["libssl-3-x64.dll", "libcrypto-3-x64.dll", "libsll-3.dll", "libcrypto-3.dll"]
+
+        print("\nSearching for OpenSSL DLLs...")
+        for dll_name in openssl_dll_names:
+            dll_path = dlls_dir / dll_name
+            if dll_path.exists():
+                dll_paths.append(dll_paths)
+                print(f"    Found: {dll_name}")
+
+        if not dll_paths:
+            print("WARNING: No OpenSSL DLLs found in Python DLL directory")
+
+    return dll_paths
+
+
 def process_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build Stellaris Checksum Patcher with PyInstaller")
 
@@ -204,6 +230,14 @@ def main():
         f"--paths={project_root/ 'src'}",
     ]
 
+    # Windows OpenSSL
+    if SYS_PLATFORM == "windows":
+        openssl_dlls = find_openssl_dlls()
+        if openssl_dlls:
+            for dll_path in openssl_dlls:
+                # Add to root bundle
+                cmd.append(f"--add-binary={str(dll_path)}{data_separator}.")
+
     # Data files
     cmd.extend(
         [
@@ -224,9 +258,6 @@ def main():
             "--collect-all=urllib3",
             "--collect-all=certifi",
             # PySide6 hooks
-            # "--hidden-import=PySide6.QtCore",
-            # "--hidden-import=PySide6.QtGui",
-            # "--hidden-import=PySide6.QtWidgets",
             "--collect-submodules=PySide6-Essentials",
         ]
     )
