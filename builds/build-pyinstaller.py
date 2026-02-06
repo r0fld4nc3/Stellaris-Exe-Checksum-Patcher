@@ -111,23 +111,35 @@ def find_openssl_dlls() -> list[Path]:
 
     sys_platform = platform.system().lower()
 
-    if sys_platform == "windows":
-        # Check python directory
-        python_dir = Path(sys.executable).parent
-        dlls_dir = python_dir / "DLLs"
+    if sys_platform != "windows":
+        return dll_paths
 
-        # OpenSSL DLLs
-        openssl_dll_names = ["libssl-3-x64.dll", "libcrypto-3-x64.dll", "libsll-3.dll", "libcrypto-3.dll"]
+    import ctypes
 
-        print("\nSearching for OpenSSL DLLs...")
-        for dll_name in openssl_dll_names:
-            dll_path = dlls_dir / dll_name
-            if dll_path.exists():
-                dll_paths.append(dll_paths)
-                print(f"    Found: {dll_name}")
+    ctypes_path = Path(ctypes.__file__)
+    real_python_dir = ctypes_path.parent.parent.parent
 
-        if not dll_paths:
-            print("WARNING: No OpenSSL DLLs found in Python DLL directory")
+    print(f"Python base dir: {real_python_dir}")
+
+    # Check python directory
+    dlls_dir = real_python_dir / "DLLs"
+
+    if not dlls_dir.exists():
+        print(f"WARNING: DLLs directory not found at: {dlls_dir}")
+        return dll_paths
+
+    # OpenSSL DLLs
+    openssl_dll_names = ["libssl-3-x64.dll", "libcrypto-3-x64.dll", "libsll-3.dll", "libcrypto-3.dll"]
+
+    print("\nSearching for OpenSSL DLLs...")
+    for dll_name in openssl_dll_names:
+        dll_path = dlls_dir / dll_name
+        if dll_path.exists():
+            dll_paths.append(dll_paths)
+            print(f"    Found: {dll_name}")
+
+    if not dll_paths:
+        print("WARNING: No OpenSSL DLLs found in Python DLL directory")
 
     return dll_paths
 
