@@ -219,10 +219,10 @@ def main():
             "--collect-all=urllib3",
             "--collect-all=certifi",
             # PySide6 hooks
-            "--hidden-import=PySide6.QtCore",
-            "--hidden-import=PySide6.QtGui",
-            "--hidden-import=PySide6.QtWidgets",
-            "--collect-submodules=PySide6",
+            # "--hidden-import=PySide6.QtCore",
+            # "--hidden-import=PySide6.QtGui",
+            # "--hidden-import=PySide6.QtWidgets",
+            "--collect-submodules=PySide6-Essentials",
         ]
     )
 
