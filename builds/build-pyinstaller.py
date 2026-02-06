@@ -39,7 +39,7 @@ def build_custom_bootloader(project_root: Path) -> bool:
     print("\n" + "+" * 40)
     print("Building custom PyInstaller bootloader...")
     print("This is a one-time process that can take a few minutes.")
-    print("\n" + "+" * 40)
+    print("+" * 40)
 
     bootloader_build_dir = project_root / ".pyinstaller-bootloader"
 
