@@ -20,21 +20,23 @@ def check_bootloader_exists() -> bool:
             check=True,
         )
         pyinstaller_path = Path(result.stdout.strip())
+        print(f"PyInstaller path: {pyinstaller_path}")
         bootloader_path = pyinstaller_path / "bootloader"
+        print(f"Bootloader path: {bootloader_path}")
 
         # Check platform-specific bootloader
         system = platform.system().lower()
 
         if system == "windows":
             for item in bootloader_path.iterdir():
-                if "windows-64bit" in item.name.lower():
+                if "windows" in item.name.lower():
                     bootloader_file = bootloader_path / item.name / "run.exe"
                     break
             # Won't exist
             bootloader_file = bootloader_path / "Windows-64bit" / "run.exe"
         else:
             for item in bootloader_path.iterdir():
-                if "linux-64bit" in item.name.lower():
+                if "linux" in item.name.lower():
                     bootloader_file = bootloader_path / item.name / "run"
                     break
             # Won't exist
