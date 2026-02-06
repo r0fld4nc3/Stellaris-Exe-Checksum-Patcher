@@ -50,7 +50,10 @@ def build_custom_bootloader(project_root: Path) -> bool:
 
             subprocess.run(
                 [
-                    ["git", "clone", "--depth=1", "https://github.com/pyinstaller/pyinstaller.git"],
+                    "git",
+                    "clone",
+                    "--depth=1",
+                    "https://github.com/pyinstaller/pyinstaller.git",
                     str(bootloader_build_dir),
                 ],
                 check=True,
@@ -84,7 +87,7 @@ def build_custom_bootloader(project_root: Path) -> bool:
         print(f"\nERROR: Bootloader build failed: {e}")
         print("\nRevert back to installing with standard PyInstaller bootloader...")
     except Exception as e:
-        print(f"\nERROR: Unexpected error during bootloaderbuild: {e}")
+        print(f"\nERROR: Unexpected error during bootloader build: {e}")
 
 
 def process_args() -> argparse.Namespace:
