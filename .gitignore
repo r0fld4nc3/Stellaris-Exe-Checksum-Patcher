@@ -172,7 +172,9 @@ cython_debug/
 _bin
 Lib
 .idea
+
 # stored elsewhere due to sensitive information
 GitHub-Issues
-_saves_testing
-saves_backup
+
+# PyInstaller bootloader build
+.pyinstaller-bootloader/
