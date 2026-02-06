@@ -27,22 +27,23 @@ def check_bootloader_exists() -> bool:
         # Check platform-specific bootloader
         system = platform.system().lower()
 
+        bootloader_file = None
         if system == "windows":
             for item in bootloader_path.iterdir():
-                print(f"Iter item: {item}")
                 if "windows" in item.name.lower():
                     bootloader_file = bootloader_path / item.name / "run.exe"
                     break
-            # Won't exist
-            bootloader_file = bootloader_path / "Windows-64bit" / "run.exe"
         else:
             for item in bootloader_path.iterdir():
-                print(f"Iter item: {item}")
                 if "linux" in item.name.lower():
                     bootloader_file = bootloader_path / item.name / "run"
                     break
-            # Won't exist
-            bootloader_file = bootloader_path / "Linux-64bit" / "run"
+
+        if not bootloader_file or bootloader_file is None:
+            return False
+
+        print(f"Using bootloading run file: {bootloader_file}")
+        print(f"Bootloader file exists: {bootloader_file.exists()}")
 
         return bootloader_file.exists()
     except Exception as e:
