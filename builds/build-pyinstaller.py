@@ -180,7 +180,7 @@ def main():
         "--onefile",
         "--clean",
         "--noconfirm",
-        f"-name={output_filename}",
+        f"--name={output_filename}",
         # Add data files
         "--add-data=src/ui/fonts:ui/fonts",
         "--add-data=src/ui/icons:ui/icons",
