@@ -7,13 +7,12 @@ import sys
 from pathlib import Path
 
 ENTRY_POINT_NAME = "main"
-BUILD_DIRS = (f"{ENTRY_POINT_NAME}.build", f"{ENTRY_POINT_NAME}.dist", f"{ENTRY_POINT_NAME}.onefile-build")
+BUILD_DIRS: set[str] = {f"{ENTRY_POINT_NAME}.build", f"{ENTRY_POINT_NAME}.dist", f"{ENTRY_POINT_NAME}.onefile-build"}
+BUILD_SOURCE: str = "Nuitka"
 
 
-def main():
-    SYS_PLATFORM = platform.system().lower()
-
-    parser = argparse.ArgumentParser(description="Build Stellaris Checksum Patcher")
+def process_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build Stellaris Checksum Patcher with Nuitka")
 
     parser.add_argument(
         "-p",
@@ -27,7 +26,15 @@ def main():
 
     args = parser.parse_args()
 
-    FILENAME = "Stellaris-Checksum-Patcher"
+    return args
+
+
+def main():
+    SYS_PLATFORM = platform.system().lower()
+
+    args = process_args()
+
+    FILENAME = f"Stellaris-Checksum-Patcher-{BUILD_SOURCE}"
     OUTPUT_FILENAME_LINUX = f"{FILENAME}-linux"
     OUTPUT_FILENAME_WIN = f"{FILENAME}-win.exe"
 
