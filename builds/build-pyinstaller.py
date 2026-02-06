@@ -29,6 +29,7 @@ def check_bootloader_exists() -> bool:
 
         if system == "windows":
             for item in bootloader_path.iterdir():
+                print(f"Iter item: {item}")
                 if "windows" in item.name.lower():
                     bootloader_file = bootloader_path / item.name / "run.exe"
                     break
@@ -36,6 +37,7 @@ def check_bootloader_exists() -> bool:
             bootloader_file = bootloader_path / "Windows-64bit" / "run.exe"
         else:
             for item in bootloader_path.iterdir():
+                print(f"Iter item: {item}")
                 if "linux" in item.name.lower():
                     bootloader_file = bootloader_path / item.name / "run"
                     break
