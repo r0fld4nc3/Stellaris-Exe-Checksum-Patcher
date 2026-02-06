@@ -173,6 +173,8 @@ def main():
     entry_point = project_root / "src" / f"{ENTRY_POINT_NAME}.py"
 
     # Build command
+    # Windows uses semicolon (;), Linux/Mac use colon (:):
+    data_separator = ";" if arg_platform == "windows" else ":"
     cmd = [
         "uv",
         "run",
@@ -182,11 +184,11 @@ def main():
         "--noconfirm",
         f"--name={output_filename}",
         # Add data files
-        "--add-data=src/ui/fonts:ui/fonts",
-        "--add-data=src/ui/icons:ui/icons",
-        "--add-data=src/ui/styles:ui/styles",
-        "--add-data=src/achievements:achievements",
-        "--add-data=src/patch_patterns/patterns.json:patch_patterns",
+        f"--add-data=src/ui/fonts{data_separator}ui/fonts",
+        f"--add-data=src/ui/icons{data_separator}ui/icons",
+        f"--add-data=src/ui/styles{data_separator}ui/styles",
+        f"--add-data=src/achievements{data_separator}achievements",
+        f"--add-data=src/patch_patterns/patterns.json{data_separator}patch_patterns",
         # PySide6 hooks
         "--hidden-import=PySide6.QtCore",
         "--hidden-import=PySide6.QtGui",
