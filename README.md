@@ -168,18 +168,10 @@ cd Stellaris-Exe-Checksum-Patcher
   * Attempts to apply the selected fixes.
 
 # Notes
-* **This tool is currently only hosted on this GitHub project. In doubt, please compare your file and version/date to the SHA256 and MD5 table. I will try to keep it as up to date as possible with the current release**
+* **This tool is currently only hosted on this GitHub project. In doubt, please compare your file and version/date to the SHA256 and MD5 table.**
 
 * ### "Windows protected your PC" Warning
   * This is a common issue with unsigned or newly signed certificates. There isn't much I can do about it unless I generate a signature/certificate, pay and upload it to Microsoft. I can assure you this is nothing to be concerned about, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
-
-
-# SHA256
-
-| File                               | SHA256                                                                                 | MD5                                                    |
-|------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------|
-| Stellaris-Checksum-Patcher-linux   | <sub><sup>e73bbea7069e1ee1c25de54556d68e3a87e61f089a9e7fa82524c7e023ab46c6</sup></sub> | <sub><sup>3669c034b9fecd89a5068630c6bc354d</sup></sub> |
-| Stellaris-Checksum-Patcher-win.exe | <sub><sup>884e225cefc8bdf3e197aa4f9364128ee37a8029b75d1c19ec49bc6cc4d1de56</sup></sub> | <sub><sup>0e6aa799ffcd854544a7566c121fff86</sup></sub> |
 
 
 # My Stance
