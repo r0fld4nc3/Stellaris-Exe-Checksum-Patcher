@@ -21,7 +21,7 @@
                         "enabled": true,
                         "hex_find": "85C0",
                         "hex_replace": "31C0",
-                        "patch_pattern": "488D0D.{8}E8.{8}%s0F84.{8}488D7C"
+                        "patch_pattern": "488D0D.{8}E8.{8}%s0F84.{8}488D[57][D4]"
                     },
                     "tooltip_patch": {
                         "display_name": "Tooltip Patch",
@@ -29,7 +29,7 @@
                         "enabled": true,
                         "hex_find": "85C0",
                         "hex_replace": "31C0",
-                        "patch_pattern": "488B12488D0D.{8}E8.{8}%s0F84.{8}488D[01][5D]"
+                        "patch_pattern": "488B12488D0D.{8}E8.{8}%s0F84.{8}488D[01][05D]"
                     }
                 }
             },
