@@ -13,7 +13,7 @@
                         "enabled": true,
                         "hex_find": "85C0",
                         "hex_replace": "31C0",
-                        "patch_pattern": "488D0D.{8}E8.{8}8BF8%s.{2}0F94"
+                        "patch_pattern": "488B12488D0D.{8}E8.{8}8BF8%s.{2}0F94E8"
                     },
                     "checksum_warning": {
                         "display_name": "Warning",
@@ -21,7 +21,7 @@
                         "enabled": true,
                         "hex_find": "85C0",
                         "hex_replace": "31C0",
-                        "patch_pattern": "488D0D.{8}E8.{8}%s0F84.{8}488D[57][D4]"
+                        "patch_pattern": "488B12488D0D.{8}E8.{8}%s0F84.{8}488D[57][D4]"
                     },
                     "tooltip_patch": {
                         "display_name": "Tooltip Patch",
@@ -40,11 +40,11 @@
                 "patches": {
                     "checksum_patch": {
                         "display_name": "Checksum",
-                        "description": "Patch the checksum test to make achivements earnable with mods that modify the checksum integrity.",
+                        "description": "Patch the checksum test to make achievements earnable with mods that modify the checksum integrity.",
                         "required": true,
                         "hex_find": "85DB",
                         "hex_replace": "31DB",
-                        "patch_pattern": "89C3E8.{8}31F6%s.{2}0F94"
+                        "patch_pattern": "89C3E8.{8}31F6%s.{2}0F944889C7"
                     },
                     "checksum_warning": {
                         "display_name": "Warning",
