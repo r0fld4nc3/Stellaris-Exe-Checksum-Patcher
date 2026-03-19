@@ -44,7 +44,7 @@
                         "required": true,
                         "hex_find": "85DB",
                         "hex_replace": "31DB",
-                        "patch_pattern": "89C3E8.{8}31F6%s400F94"
+                        "patch_pattern": "89C3E8.{8}31F6%s.{2}0F94"
                     },
                     "checksum_warning": {
                         "display_name": "Warning",
@@ -52,7 +52,7 @@
                         "enabled": true,
                         "hex_find": "85C0",
                         "hex_replace": "31C0",
-                        "patch_pattern": "4889DFE8.{8}488B7010BF.{8}E8.{8}%s0F84"
+                        "patch_pattern": "4889DFE8.{8}488B7010BF.{8}E8.{8}%s0F84.{8}488B5C"
                     },
                     "tooltip_patch": {
                         "display_name": "Tooltip Patch",
@@ -60,7 +60,7 @@
                         "enabled": true,
                         "hex_find": "85C0",
                         "hex_replace": "31C0",
-                        "patch_pattern": "488D.{10}E8.{8}488B7010BF.{8}E8.{8}%s0F84"
+                        "patch_pattern": "488D.{10}E8.{8}488B7010BF.{8}E8.{8}%s0F84.{8}488D5C2410BE"
                     }
                 }
             },
