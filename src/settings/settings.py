@@ -103,7 +103,7 @@ class SettingsManager:
         return False
 
     def save_settings(self) -> bool:
-        """Save settings to dsk."""
+        """Save settings to disk."""
         if not self._auto_save:
             return True
 
