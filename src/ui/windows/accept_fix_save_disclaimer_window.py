@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QScrollArea,
@@ -62,7 +63,7 @@ class DisclaimerFixCheatedSave(QDialog):
         content_layout.setContentsMargins(10, 10, 10, 10)
 
         # --- Title ---
-        title_label = QLabel("<h1>You Must Agree To These Conditions</h1>")
+        title_label = QLabel("<h1>Personal Liability Disclaimer</h1>")
         title_label.setFont(self.font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         content_layout.addWidget(title_label)
@@ -78,21 +79,11 @@ class DisclaimerFixCheatedSave(QDialog):
         content_widget_layout.setContentsMargins(10, 10, 10, 10)
         content_widget_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # --- How to Use Section ---
-        liability_disclaimer_header = QLabel(
-            self._style_html("<h2>Personal Liability Disclaimer</h2>"), alignment=Qt.AlignmentFlag.AlignCenter
-        )
-        liability_disclaimer_header.setWordWrap(True)
-
         disclaimer_text_desc = QLabel(
             self._style_html(
                 """
-                <h2>This action will remove the cheated flag from your save file, re-enabling achievement eligibility.</h2>
-
-                <h3>Important Considerations</h3>
-
+                <h3>This action will remove the cheated flag from your save file, re-enabling achievement eligibility.</h3>
                 <p>You are taking responsibility for clearing this flag yourself. By proceeding, you acknowledge that:</p>
-
                 <ul>
                     <li><b>Legitimate use</b>: This feature is provided to recover save files from broken game states, stuck events, or unintended consequences — not to obscure intentional use of console commands for illegitimate advantages.</li>
 
@@ -104,7 +95,6 @@ class DisclaimerFixCheatedSave(QDialog):
             )
         )
         disclaimer_text_desc.setWordWrap(True)
-        content_widget_layout.addWidget(liability_disclaimer_header)
         content_widget_layout.addWidget(disclaimer_text_desc)
 
         # --- Spacer ---
@@ -115,7 +105,8 @@ class DisclaimerFixCheatedSave(QDialog):
         content_layout.addWidget(scroll_area)
 
         # --- Buttons ---
-        button_layout = QVBoxLayout()
+        button_layout = QHBoxLayout()
+        button_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
         btn_confirm = QPushButton("I Agree")
         # Override button font
@@ -123,15 +114,16 @@ class DisclaimerFixCheatedSave(QDialog):
         button_font.setPointSize(self.font.pointSize() + 6)
         # Set button font override
         btn_confirm.setFont(button_font)
-
         btn_confirm.clicked.connect(self._on_confirm)
-        button_layout.addWidget(btn_confirm)
 
         # Close Button
         button_box = QDialogButtonBox(QDialogButtonBox.Close)
         button_box.rejected.connect(self.reject)
         for button in button_box.buttons():
-            button.setFont(self.font)
+            button.setFont(button_font)
+
+        button_layout.addStretch(1)
+        button_layout.addWidget(btn_confirm)
         button_layout.addWidget(button_box)
 
         content_layout.addLayout(button_layout)
