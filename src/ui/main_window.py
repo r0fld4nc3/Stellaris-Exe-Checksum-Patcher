@@ -733,10 +733,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             user_accepted = self.show_fix_cheated_save_dialog()
 
             if not user_accepted:
-                log.info("User declined cheated save disclaimer agreement. Cancelling this fix.")
+                log.info("User declined cheated save disclaimer agreement. Cancelling this fix.", silent=True)
                 self.save_configuration.set_enabled("fix_cheated_save", False)
             else:
-                log.info("User accepted cheated save disclaimer.")
+                log.info("User accepted cheated save disclaimer.", silent=True)
 
         log.info(f"Fixes: {self.save_configuration}", silent=True)
 
