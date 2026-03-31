@@ -1,3 +1,4 @@
+from .accept_fix_save_disclaimer_window import DisclaimerFixCheatedSave
 from .configure_patch_window import ConfigurePatchOptionsDialog
 from .configure_save_patch_window import ConfigureSavePatchDialog
 from .welcome_dialog import WelcomeDialog

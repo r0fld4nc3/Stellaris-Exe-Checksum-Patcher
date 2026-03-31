@@ -33,8 +33,6 @@ class AppConfig:
     working_dir: Path = None
     frozen: bool = False
 
-    is_cheated_save: bool = False
-
     debug: bool = False
     prevent_conn: bool = False
     log_file: Path = Path.home() / HOST / APP_NAME / f"{APP_NAME}.log"

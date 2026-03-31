@@ -11,6 +11,7 @@ from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QApplication,
+    QDialog,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -57,6 +58,7 @@ from .utils import (
 from .windows import (
     ConfigurePatchOptionsDialog,
     ConfigureSavePatchDialog,
+    DisclaimerFixCheatedSave,
     WelcomeDialog,
 )
 
@@ -690,6 +692,17 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.terminal_display.clear()
 
+        # Cheated Save Repair Disclaimer
+        if self.save_configuration.is_enabled("fix_cheated_save"):
+            log.info("User enabled option to fix cheated save.")
+            user_accepted = self.show_fix_cheated_save_dialog()
+
+            if not user_accepted:
+                log.info("User declined cheated save disclaimer agreement. Cancelling this fix.")
+                self.save_configuration.set_enabled("fix_cheated_save", False)
+            else:
+                log.info("User accepted cheated save disclaimer.")
+
         saver = save_patcher.StellarisSavePatcher(self.configuration.game, self.save_configuration)
 
         # --- Ask for save path ---
@@ -741,15 +754,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         thread_repair_save.start()
 
     def on_finished_save_repair(self) -> None:
-        if self.app_config.is_cheated_save:
-            msgbox = QMessageBox(self)
-            msgbox.setWindowTitle("Cheated Save")
-            msgbox.setText("WARNING: Save is a cheated save and the fixes might not work.")
-            msgbox.setStyleSheet("QLabel{ color: white}")
-            msgbox.exec_()
-
-        # Reset the variable
-        self.app_config.is_cheated_save = False
+        log.info("Finished repairing save.")
 
     def open_configure_patch_options_window(self):
         log.info("Opening patch configuration window", silent=True)
@@ -1100,6 +1105,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # --- Show welcome dialog ---
             welcome_dialog = WelcomeDialog(QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self)
             welcome_dialog.show()
+
+    def show_fix_cheated_save_dialog(self) -> bool:
+        # --- Show welcome dialog ---
+        fix_cheated_save_disclaimer_dialog = DisclaimerFixCheatedSave(
+            QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self
+        )
+        result = fix_cheated_save_disclaimer_dialog.exec()
+        return result == QDialog.Accepted
 
     def show(self):
         super().show()

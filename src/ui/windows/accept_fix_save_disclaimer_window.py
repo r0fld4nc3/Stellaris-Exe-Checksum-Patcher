@@ -98,6 +98,8 @@ class DisclaimerFixCheatedSave(QDialog):
 
                     <li><b>Your choice, your consequence</b>: Paradox Interactive and this tool's author cannot verify how you used console commands or mods. Clearing this flag is entirely your decision and responsibility.</li>
                 </ul>
+
+                <p>By declining this agreement, the the save repair process will continue without this option enabled.</p>
             """
             )
         )

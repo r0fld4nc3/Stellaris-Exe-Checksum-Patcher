@@ -123,13 +123,17 @@ class SavePatchOption:
     description: str
     option_type: SavePatchOptionType.BOOLEAN
     default_value: bool = False
-    user_can_change: bool = True
+    enabled: bool = False  # Enabled for patching by user input
+    user_can_change: bool = True  # Checkbox is interactive
     choices: List[str] = field(default_factory=list)  # For CHOICE types
 
     def __post_init__(self):
         """Validate options configuration"""
         if self.option_type == SavePatchOptionType.CHOICE and not self.choices:
             raise ValueError(f"SavePatchOption '{self.id}' of type CHOICE must have choices")
+
+        # Sync enabled state to default_value on init
+        self.enabled = self.default_value
 
 
 @dataclass
@@ -149,17 +153,20 @@ class GameSavePatchConfig:
             if opt.id != option_id:
                 continue
 
-            opt.user_can_change = enabled
+            opt.enabled = enabled
 
     def is_enabled(self, option_id: str) -> bool:
         option = self.get_option(option_id)
 
-        return option.user_can_change if option else False
+        return option.enabled if option else False
 
     def get_available_options(self) -> List[SavePatchOption]:
         return [opt for opt in self.patch_options]
 
     def get_enabled_options(self) -> List[SavePatchOption]:
+        return [opt for opt in self.patch_options if opt.enabled]
+
+    def get_user_can_change_options(self) -> List[SavePatchOption]:
         return [opt for opt in self.patch_options if opt.user_can_change]
 
 
@@ -202,6 +209,14 @@ def create_stellaris_config() -> GameSavePatchConfig:
                 id="convert_ironman",
                 display_name="Force Convert to Ironman",
                 description="Force ironman flag such that the save file now becomes an Ironman save. More aggressive option in case converting to ironman did not work.",
+                option_type=SavePatchOptionType.BOOLEAN,
+                default_value=False,
+                user_can_change=True,
+            ),
+            SavePatchOption(
+                id="fix_cheated_save",
+                display_name="Clear Cheated State",
+                description="Removes the cheated flag for the save file.",
                 option_type=SavePatchOptionType.BOOLEAN,
                 default_value=False,
                 user_can_change=True,

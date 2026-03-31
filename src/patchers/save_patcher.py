@@ -370,7 +370,7 @@ class StellarisSavePatcher(SavePatcher):
         return ironman_mode
 
     def get_cheated_on_save_mode_to_set(self) -> CheatedMode:
-        fix_cheated_mode = self.config.is_enabled("set_cheated_save_no") if self.config else False
+        fix_cheated_mode = self.config.is_enabled("fix_cheated_save") if self.config else False
 
         if fix_cheated_mode:
             cheated_mode = CheatedMode.SET_NO
@@ -591,33 +591,17 @@ class StellarisSavePatcher(SavePatcher):
                                 ironman_handled = True
                                 continue
 
-            if not cheated_on_save_handled:
-                if in_achievements_block or in_galaxy_block:
-                    new_lines.append(stripped)
-                    i += 1
-                    continue
-
+            if cheated_mode == CheatedMode.SET_NO and not cheated_on_save_handled:
                 if stripped.startswith(CHEATED_ON_SAVE_LINE):
                     # Log find
                     log.info(f"Found flag '{stripped}' ({i + 1})", silent=True)
 
-                    # Get indentation for current line
-                    indent_level = len(line) - len(line.lstrip())
-                    indent = "\t" * (indent_level // 4) if indent_level > 0 else ""
-
                     split = stripped.split("=")
 
-                    flag = None
-                    if len(split) > 1:
-                        flag: Optional[str] = split[1]
+                    flag: Optional[str] = split[1] if len(split) > 1 else None
 
-                    # Set AppConfig flag for tracking
-                    if flag == YES:
-                        services().config.is_cheated_save = True
-                    else:
-                        services().config.is_cheated_save = False
-
-                    new_lines.append(f"{indent}{CHEATED_ON_SAVE_LINE}{flag}\n")
+                    # Skip appending this line, clearing cheated state.
+                    # new_lines.append(f"{indent}{CHEATED_ON_SAVE_LINE}{flag}\n")
 
                     cheated_on_save_handled = True
 
