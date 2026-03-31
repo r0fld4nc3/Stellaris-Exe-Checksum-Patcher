@@ -692,17 +692,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.terminal_display.clear()
 
-        # Cheated Save Repair Disclaimer
-        if self.save_configuration.is_enabled("fix_cheated_save"):
-            log.info("User enabled option to fix cheated save.")
-            user_accepted = self.show_fix_cheated_save_dialog()
-
-            if not user_accepted:
-                log.info("User declined cheated save disclaimer agreement. Cancelling this fix.")
-                self.save_configuration.set_enabled("fix_cheated_save", False)
-            else:
-                log.info("User accepted cheated save disclaimer.")
-
         saver = save_patcher.StellarisSavePatcher(self.configuration.game, self.save_configuration)
 
         # --- Ask for save path ---
@@ -732,15 +721,26 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             return False
 
         # --- Configure Fixes
-        fixes_config = self.open_configure_save_patch_options_window()
+        self.save_configuration = self.open_configure_save_patch_options_window()
 
-        if not fixes_config:
-            log.info(f"No fixes: {fixes_config}", silent=True)
+        if not self.save_configuration:
+            log.info(f"No fixes: {self.save_configuration}", silent=True)
             return False
 
-        log.info(f"Fixes: {fixes_config}", silent=True)
+        # Cheated Save Repair Disclaimer
+        if self.save_configuration.is_enabled("fix_cheated_save"):
+            log.info("User enabled option to fix cheated save.")
+            user_accepted = self.show_fix_cheated_save_dialog()
 
-        saver.set_config(fixes_config)
+            if not user_accepted:
+                log.info("User declined cheated save disclaimer agreement. Cancelling this fix.")
+                self.save_configuration.set_enabled("fix_cheated_save", False)
+            else:
+                log.info("User accepted cheated save disclaimer.")
+
+        log.info(f"Fixes: {self.save_configuration}", silent=True)
+
+        saver.set_config(self.save_configuration)
 
         thread_repair_save = Threader(target=lambda save_file=save_file_path: saver.repair_save(save_file))
         thread_id = thread_repair_save.currentThread()
