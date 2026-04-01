@@ -19,11 +19,13 @@ log = logging.getLogger("Welcome Dialog")
 
 
 class DisclaimerFixCheatedSave(QDialog):
+    COLOUR_HEADER_H1 = "#EBBC3D"
     COLOUR_HEADER_H2 = "#179361"
     COLOUR_HEADER_H3 = "#EBBC3D"
     COLOUR_TEXT = "#FFFFFF"
     COLOUR_TEXT_MUTED = "#E0E0E0"
 
+    FONT_SIZE_H1 = "32px"
     FONT_SIZE_H2 = "28px"
     FONT_SIZE_H3 = "24px"
     FONT_SIZE_H4 = "22px"
@@ -63,7 +65,7 @@ class DisclaimerFixCheatedSave(QDialog):
         content_layout.setContentsMargins(10, 10, 10, 10)
 
         # --- Title ---
-        title_label = QLabel("<h1>Personal Liability Disclaimer</h1>")
+        title_label = QLabel(self._style_html("<h1>Personal Liability Disclaimer</h1>"))
         title_label.setFont(self.font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         content_layout.addWidget(title_label)
@@ -156,6 +158,12 @@ class DisclaimerFixCheatedSave(QDialog):
         """Apply a consistent styling to  HTML content"""
         style = f"""
         <style>
+            h1 {{
+                color: {DisclaimerFixCheatedSave.COLOUR_HEADER_H1};
+                font-size: {DisclaimerFixCheatedSave.FONT_SIZE_H1};
+                font-weight: bold;
+                margin-top: 10px;
+            }}
             h2 {{
                 color: {DisclaimerFixCheatedSave.COLOUR_HEADER_H2};
                 font-size: {DisclaimerFixCheatedSave.FONT_SIZE_H2};
