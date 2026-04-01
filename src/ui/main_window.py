@@ -753,8 +753,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.active_threads.append(thread_repair_save)
         thread_repair_save.start()
 
-    def on_finished_save_repair(self) -> None:
-        log.info("Finished repairing save.")
+    def on_finished_save_repair(self) -> None: ...
 
     def open_configure_patch_options_window(self):
         log.info("Opening patch configuration window", silent=True)
