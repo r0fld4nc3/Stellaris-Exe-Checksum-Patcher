@@ -34,7 +34,7 @@ def show_message_box(title: str, msg: str):
     msg_box.setWindowTitle(title)
     msg_box.setText(msg)
 
-    msg_box.exec_()
+    msg_box.exec()
 
 
 def main():

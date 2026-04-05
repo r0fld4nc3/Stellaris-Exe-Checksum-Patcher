@@ -591,7 +591,7 @@ class StellarisSavePatcher(SavePatcher):
                                 ironman_handled = True
                                 continue
 
-            if cheated_mode == CheatedMode.SET_NO and not cheated_on_save_handled:
+            if not cheated_on_save_handled:
                 if stripped.startswith(CHEATED_ON_SAVE_LINE):
                     # Log find
                     log.info(f"Found flag '{stripped}' ({i + 1})", silent=True)
@@ -600,8 +600,12 @@ class StellarisSavePatcher(SavePatcher):
 
                     flag: Optional[str] = split[1] if len(split) > 1 else None
 
-                    # Skip appending this line, clearing cheated state.
-                    # new_lines.append(f"{indent}{CHEATED_ON_SAVE_LINE}{flag}\n")
+                    if cheated_mode == CheatedMode.SET_NO:
+                        # Skip appending the line, clearing cheated state.
+                        services().config.is_cheated_save = False
+                    else:
+                        new_lines.append(f"{CHEATED_ON_SAVE_LINE}{flag}\n")
+                        services().config.is_cheated_save = True
 
                     cheated_on_save_handled = True
 

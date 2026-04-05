@@ -616,14 +616,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.error(f"No configuration available.")
             msgbox.setWindowTitle("No Configuration")
             msgbox.setText("Please choose a configuration.")
-            msgbox.exec_()
+            msgbox.exec()
             self.enable_ui_elements()
             return False
         elif not self.configuration.game:
             log.error(f"Configuration does not provide a game.")
             msgbox.setWindowTitle("No Game Selected")
             msgbox.setText("Please select a game to patch.")
-            msgbox.exec_()
+            msgbox.exec()
             self.enable_ui_elements()
             return False
 
@@ -753,7 +753,16 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.active_threads.append(thread_repair_save)
         thread_repair_save.start()
 
-    def on_finished_save_repair(self) -> None: ...
+    def on_finished_save_repair(self) -> None:
+        if self.app_config.is_cheated_save:
+            msgbox = QMessageBox(self)
+            msgbox.setWindowTitle("Cheated Save")
+            msgbox.setText("WARNING: Save is flagged as cheated. Fixes might not work without resetting this flag.")
+            msgbox.setStyleSheet("QLabel{ color: white}")
+            msgbox.exec()
+
+        # Reset the variable
+        self.app_config.is_cheated_save = False
 
     def open_configure_patch_options_window(self):
         log.info("Opening patch configuration window", silent=True)
@@ -841,7 +850,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         )
 
         # Show Configure Dialog and handle returns
-        if dialog.exec_() == QFileDialog.DialogCode.Accepted:
+        if dialog.exec() == QFileDialog.DialogCode.Accepted:
             self.save_configuration = dialog.get_configuration()
 
             log.info(
@@ -932,7 +941,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         dedicated button in General Utilities tab to validate game files.
         """
         msgbox.setInformativeText(msg)
-        msgbox.exec_()
+        msgbox.exec()
 
     def fetch_patterns(self):
         can_fetch_remote = all(
@@ -1120,7 +1129,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.show_welcome_dialog()
 
-        sys.exit(self.app.exec_())
+        sys.exit(self.app.exec())
 
     def closeEvent(self, event):
         log.info("Application is closing. Shutting down procedure")
