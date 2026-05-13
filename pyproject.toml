@@ -22,7 +22,7 @@ dependencies = [
   "requests~=2.32.5",
   "vdf~=3.4",
   "chardet~=5.2.0",
-  "urllib3~=2.6.3",
+  "urllib3~=2.7.0",
 ]
 
 [project.urls]
