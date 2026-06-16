@@ -467,8 +467,12 @@ class ConfigurePatchOptionsDialog(QDialog):
             self._display_key_to_pattern_key[display_version] = version_key
 
             patches = self.patcher.get_available_patches_for_game(game_name, version_key, self._current_platform)
+            # UX: Worth keeping to signal a given version has no patches?
+            # Idea is mostly for when 'latest' is broken after an update and
+            # needs to be repatched. This would signal that the version exists
+            # but does not contain patches, therefore expect it to not be working yet
+            self.version_combobox.addItem(display_version)
             if patches:
-                self.version_combobox.addItem(display_version)
                 available_versions_with_patches.append(version_key)
 
         # Determine version to select
