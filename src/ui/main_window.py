@@ -69,7 +69,6 @@ from patchers.save_patcher import log as patcher_save_log  # isort: skip
 from utils.steam_helper import log as steam_log  # isort: skip
 from utils.registry_helper import log as registry_log  # isort: skip
 
-
 log = logging.getLogger("UI")
 
 
@@ -1010,6 +1009,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                     silent=True,
                 )
                 break
+            else:
+                log.warning(f"Version '{version}' has no patches available.")
         else:
             log.warning(
                 f"No version with patches found for {precached_game} on {platform}, using fallback '{selected_version}'",
