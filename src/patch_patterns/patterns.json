@@ -5,6 +5,26 @@
                 "description": "Settings for native Windows and Linux Proton.",
                 "exe_filename": "stellaris.exe",
                 "path_postfix": "",
+                "patches": {}
+            },
+            "linux": {
+                "description": "Settings for native Linux builds.",
+                "exe_filename": "stellaris",
+                "path_postfix": "",
+                "patches": {}
+            },
+            "darwin": {
+                "description": "Settings for macOS builds.",
+                "exe_filename": "stellaris.app",
+                "path_postfix": "Contents/MacOS/stellaris",
+                "patches": {}
+            }
+        },
+        "4.3.x": {
+            "windows": {
+                "description": "Settings for native Windows and Linux Proton.",
+                "exe_filename": "stellaris.exe",
+                "path_postfix": "",
                 "patches": {
                     "checksum_patch": {
                         "display_name": "Checksum",
