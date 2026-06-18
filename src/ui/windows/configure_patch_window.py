@@ -467,6 +467,9 @@ class ConfigurePatchOptionsDialog(QDialog):
             self._display_key_to_pattern_key[display_version] = version_key
 
             patches = self.patcher.get_available_patches_for_game(game_name, version_key, self._current_platform)
+            log.debug(
+                f"ON GAME CHANGED: Patches for version {version_key} on platform {self._current_platform}: {patches=}"
+            )
             # UX: Worth keeping to signal a given version has no patches?
             # Idea is mostly for when 'latest' is broken after an update and
             # needs to be repatched. This would signal that the version exists
@@ -534,10 +537,8 @@ class ConfigurePatchOptionsDialog(QDialog):
             return
 
         # Determine platform from UI Widget
-        # Use stored platform if available, otherwise detect it
-        if not self._current_platform:
-            self._current_platform = self._get_current_platform()
-            log.warning(f"Platform was not set, auto-detected from system: {self._current_platform}")
+        self._current_platform = self._get_current_platform()
+        log.warning(f"Platform was not set, auto-detected from system: {self._current_platform}")
 
         # Determine if current UI selection matches initial config
         is_initial_config = (
@@ -552,6 +553,10 @@ class ConfigurePatchOptionsDialog(QDialog):
 
         # Populate scroll area with patch option checkboxes
         available_patches = patcher.get_available_patches(platform=self._current_platform)
+
+        log.debug(
+            f"ON VERSION CHANGED: Patches for version {version_key} on platform {self._current_platform}: {available_patches=}"
+        )
 
         for patch_name, patch_info in available_patches.items():
             checkbox = QCheckBox(patch_info.display_name)
