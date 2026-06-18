@@ -47,12 +47,16 @@ def set_file_access_time(
         access_timestamp = time.time()
 
     # Set new access time while preserving modification time
-    os.utime(file_path, (access_timestamp, modified_timestamp))
-
-    log.info(f"Access time set to: {time.ctime(access_timestamp)}", silent=True)
-    log.info(f"Modified time set to: {time.ctime(modified_timestamp)}", silent=True)
-
-    return access_timestamp
+    # Wrap in try-except to mitigate any [WinError 5] Access Denied and derivatives from
+    # stopping execution mid-flow.
+    try:
+        os.utime(file_path, (access_timestamp, modified_timestamp))
+        log.info(f"Access time set to: {time.ctime(access_timestamp)}", silent=True)
+        log.info(f"Modified time set to: {time.ctime(modified_timestamp)}", silent=True)
+        return access_timestamp
+    except Exception as e:
+        log.error(f"Failed to set access time: {e}")
+        return stat_info.st_atime
 
 
 def get_file_access_time(file_path: Path | str) -> float:

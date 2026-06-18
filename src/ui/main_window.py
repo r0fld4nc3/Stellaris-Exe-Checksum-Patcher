@@ -11,6 +11,7 @@ from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QApplication,
+    QDialog,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -57,6 +58,7 @@ from .utils import (
 from .windows import (
     ConfigurePatchOptionsDialog,
     ConfigureSavePatchDialog,
+    DisclaimerFixCheatedSave,
     WelcomeDialog,
 )
 
@@ -66,7 +68,6 @@ from patchers.pdx_patchers import log as patcher_log  # isort: skip
 from patchers.save_patcher import log as patcher_save_log  # isort: skip
 from utils.steam_helper import log as steam_log  # isort: skip
 from utils.registry_helper import log as registry_log  # isort: skip
-
 
 log = logging.getLogger("UI")
 
@@ -614,14 +615,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.error(f"No configuration available.")
             msgbox.setWindowTitle("No Configuration")
             msgbox.setText("Please choose a configuration.")
-            msgbox.exec_()
+            msgbox.exec()
             self.enable_ui_elements()
             return False
         elif not self.configuration.game:
             log.error(f"Configuration does not provide a game.")
             msgbox.setWindowTitle("No Game Selected")
             msgbox.setText("Please select a game to patch.")
-            msgbox.exec_()
+            msgbox.exec()
             self.enable_ui_elements()
             return False
 
@@ -719,15 +720,26 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             return False
 
         # --- Configure Fixes
-        fixes_config = self.open_configure_save_patch_options_window()
+        self.save_configuration = self.open_configure_save_patch_options_window()
 
-        if not fixes_config:
-            log.info(f"No fixes: {fixes_config}", silent=True)
+        if not self.save_configuration:
+            log.info(f"No fixes: {self.save_configuration}", silent=True)
             return False
 
-        log.info(f"Fixes: {fixes_config}", silent=True)
+        # Cheated Save Repair Disclaimer
+        if self.save_configuration.is_enabled("fix_cheated_save"):
+            log.info("User enabled option to fix cheated save.")
+            user_accepted = self.show_fix_cheated_save_dialog()
 
-        saver.set_config(fixes_config)
+            if not user_accepted:
+                log.info("User declined cheated save disclaimer agreement. Cancelling this fix.", silent=True)
+                self.save_configuration.set_enabled("fix_cheated_save", False)
+            else:
+                log.info("User accepted cheated save disclaimer.", silent=True)
+
+        log.info(f"Fixes: {self.save_configuration}", silent=True)
+
+        saver.set_config(self.save_configuration)
 
         thread_repair_save = Threader(target=lambda save_file=save_file_path: saver.repair_save(save_file))
         thread_id = thread_repair_save.currentThread()
@@ -744,9 +756,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         if self.app_config.is_cheated_save:
             msgbox = QMessageBox(self)
             msgbox.setWindowTitle("Cheated Save")
-            msgbox.setText("WARNING: Save is a cheated save and the fixes might not work.")
+            msgbox.setText("WARNING: Save is flagged as cheated. Fixes might not work without resetting this flag.")
             msgbox.setStyleSheet("QLabel{ color: white}")
-            msgbox.exec_()
+            msgbox.exec()
 
         # Reset the variable
         self.app_config.is_cheated_save = False
@@ -837,7 +849,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         )
 
         # Show Configure Dialog and handle returns
-        if dialog.exec_() == QFileDialog.DialogCode.Accepted:
+        if dialog.exec() == QFileDialog.DialogCode.Accepted:
             self.save_configuration = dialog.get_configuration()
 
             log.info(
@@ -928,7 +940,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         dedicated button in General Utilities tab to validate game files.
         """
         msgbox.setInformativeText(msg)
-        msgbox.exec_()
+        msgbox.exec()
 
     def fetch_patterns(self):
         can_fetch_remote = all(
@@ -997,6 +1009,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                     silent=True,
                 )
                 break
+            else:
+                log.warning(f"Version '{version}' has no patches available for platform '{platform}'.")
         else:
             log.warning(
                 f"No version with patches found for {precached_game} on {platform}, using fallback '{selected_version}'",
@@ -1101,6 +1115,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             welcome_dialog = WelcomeDialog(QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self)
             welcome_dialog.show()
 
+    def show_fix_cheated_save_dialog(self) -> bool:
+        # --- Show welcome dialog ---
+        fix_cheated_save_disclaimer_dialog = DisclaimerFixCheatedSave(
+            QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self
+        )
+        result = fix_cheated_save_disclaimer_dialog.exec()
+        return result == QDialog.Accepted
+
     def show(self):
         super().show()
         self.adapt_to_screen_size()
@@ -1108,7 +1130,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.show_welcome_dialog()
 
-        sys.exit(self.app.exec_())
+        sys.exit(self.app.exec())
 
     def closeEvent(self, event):
         log.info("Application is closing. Shutting down procedure")

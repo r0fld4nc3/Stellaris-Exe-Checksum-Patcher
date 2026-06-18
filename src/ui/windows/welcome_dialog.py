@@ -85,24 +85,18 @@ class WelcomeDialog(QDialog):
 
         # --- Welcome Statement ---
         welcome_text = QLabel(
-            self._style_html(
-                """
+            self._style_html("""
             <h2>Introduction</h2>
             <p>This quick guide aims to help you get started with the basic main features and functionalities.</p>
-            """
-            ),
+            """),
             alignment=Qt.AlignmentFlag.AlignCenter,
         )
         welcome_text.setWordWrap(True)
 
-        foreword_text = QLabel(
-            self._style_html(
-                """
+        foreword_text = QLabel(self._style_html("""
                 <p>Before that, I would like to thank you for choosing to use this project. It is something I invest quite a bit of time in and I consider it one of my <i>babies</i>. Thank you for supporting and contributing with issues and suggestions, I am always eager to hear what can be improved and to fix what may be broken so that we all share in this <i>bounty</i>.</p>
                 <p>Happy Achievement Hunting!</p>
-            """
-            )
-        )
+            """))
         foreword_text.setWordWrap(True)
 
         content_widget_layout.addWidget(welcome_text)
@@ -112,9 +106,7 @@ class WelcomeDialog(QDialog):
         how_to_use_header = QLabel(self._style_html("<h2>Basic Overview</h2>"), alignment=Qt.AlignmentFlag.AlignCenter)
         how_to_use_header.setWordWrap(True)
 
-        how_to_use_desc = QLabel(
-            self._style_html(
-                """
+        how_to_use_desc = QLabel(self._style_html("""
                 <p>For basic usage, the Patcher provides a quick one-click solution to patch your game and start playing immediately.</p>
 
                 <p>Let's get started.</p>
@@ -144,6 +136,8 @@ class WelcomeDialog(QDialog):
                 <p>You can customise your pattern package via the <b>cogwheel</b> button located at the top right of the main application screen.</p>
 
                 <p>Once patching is complete, the icon of the button should become coloured and <b>you can launch the game directly from the Patcher!</b></p>
+
+                <p><b>NOTE:</b> It is highly likely that after a major update the 'release' configuration will show no patches. When this is the case, please check on GitHub for the discussion about borked patches for the current status. Typically, the patterns must be readressed and this can take some times depending on (my) availability.</p>
 
                 <h3>Configuring The Patch Pattern(s)</h3>
                 <p>The patch configuration screen can be accessed via the aforementioned <b>cogwheel</b> at the top right of the main application screen. This will open a new window where you may access the Patch Configuration tab.</p>
@@ -183,9 +177,7 @@ class WelcomeDialog(QDialog):
                 <p></p>
                 <p>Happy Hunting!</p>
                 <p>- r0fld4nc3</p>
-            """
-            )
-        )
+            """))
         how_to_use_desc.setWordWrap(True)
         content_widget_layout.addWidget(how_to_use_header)
         content_widget_layout.addWidget(how_to_use_desc)
