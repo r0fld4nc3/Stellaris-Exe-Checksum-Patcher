@@ -52,6 +52,7 @@ IRONMAN_YES = f"{IRONMAN_EQ_LINE}{YES}"
 IRONMAN_NO = f"{IRONMAN_EQ_LINE}{NO}"
 
 CHEATED_ON_SAVE_LINE = "cheated_on_save="
+CHEATED_ON_SAVE_NO = "no"
 
 
 class IronmanMode(int, Enum):
@@ -601,7 +602,8 @@ class StellarisSavePatcher(SavePatcher):
                     flag: Optional[str] = split[1] if len(split) > 1 else None
 
                     if cheated_mode == CheatedMode.SET_NO:
-                        # Skip appending the line, clearing cheated state.
+                        # Set flag to 'no'
+                        new_lines.append(f"{CHEATED_ON_SAVE_LINE}{CHEATED_ON_SAVE_NO}\n")
                         services().config.is_cheated_save = False
                     else:
                         new_lines.append(f"{CHEATED_ON_SAVE_LINE}{flag}\n")
