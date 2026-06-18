@@ -1010,7 +1010,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 )
                 break
             else:
-                log.warning(f"Version '{version}' has no patches available.")
+                log.warning(f"Version '{version}' has no patches available for platform '{platform}'.")
         else:
             log.warning(
                 f"No version with patches found for {precached_game} on {platform}, using fallback '{selected_version}'",
