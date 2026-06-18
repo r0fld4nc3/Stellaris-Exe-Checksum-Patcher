@@ -22,6 +22,14 @@
                         "hex_find": "85C0",
                         "hex_replace": "31C0",
                         "patch_pattern": "488B12488D0D.{8}E8.{8}%s0F84.{8}488D5D"
+                    },
+                    "tooltip_patch": {
+                        "display_name": "Tooltip Patch",
+                        "description": "Patch the tooltip text indicating that the checksum is modified.",
+                        "enabled": true,
+                        "hex_find": "85C0",
+                        "hex_replace": "31C0",
+                        "patch_pattern": "488B12488D0D.{8}E8.{8}%s0F84.{8}488D05"
                     }
                 }
             },
