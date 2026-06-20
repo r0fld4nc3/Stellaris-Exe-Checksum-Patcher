@@ -90,7 +90,11 @@ def main():
     else:
         if arg_platform == "linux":
             # Set compiler optimisation flags
-            os.environ["CCFLAGS"] = "-O3"  # -march=native -flto
+            # Explicitly set ISA level to prevent inheriting from
+            # builder machine.
+            # At time of writing CachyOS defaults to x86-64-v3.
+
+            os.environ["CCFLAGS"] = "-O3 -march=x86-64-v2 -mtune=generic"  # -march=native -flto
             # os.environ["LDFLAGS"] = "-Wl,-s"  # Strip symbols and Garbage
         cmd.extend(
             [
