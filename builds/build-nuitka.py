@@ -2,13 +2,16 @@ import argparse
 import os
 import platform
 import shutil
+import stat
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ENTRY_POINT_NAME = "main"
 BUILD_DIRS: set[str] = {f"{ENTRY_POINT_NAME}.build", f"{ENTRY_POINT_NAME}.dist", f"{ENTRY_POINT_NAME}.onefile-build"}
 BUILD_SOURCE: str = "Nuitka"
+LINUX_BUILD_ARGS: str = "-march=x86-64-v2 -mtune=generic -Wno-deprecated-declarations"
 
 
 def process_args() -> argparse.Namespace:
@@ -27,6 +30,36 @@ def process_args() -> argparse.Namespace:
     args = parser.parse_args()
 
     return args
+
+
+def create_compiler_wrapper(compiler: str, build_args: str = LINUX_BUILD_ARGS) -> Path:
+    """
+    Create a temporary compiler wrapper script that is used
+    to inject -march and -mtune flags into EVERY gcc/cc call
+    Nuitka makes, including onefile bootstrap builds, regardless
+    of which SCons path triggered it.
+    This works around a known Nuitka bug where CCFLAGS are not
+    propagated to the bootstrap compilation step.
+
+    A separate wrapper is needed for CC (gcc) and CXX (g++) because Nuitka
+    compiles .c static source files with gcc and .cpp translation units with
+    g++. Mixing them causes void* implicit conversion errors in C-mode files.
+    """
+
+    wrapper_content = f"""#!/bin/sh
+# Nuitka compiler wrapper: forces ISA Level for all compilation steps
+# including onefile bootstrap binary.
+exec {compiler} {build_args} "$@"
+"""
+
+    # Write to a temp file that persists for the duration of the build
+    fd, tmp_path = tempfile.mkstemp(prefix=f"nuitka_{compiler}_wrapper_", suffix=".sh")
+    os.close(fd)
+
+    wrapper = Path(tmp_path)
+    wrapper.write_text(wrapper_content)
+    wrapper.chmod(wrapper.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+    return wrapper
 
 
 def main():
@@ -84,18 +117,27 @@ def main():
         f"--output-filename={output_filename}",
     ]
 
+    cc_wrapper: None | Path = None
+    cxx_wrapper: None | Path = None
+
     # Additional conditional arguments
     if arg_platform == "windows":
         cmd.extend(["--windows-icon-from-ico=src/ui/icons/checksum_patcher_icon.ico", "--windows-console-mode=attach"])
     else:
         if arg_platform == "linux":
-            # Set compiler optimisation flags
-            # Explicitly set ISA level to prevent inheriting from
-            # builder machine.
-            # At time of writing CachyOS defaults to x86-64-v3.
+            # Create compiler wrapper that injects -march into ALL compilation
+            # steps, including onefile build.
+            # Setting only CCFLAGS is insufficient due to a known Nuitka bug
+            # where CCFLAGS is not propagated to the bootstrap SCons call.
+            cc_wrapper = create_compiler_wrapper(compiler="gcc", build_args=LINUX_BUILD_ARGS)
+            cxx_wrapper = create_compiler_wrapper(compiler="g++", build_args=LINUX_BUILD_ARGS)
+            print(f"Using CC wrapper: {cc_wrapper}")
+            print(f"Using CXX wrapper: {cxx_wrapper}")
 
-            os.environ["CCFLAGS"] = "-O3 -march=x86-64-v2 -mtune=generic"  # -march=native -flto
-            # os.environ["LDFLAGS"] = "-Wl,-s"  # Strip symbols and Garbage
+            os.environ["CC"] = str(cc_wrapper)
+            os.environ["CXX"] = str(cxx_wrapper)
+            # CCFLAGS
+            os.environ["CCFLAGS"] = f"-O3 {LINUX_BUILD_ARGS}"
         cmd.extend(
             [
                 "--product-name=Stellaris-Checksum-Patcher",
@@ -113,6 +155,10 @@ def main():
     except subprocess.CalledProcessError as e:
         print(f"\nBuild failed with error code {e.returncode}", file=sys.stderr)
         sys.exit(1)
+    finally:
+        for c in (cc_wrapper, cxx_wrapper):
+            if c and c.exists():
+                c.unlink()
 
     # Handle build files cleanup
     args_keep_build_files = args.keep_build
