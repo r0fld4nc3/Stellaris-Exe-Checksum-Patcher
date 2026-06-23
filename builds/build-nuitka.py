@@ -62,6 +62,20 @@ exec {compiler} {build_args} "$@"
     return wrapper
 
 
+def verify_binary_isa(binary_path: Path) -> None:
+    """
+    Run readelf on the final binary and report the ISA level.
+    """
+    print("\nVerifying binary ISA level...")
+    try:
+        result = subprocess.run(["readelf", "-n", str(binary_path)], capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            if "isa" in line.lower() or "x86" in line.lower():
+                print(f"  {line.strip()}")
+    except FileNotFoundError:
+        print("  readelf not found — skipping ISA verification (install binutils)")
+
+
 def main():
     SYS_PLATFORM = platform.system().lower()
 
@@ -152,6 +166,9 @@ def main():
     try:
         subprocess.run(cmd, cwd=project_root, check=True)
         print(f"\nBuild process finished: {output_filename}")
+
+        if arg_platform == "linux":
+            verify_binary_isa(project_root / output_filename)
     except subprocess.CalledProcessError as e:
         print(f"\nBuild failed with error code {e.returncode}", file=sys.stderr)
         sys.exit(1)
