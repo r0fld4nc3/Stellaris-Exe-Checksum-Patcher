@@ -11,7 +11,7 @@ from pathlib import Path
 ENTRY_POINT_NAME = "main"
 BUILD_DIRS: set[str] = {f"{ENTRY_POINT_NAME}.build", f"{ENTRY_POINT_NAME}.dist", f"{ENTRY_POINT_NAME}.onefile-build"}
 BUILD_SOURCE: str = "Nuitka"
-LINUX_BUILD_ARGS: str = "-march=x86-64-v2 -mtune=generic -Wno-deprecated-declarations"
+LINUX_BUILD_ARGS: str = "-march=x86-64 -mtune=generic -Wno-deprecated-declarations"
 
 
 def process_args() -> argparse.Namespace:
