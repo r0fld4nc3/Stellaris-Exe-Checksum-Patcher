@@ -15,7 +15,7 @@ New-Item -ItemType Directory -Path $targetPath -Force
 # Download the file
 Write-Host "Downloading Dependency Walker from: $downloadUrl"
 $zipFile = "$targetPath\depends22_x64.zip"
-try {:
+try {
     Invoke-WebRequest -Uri $downloadUrl -OutFile $zipFile
     Write-Host "Download completed successfully"
 } catch {
