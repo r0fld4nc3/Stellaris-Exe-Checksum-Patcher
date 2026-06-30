@@ -19,6 +19,7 @@ jobs:
           # Install a specific version of uv.
           version: "0.11.25"
           enable-cache: true
+          cache-suffix: nuitka
 
       - name: Install the project
         run: uv sync --locked --all-extras --dev
@@ -50,6 +51,7 @@ jobs:
           # Install a specific version of uv.
           version: "0.11.25"
           enable-cache: true
+          cache-suffix: pyinstaller
 
       - name: Install the project
         run: uv sync --locked --all-extras --dev
@@ -81,6 +83,7 @@ jobs:
           # Install a specific version of uv.
           version: "0.11.25"
           enable-cache: true
+          cache-suffix: nuitka
 
       - name: Install the project
         run: uv sync --locked --all-extras --dev
@@ -115,6 +118,7 @@ jobs:
           # Install a specific version of uv.
           version: "0.11.25"
           enable-cache: true
+          cache-suffix: pyinstaller
 
       - name: Install the project
         run: uv sync --locked --all-extras --dev
