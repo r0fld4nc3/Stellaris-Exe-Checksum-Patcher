@@ -91,11 +91,6 @@ jobs:
           enable-cache: true
           cache-suffix: nuitka
 
-      - name: Install ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          key: ${{ github.job }}-ccache
-
       - name: Install the project
         run: uv sync --locked --all-extras --dev
 
