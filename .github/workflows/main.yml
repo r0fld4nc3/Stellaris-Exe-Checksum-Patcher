@@ -40,8 +40,9 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
 
       - name: Install Dependency Walker for Nuitka (Windows only)
-        uses: onesoftqwq/dependency-walker-installer@v1.0
         if: ${{ runner.os == 'Windows' }}
+        run: ${{ github.workspace }}/scripts/ci/depwalk.ps1
+        shell: pwsh
 
       - name: Install the project
         run: uv sync --locked --all-extras --dev
