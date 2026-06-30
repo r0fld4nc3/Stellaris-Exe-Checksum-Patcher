@@ -96,7 +96,14 @@ The easiest option to get started is to use the included Docker Compose file to 
 ```shell
 docker compose up
 ```
-
+This should build both the Nuitka and the PyInstaller binaries. If you would prefer to only build one or the other, you can run:
+```shell
+docker compose up app-nuitka
+```
+OR
+```shell
+docker compose up app-pyinstaller
+```
 # ⚙️ Sync & Run From Source
 
 The following describes the steps needed to run the source code without the need to compile a binary/executable. This is useful for fast development iteration as it offsets the burden to each user.

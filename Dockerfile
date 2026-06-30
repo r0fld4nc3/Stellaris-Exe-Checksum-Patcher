@@ -6,7 +6,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
     build-essential \
     ccache \
+    libbrotli-dev \
     libglib2.0-dev \
+    libkrb5-dev \
     patchelf
 
 # Change the working directory to the `app` directory
