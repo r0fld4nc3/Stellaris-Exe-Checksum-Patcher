@@ -2,7 +2,7 @@ name: Stellaris Checksum Patcher
 
 jobs:
   build-linux:
-    name: python
+    name: "Build: Linux"
     runs-on: ubuntu-latest
 
     steps:
@@ -42,7 +42,7 @@ jobs:
           path: Stellaris-Checksum-Patcher-PyInstaller-linux
 
   build-windows:
-    name: python
+    name: "Build: Windows"
     runs-on: windows-latest
 
     steps:
