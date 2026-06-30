@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+      - venv:/app/.venv
+    command: [ "uv", "run", "./builds/build-nuitka.py" ]
+
+volumes:
+  venv:
