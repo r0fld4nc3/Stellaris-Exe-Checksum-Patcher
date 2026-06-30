@@ -1,0 +1,84 @@
+name: Stellaris Checksum Patcher
+
+jobs:
+  build-linux:
+    name: python
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          # Install a specific version of uv.
+          version: "0.11.25"
+          enable-cache: true
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Build Nuitka binary
+        run: uv run ./builds/build-nuitka.py -p linux
+
+      - name: Build PyInstaller binary
+        run: uv run ./builds/build-pyinstaller.py -p linux
+
+      - name: Upload Nuitka binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-nuitka-binary
+          path: Stellaris-Checksum-Patcher-Nuitka-linux
+
+      - name: Upload PyInstaller binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-pyinstaller-binary
+          path: Stellaris-Checksum-Patcher-PyInstaller-linux
+
+  build-windows:
+    name: python
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          # Install a specific version of uv.
+          version: "0.11.25"
+          enable-cache: true
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Build Nuitka binary
+        run: uv run ./builds/build-nuitka.py -p windows
+
+      - name: Build PyInstaller binary
+        run: uv run ./builds/build-pyinstaller.py -p windows
+
+      - name: Upload Nuitka binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-nuitka-binary
+          path: Stellaris-Checksum-Patcher-Nuitka-win.exe
+
+      - name: Upload PyInstaller binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-pyinstaller-binary
+          path: Stellaris-Checksum-Patcher-PyInstaller-win.exe
+
+on: push
