@@ -26,11 +26,11 @@ For more details see [Issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Chec
 # Usage
 * Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
 
-| Platform                                                                                                                             | Version              |
-|--------------------------------------------------------------------------------------------------------------------------------------|----------------------|
-| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.1/Stellaris-Checksum-Patcher-win.exe)   | v2.1.1               |
-| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.1/Stellaris-Checksum-Patcher-linux)       | v2.1.1               |
-| macOS                                                                                                                                | Currently None       |
+| Platform                                                                                                                            | Version        |
+|-------------------------------------------------------------------------------------------------------------------------------------|----------------|
+| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.1/Stellaris-Checksum-Patcher-win.exe)  | v2.2.0         |
+| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.1/Stellaris-Checksum-Patcher-linux)      | v2.2.0         |
+| macOS                                                                                                                               | Currently None |
 
 Please refer to the below **Build & Run From Source** section if you don't wish to run the binary file.
 
@@ -39,7 +39,7 @@ Please refer to the below **Build & Run From Source** section if you don't wish 
 The following describes the steps needed to compile the source code to a one-file distributable binary/executable. The result should be a single file that is the packaged application into a runnable binary.
 
 > [!NOTE]
-> Compiling to a target platform requires the process to be started from that same platform, i.e.: Compiling to Windows must be done in Windows, to Linux in Lunux, etc.
+> Compiling to a target platform requires the process to be started from that same platform, i.e.: Compiling to Windows must be done in Windows, to Linux in Linux, etc.
 
 ### Requirements:
 
@@ -87,6 +87,23 @@ Available arguments:
 - `--skip-bootloader`: Skip custom PyInstaller bootloader build (use standard PyInstaller bootloader).
 - `--force-bootloader`: Force rebuild of custom bootloader even if one exists.
 
+## Docker
+> [!NOTE]
+> Currently the project can only build the app for Linux using Docker. If you're running Windows and want to compile for Windows, stick to the instructions above!
+
+### Docker Compose
+The easiest option to get started is to use the included Docker Compose file to build the app. Simply run:
+```shell
+docker compose up
+```
+This should build both the Nuitka and the PyInstaller binaries. If you would prefer to only build one or the other, you can run:
+```shell
+docker compose up app-nuitka
+```
+OR
+```shell
+docker compose up app-pyinstaller
+```
 # ⚙️ Sync & Run From Source
 
 The following describes the steps needed to run the source code without the need to compile a binary/executable. This is useful for fast development iteration as it offsets the burden to each user.
