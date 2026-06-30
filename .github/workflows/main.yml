@@ -1,5 +1,11 @@
 name: Stellaris Checksum Patcher
-
+on:
+  push:
+    branches:
+      - main
+  pull_request_target:
+    branches:
+      - main
 jobs:
   build-nuitka:
     strategy:
@@ -94,5 +100,3 @@ jobs:
           path: |
             Stellaris-Checksum-Patcher-PyInstaller-linux
             Stellaris-Checksum-Patcher-PyInstaller-win.exe
-
-on: push
