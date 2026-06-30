@@ -38,7 +38,6 @@ jobs:
       - name: Install ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          create-symlink: true
           key: ${{ github.job }}-ccache
 
       - name: Install the project
