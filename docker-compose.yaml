@@ -4,6 +4,7 @@ services:
     volumes:
       - .:/app
       - venv:/app/.venv
+      - ccache:/app/.ccache
   app-nuitka:
     extends: app
     command: [ "uv", "run", "./builds/build-nuitka.py" ]
@@ -13,3 +14,4 @@ services:
 
 volumes:
   venv:
+  ccache:

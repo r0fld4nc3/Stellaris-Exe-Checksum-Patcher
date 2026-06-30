@@ -2,6 +2,8 @@
 FROM python:3.13-slim
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+ENV NUITKA_CACHE_DIR=/app/.ccache
+
 # Install our platform dependencies
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
     build-essential \
