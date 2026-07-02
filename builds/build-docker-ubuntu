@@ -1,0 +1,43 @@
+# builds/build-docker-ubuntu
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_LINK_MODE=copy \
+    CCACHE_DIR=/root/.cache/ccache \
+    PATH="/usr/lib/ccache:/root/.local/bin:${PATH}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential ccache patchelf binutils file git curl ca-certificates \
+        # GLib / core (for libglib-2.0.so.0)
+        libglib2.0-0 libgobject-2.0-0 dbus libdbus-1-3 \
+        # OpenGL / EGL
+        libgl1 libegl1 libgl1-mesa-dri \
+        # Fontconfig / freetype
+        libfontconfig1 libfreetype6 \
+        # xkbcommon
+        libxkbcommon0 libxkbcommon-x11-0 \
+        # X11 / xcb (full set PySide6/Qt xcb plugin)
+        libx11-6 libx11-xcb1 libxrender1 libxi6 libxfixes3 \
+        libxcb1 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+        libxcb-keysyms1 libxcb-randr0 libxcb-render0 libxcb-render-util0 \
+        libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 \
+        libxcb-xinerama0 libxcb-xinput0 libxcb-xkb1 libxcb-xtest0 \
+        libxcb-util1 libxcb-dri3-0 libxcb-present0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock ./
+RUN uv python install 3.13 && uv sync --locked --all-extras --dev
+
+# Baked-in source (overridden by bind mount at runtime, kept for standalone use)
+COPY . .
+
+COPY builds/build-docker-ubuntu-entrypoint.sh /build-docker-ubuntu-entrypoint.sh
+RUN chmod +x /build-docker-ubuntu-entrypoint.sh
+
+ENTRYPOINT ["/build-docker-ubuntu-entrypoint.sh"]
+CMD ["-p", "linux"]
