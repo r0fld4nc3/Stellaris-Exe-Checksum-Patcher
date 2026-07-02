@@ -11,7 +11,7 @@ from pathlib import Path
 ENTRY_POINT_NAME = "main"
 BUILD_DIRS: set[str] = {f"{ENTRY_POINT_NAME}.build", f"{ENTRY_POINT_NAME}.dist", f"{ENTRY_POINT_NAME}.onefile-build"}
 BUILD_SOURCE: str = "Nuitka"
-LINUX_BUILD_ARGS: str = "-march=x86-64-v2 -mtune=generic -Wno-deprecated-declarations"
+LINUX_BUILD_ARGS: str = "-march=x86-64 -mtune=generic -Wno-deprecated-declarations"
 
 
 def process_args() -> argparse.Namespace:
@@ -60,6 +60,20 @@ exec {compiler} {build_args} "$@"
     wrapper.write_text(wrapper_content)
     wrapper.chmod(wrapper.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
     return wrapper
+
+
+def verify_binary_isa(binary_path: Path) -> None:
+    """
+    Run readelf on the final binary and report the ISA level.
+    """
+    print("\nVerifying binary ISA level...")
+    try:
+        result = subprocess.run(["readelf", "-n", str(binary_path)], capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            if "isa" in line.lower() or "x86" in line.lower():
+                print(f"  {line.strip()}")
+    except FileNotFoundError:
+        print("  readelf not found — skipping ISA verification (install binutils)")
 
 
 def main():
@@ -152,6 +166,9 @@ def main():
     try:
         subprocess.run(cmd, cwd=project_root, check=True)
         print(f"\nBuild process finished: {output_filename}")
+
+        if arg_platform == "linux":
+            verify_binary_isa(project_root / output_filename)
     except subprocess.CalledProcessError as e:
         print(f"\nBuild failed with error code {e.returncode}", file=sys.stderr)
         sys.exit(1)

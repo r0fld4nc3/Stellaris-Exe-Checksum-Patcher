@@ -68,6 +68,17 @@ cd Stellaris-Exe-Checksum-Patcher
 * Run:
 
 #### Nuitka:
+
+Depending on the host machine, it is possible that ISA levels change and break compatibility.
+
+To maximise system compatibility, it is recommended to run throught a bare Docker container running a base Ubuntu which outputs a file as compatible as possible with most systems, asking only for baseline instructions.
+
+```shell
+uv run ./builds/build-docker-nuitka-linux.py
+```
+
+If your host OS is not enforcing a high ISA level, the process can be simplified by running:
+
 ```shell
 uv run ./builds/build-nuitka.py
 ```
