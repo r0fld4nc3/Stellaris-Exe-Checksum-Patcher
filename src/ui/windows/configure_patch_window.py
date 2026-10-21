@@ -92,8 +92,8 @@ class ConfigurePatchOptionsDialog(QDialog):
         content_layout.addWidget(self.tab_widget)
 
         # --- Create Tabs ---
-        self._create_patch_config_tab()
         self._create_utilities_tab()
+        self._create_patch_config_tab()
 
         # --- OK/Cancel Layout ---
         ok_cancel_layout = QHBoxLayout()
