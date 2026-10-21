@@ -358,7 +358,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.configuration.version = self.settings.game(self.configuration.game).last_patched_version
         self.configuration.selected_patches = self.settings.game(self.configuration.game).patches
         self.configuration.platform = self.settings.game(self.configuration.game).last_patched_platform
-        self.configuration.selected_patches = self.settings.game(self.configuration.game).patches
 
     def load_app_styles(self):
         """Loads Styles, Icons and Fonts"""

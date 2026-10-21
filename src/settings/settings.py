@@ -42,11 +42,9 @@ class GameSettings(AutoSaveHookedSettingsClass):
 
     install_path: str = ""
     proton_install_path: str = ""
-    save_games_path: str = ""
     patches: list[str] = field(default_factory=list)
     last_patched_version: str = ""
     last_patched_platform: str = ""
-    last_patched_timestamp: float = 0.0
 
 
 @dataclass
@@ -64,7 +62,6 @@ class AppSettings(AutoSaveHookedSettingsClass):
     window_height: int = 600
     last_selected_game: str = ""
     steam_install_path: str = ""
-    app_ids_update_last_checked: int = 0
     games: dict[str, GameSettings] = field(default_factory=dict)
 
 
@@ -321,7 +318,6 @@ class SettingsManager:
             "install-path": "install_path",
             "proton-install-path": "proton_install_path",
             "last-patched-platform": "last_patched_platform",
-            "last-patched-timestamp": "last_patched_timestamp",
         }
 
         old_settings, all_old_files = _search_config_dir_for_file(self)

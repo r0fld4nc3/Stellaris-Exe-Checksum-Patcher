@@ -1,7 +1,6 @@
 import logging
 import os
 import subprocess
-import time
 from pathlib import Path
 
 from config.path_helpers import os_darwin, os_linux, os_windows
@@ -29,52 +28,6 @@ def open_in_file_manager(path: Path):
             log.warning("No known Operating System")
     except Exception as e:
         log.error(f"Failed to open game folder: {e}")
-
-
-def set_file_access_time(
-    file_path: Path | str, access_timestamp: float | None = None, modified_timestamp: float | None = None
-) -> float:
-    if not isinstance(file_path, Path):
-        file_path = Path(file_path)
-
-    # Get file stat info
-    stat_info = os.stat(file_path)
-
-    if modified_timestamp is None:
-        modified_timestamp = stat_info.st_mtime
-
-    if access_timestamp is None:
-        access_timestamp = time.time()
-
-    # Set new access time while preserving modification time
-    # Wrap in try-except to mitigate any [WinError 5] Access Denied and derivatives from
-    # stopping execution mid-flow.
-    try:
-        os.utime(file_path, (access_timestamp, modified_timestamp))
-        log.info(f"Access time set to: {time.ctime(access_timestamp)}", silent=True)
-        log.info(f"Modified time set to: {time.ctime(modified_timestamp)}", silent=True)
-        return access_timestamp
-    except Exception as e:
-        log.error(f"Failed to set access time: {e}")
-        return stat_info.st_atime
-
-
-def get_file_access_time(file_path: Path | str) -> float:
-    if not isinstance(file_path, Path):
-        file_path = Path(file_path)
-
-    stat_info = os.stat(file_path)
-
-    return stat_info.st_atime
-
-
-def get_file_modified_time(file_path: Path | str) -> float:
-    if not isinstance(file_path, Path):
-        file_path = Path(file_path)
-
-    stat_info = os.stat(file_path)
-
-    return stat_info.st_mtime
 
 
 def is_backend_wayland() -> bool:
