@@ -129,22 +129,22 @@ class WelcomeDialog(QDialog):
 
                 <p>To start the patch process, simply click the patch button indicated by the singular greyed-out image of an achievement.</p>
 
-                <p>If you pay attention to the information screen, you'll notice that it seems to load and apply a <b>patch configuration</b>. To maximise uptime and minimise the times the application itself needs to be updated, it downloads a remote patterns file that describes exactly which patterns to patch. This allows me incredible flexibility to update the patterns quickly if they no longer work and doesn't require a new compiled binary of the application whenever this happens.</p>
+                <p>If you pay attention to the information screen, you'll notice the Patcher looking through the game's executable for its <b>checksum checks</b>. These are the spots where the game compares its files against the official checksum to decide whether achievements are allowed. The Patcher finds every one of them by itself and makes them all report "unmodified".</p>
 
-                <p>A patch configuration is simply a set of different patterns that should be applied during the patching process. These can include required patterns, such as the one to remove the altered checksum test, or optional ones that remove the yellow text and warning labels in the menus.</p>
+                <p>That single patch takes care of everything at once: achievements become earnable with mods, and the yellow version text and warning tooltip in the menus go away too.</p>
 
-                <p>You can customise your pattern package via the <b>cogwheel</b> button located at the top right of the main application screen.</p>
+                <p>Because the Patcher finds these spots on its own, it should keep working after most game updates without needing any changes. It still downloads a small remote patch configuration file with a few settings, so I can tweak things quickly if a game update ever does throw a curveball, without you needing a new version of the application.</p>
 
                 <p>Once patching is complete, the icon of the button should become coloured and <b>you can launch the game directly from the Patcher!</b></p>
 
-                <p><b>NOTE:</b> It is highly likely that after a major update the 'release' configuration will show no patches. When this is the case, please check on GitHub for the discussion about borked patches for the current status. Typically, the patterns must be readressed and this can take some times depending on (my) availability.</p>
+                <p><b>NOTE:</b> If patching ever fails after a game update, please check GitHub for any existing discussion about the current status before opening a new issue. A fix may already be on its way, and it can take some time depending on (my) availability.</p>
 
-                <h3>Configuring The Patch Pattern(s)</h3>
-                <p>The patch configuration screen can be accessed via the aforementioned <b>cogwheel</b> at the top right of the main application screen. This will open a new window where you may access the Patch Configuration tab.</p>
+                <h3>Configuring The Patch</h3>
+                <p>The patch configuration screen can be accessed via the <b>cogwheel</b> at the top right of the main application screen. This will open a new window where you may access the Patch Configuration tab.</p>
 
-                <p>Here you can choose which game to patch, what version the patterns should target and whether you're patching for a native system or "Proton", which is used to differentiate and adjust paths when a Linux environment runs a Windows game.</p>
+                <p>Here you can choose which game to patch, which version of the patch configuration to use and whether you're patching for a native system or "Proton", which is used to differentiate and adjust paths when a Linux environment runs a Windows game.</p>
 
-                <p>Below is the area where individual patterns can be toggled on or off. There is a default configuration that is loaded if you've never altered the configuration. You technically don't <i>need</i> to change it, but I would rather give you options than restrict them.</p>
+                <p>Below that, you can see the patches that will be applied. The defaults are all you need, so you technically don't <i>need</i> to change anything here, but I would rather give you options than restrict them.</p>
 
                 <p>If you have made changes to the configuration, do not forget to press <b>OK</b> to save the changes.</p>
 
