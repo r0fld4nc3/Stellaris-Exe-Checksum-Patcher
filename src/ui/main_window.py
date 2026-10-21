@@ -40,13 +40,7 @@ from patchers import models as patcher_models
 from patchers import pdx_patchers, save_patcher
 from thread_utils import Threader, WorkerSignals
 from ui.utils import get_qt_platform
-from utils.platform import (
-    WAYLAND,
-    X11,
-    get_file_access_time,
-    get_file_modified_time,
-    set_file_access_time,
-)
+from utils.platform import WAYLAND, X11
 
 from .resources import AppFont, AppIcon, AppStyle, IconAchievementState, ResourceManager
 from .utils import (
@@ -584,15 +578,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.info("Finished. Close the patcher and go play!")
 
         if all_patches_success or applied:
-            # Get times to save
-            original_mtime = get_file_modified_time(game_binary_path)
-            access_ts = set_file_access_time(game_binary_path, None, original_mtime)
-
-            with self.settings.batch_update():
-                # Save applied patches
-                self.settings.game(self.configuration.game).patches = applied
-                # Save last access time to track if already patched
-                self.settings.game(self.configuration.game).last_patched_timestamp = access_ts
+            # Save applied patches
+            self.settings.game(self.configuration.game).patches = applied
 
         self.swap_btn_patch_to_launch_game()
 
@@ -1030,31 +1017,52 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             )
             self.available_versions = self.multi_game_patcher.get_available_versions(self.configuration.game)
 
-    def check_file_already_patched(self):
+    def check_file_already_patched(self, *_):
+        """Scan the saved game executable in the background and log whether it is already patched."""
+        log.info(f"Checking if {self.configuration.game} is already patched.")
+
+        patched_check_thread = Threader(target=self._is_game_patched_worker)
+        self.active_threads.append(patched_check_thread)
+        patched_check_thread.signals.result.connect(self._on_patched_check_finished)
+        patched_check_thread.start()
+
+    def _is_game_patched_worker(self) -> Optional[bool]:
+        """
+        WORKER FUNCTION: Scans the executable for the enabled/required patches.
+        Returns None when there is no saved executable to check.
+        """
         game = self.configuration.game
 
-        log.info(f"Checking if {game} is already patched.")
-
         if self.configuration.is_proton:
-            install_path = self.settings.game(self.configuration.game).proton_install_path
+            binary_path = self.settings.game(game).proton_install_path
+            platform = patcher_models.Platform.WINDOWS
         else:
-            install_path = self.settings.game(self.configuration.game).install_path
+            binary_path = self.settings.game(game).install_path
+            platform = patcher_models.Platform.detect_current()
 
-        if not Path(install_path).exists():
-            log.error(f"File does not exist: {install_path}")
-            return False
+        if not binary_path or not Path(binary_path).exists():
+            log.info(f"No saved {game} executable to check yet: '{binary_path}'", silent=True)
+            return None
 
-        # Check if file already patched
-        file_access_time = get_file_access_time(install_path)
-        last_access_time = self.settings.game(game).last_patched_timestamp
+        patcher = self.multi_game_patcher.get_game_patcher(game, self.configuration.version)
+        if not patcher:
+            return None
 
-        if file_access_time == last_access_time:
-            log.info("File already patched.")
-            return True
+        patch_names = [
+            name for name, patch in patcher.get_available_patches(platform).items() if patch.enabled or patch.required
+        ]
+        if not patch_names:
+            return None
 
-        log.info(f"{game} has not been patched yet.")
+        return all(patcher.is_patched(Path(binary_path), name, platform) for name in patch_names)
 
-        return False
+    def _on_patched_check_finished(self, patched: Optional[bool]):
+        game = self.configuration.game
+
+        if patched:
+            log.info(f"{game} is already patched.")
+        elif patched is False:
+            log.info(f"{game} has not been patched yet.")
 
     def swap_btn_patch_to_patch_binary(self):
         log.info(
