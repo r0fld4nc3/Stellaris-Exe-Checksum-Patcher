@@ -1,5 +1,4 @@
 import logging
-import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -8,7 +7,6 @@ from typing import Callable, Dict, List, Optional
 from app_services import services
 from config import definitions
 from config.path_helpers import os_darwin, os_linux, os_windows, system
-from patchers import hex_matching
 
 log = logging.getLogger("Patcher Models")
 
@@ -32,30 +30,23 @@ class Platform(str, Enum):
 
 @dataclass
 class PatchPattern:
-    """Represents a patch pattern"""
+    """
+    One patch from patterns.json. See patchers.auto_patch for how it is applied.
+
+    checksum_string:   Regex for the official checksum string stored in the executable.
+    replace_call_with: Hex bytes written over each `CALL strcmp` that uses that string (must be 5 bytes).
+    """
 
     display_name: str
     description: str
     required: bool
     enabled: bool
-    hex_find: str
-    hex_replace: str
-    patch_pattern: str
-    # Optional, tried before `patch_pattern`. `%a` marks an operand that must reference a string fully matching `anchor_string` (see patchers.hex_matching).
-    anchored_pattern: str = ""
-    anchor_string: str = ""
+    checksum_string: str
+    replace_call_with: str
 
     @property
-    def has_anchor(self) -> bool:
-        return bool(self.anchored_pattern and self.anchor_string and "%a" in self.anchored_pattern)
-
-    def compile_regex(self, hex_value: Optional[str] = None) -> re.Pattern:
-        """Compile `patch_pattern` with `%s` as a named group holding `hex_value` (default: hex_find)"""
-        return hex_matching.build_regex(self.patch_pattern, hex_value or self.hex_find)
-
-    def compile_anchored_regex(self, hex_value: Optional[str] = None) -> re.Pattern:
-        """Compile `anchored_pattern` with `%s` and `%a` as named groups"""
-        return hex_matching.build_regex(self.anchored_pattern, hex_value or self.hex_find)
+    def replacement_bytes(self) -> bytes:
+        return bytes.fromhex(self.replace_call_with)
 
 
 @dataclass

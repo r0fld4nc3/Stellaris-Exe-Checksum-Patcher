@@ -1,16 +1,13 @@
-# Regex Pattern Patching Credit: Melechtna Antelecht
+# Original regex pattern patching credit: Melechtna Antelecht
 
-import binascii
 import datetime
 import json
 import logging
-import mmap
-import re
 import shutil
 
 from app_services import services
 from config.path_helpers import os_darwin, system
-from patchers import hex_matching, models
+from patchers import auto_patch, models
 
 from .models import *
 
@@ -43,16 +40,18 @@ class GamePatcher:
             # Parse patches for this platform
             patches = {}
             for patch_name, patch_data in platform_data.get("patches", {}).items():
+                if "replace_call_with" not in patch_data:
+                    # Entry from the old regex-based patterns.json; "Update Patterns" fetches the new format
+                    log.warning(f"Skipping '{patch_name}' ({platform_key}): outdated patterns file format.")
+                    continue
+
                 patches[patch_name] = PatchPattern(
                     display_name=patch_data.get("display_name", "N/A"),
                     description=patch_data.get("description", "N/A"),
                     required=patch_data.get("required", False),
                     enabled=patch_data.get("enabled", False),
-                    hex_find=patch_data.get("hex_find", ""),
-                    hex_replace=patch_data.get("hex_replace", ""),
-                    patch_pattern=patch_data.get("patch_pattern", ""),
-                    anchored_pattern=patch_data.get("anchored_pattern", ""),
-                    anchor_string=patch_data.get("anchor_string", ""),
+                    checksum_string=patch_data.get("checksum_string", auto_patch.DEFAULT_CHECKSUM_STRING),
+                    replace_call_with=patch_data["replace_call_with"],
                 )
 
             platforms[platform_enum] = PlatformConfig(
@@ -314,214 +313,43 @@ class GamePatcher:
 
         return results
 
+    def _resolve_binary(self, file_path: Path, platform: Optional[Platform] = None) -> Path:
+        """For macOS .app bundles, return the actual binary inside the bundle."""
+        if file_path.suffix.lower() == ".app" and file_path.is_dir():
+            exe_info = self.get_executable_info(platform)
+            if exe_info and exe_info.path_postfix:
+                return file_path / exe_info.path_postfix
+        return file_path
+
     def _apply_patches_batch(
         self, file_path: Path, patches: List[tuple[str, PatchPattern]], platform: Platform
     ) -> Dict[str, bool]:
-        """
-        Dispatcher to apply multiple patches to a file in a single memory mapped session.
-        """
+        """Apply each patch to the file. Returns {patch name: success}."""
+        binary = self._resolve_binary(file_path, platform)
+        log.info(f"{binary=}", silent=True)
+        return {patch_name: self._apply_patch(binary, patch, patch_name) for patch_name, patch in patches}
 
+    def _apply_patch(self, binary: Path, patch: PatchPattern, patch_name: str) -> bool:
+        """Find every checksum comparison in `binary` and patch it. See patchers.auto_patch."""
+        log.info(f"Applying patch: {patch_name}")
         try:
-            # Handle macOS .app bundles
-            actual_file = file_path
-            if file_path.suffix.lower() == ".app" and file_path.is_dir():
-                exe_info = self.get_executable_info(platform)
-                if exe_info and exe_info.path_postfix:
-                    actual_file = file_path / exe_info.path_postfix
-
-            log.info(f"{actual_file=}", silent=True)
-
-            with open(actual_file, "r+b") as f:
-                with mmap.mmap(f.fileno(), 0) as mm:
-                    image = hex_matching.BinaryImage(mm[:])
-                    original_hex = binascii.hexlify(image.data).decode()
-                    patched_hex = original_hex  # Original working copy and comparison
-
-                    results = {}
-                    all_patches_applied = []
-
-                    # Apply each patch
-                    for patch_name, pattern in patches:
-                        log.info(f"Applying patch: {patch_name}")
-
-                        # Apply patch to current hex string
-                        temp_hex, applied = self._apply_patch_to_hex(patched_hex, pattern, patch_name, image)
-                        results[patch_name] = applied
-
-                        if applied:
-                            log.info(f"✓ Applied Patch: '{patch_name}'")
-                            patched_hex = temp_hex
-                            all_patches_applied.append((patch_name, pattern))
-                        else:
-                            log.error(f"✗ Failed to apply patch: {patch_name}")
-                            # Optionally, continue with other patches or rollback all changes
-
-                    # Commit the changes
-                    # If we made it here, all patches were successful
-                    if patched_hex != original_hex:
-                        log.info(f"Writing all {len(all_patches_applied)} patches to file")
-
-                        # Convert back to binary and write once
-                        binary_data_patched = binascii.unhexlify(patched_hex)
-                        mm[:] = binary_data_patched
-                        mm.flush()
-
-                        log.info("Finished applying patches.")
-
-                        # Save info about patches (optional)
-                        for patch_name, pattern in all_patches_applied:
-                            log.info(f"✓ {patch_name} applied", silent=True)
-                    else:
-                        log.warning("No changes made to file")
-
-                    return results
-
+            result = auto_patch.patch_file(binary, patch.checksum_string, patch.replacement_bytes)
         except Exception as e:
-            log.error(f"Critical error occurred while applying patches: {e}")
-            return {patch_name: False for patch_name, _ in patches}
+            log.error(f"✗ Error applying patch '{patch_name}': {e}")
+            return False
 
-    def _find_patch_site(
-        self,
-        binary_hex: str,
-        image: Optional[hex_matching.BinaryImage],
-        pattern: PatchPattern,
-        hex_value: str,
-        patch_name: str,
-    ) -> Optional[tuple[re.Match, tuple[int, int]]]:
-        """
-        Locate where `hex_value` sits for this patch. Returns the match and the hex string span to patch.
+        if result.error:
+            log.error(f"✗ Failed to apply patch '{patch_name}': {result.error}")
+            return False
 
-        Tries the string-anchored pattern first (when configured and the executable format is supported),
-        then falls back to the plain `patch_pattern`.
-        """
-
-        attempts = []
-        if pattern.has_anchor:
-            if image is not None and image.supported:
-                accept = hex_matching.make_anchor_check(image, pattern.anchor_string)
-                attempts.append(("anchored", pattern.compile_anchored_regex(hex_value), accept))
-            else:
-                log.info(f"Anchored lookup unavailable for '{patch_name}' (unsupported executable format)", silent=True)
-        if pattern.patch_pattern:
-            attempts.append(("pattern", pattern.compile_regex(hex_value), None))
-
-        for method, regex, accept in attempts:
-            match = hex_matching.find_aligned(regex, binary_hex, accept)
-            if not match:
-                log.info(f"'{patch_name}': no {method} match", silent=True)
-                continue
-
-            span = hex_matching.target_span(match, hex_value)
-            if span is None:
-                log.error(f"Cannot find '{hex_value}' in matched {method} pattern for patch: {patch_name}")
-                continue
-
-            log.info(f"'{patch_name}': found via {method} lookup at file offset {span[0] // 2:#x}", silent=True)
-            return match, span
-
-        return None
-
-    def _apply_patch_to_hex(
-        self,
-        binary_hex: str,
-        pattern: PatchPattern,
-        patch_name: str,
-        image: Optional[hex_matching.BinaryImage] = None,
-    ) -> tuple[str, bool]:
-        try:
-            site = self._find_patch_site(binary_hex, image, pattern, pattern.hex_find, patch_name)
-
-            if not site:
-                log.info(f"Pattern not found for patch: {patch_name}")
-                return binary_hex, False
-
-            match, (target_start, target_end) = site
-            log.info(f"MATCHED BYTES: {match.group().upper()}", silent=True)
-            log.info(f"MATCH POSITION: {match.start()}", silent=True)
-
-            binary_hex_patched = binary_hex[:target_start] + pattern.hex_replace.lower() + binary_hex[target_end:]
-
-            log.info(f"Patch '{patch_name}' - Original: {match.group().upper()}", silent=True)
-            log.info(
-                f"Patch '{patch_name}' - Patched:  {binary_hex_patched[match.start() : match.end()].upper()}",
-                silent=True,
-            )
-
-            return binary_hex_patched, True
-        except Exception as e:
-            log.error(f"Error applying patch '{patch_name}': {e}")
-            return binary_hex, False
+        log.info(f"✓ Applied Patch: '{patch_name}' ({len(result.sites)} checksum checks, official checksum {result.checksum})")
+        return True
 
     def patch_file(
         self, file_path: Path, patch_name: str, platform: Optional[Platform] = None, create_backup: bool = True
     ) -> bool:
-        """
-        Apply patch to the specified file
-        """
-
-        if platform is None:
-            platform = models.Platform.detect_current()
-
-        log.info(f"Attempting to patch: {patch_name}")
-
-        patch = self.get_patch(patch_name, platform)
-        log.info(f"{patch=}", silent=True)
-        if not patch:
-            self.logger.error(f"Patch '{patch_name}' not found for platform {platform}")
-            return False
-
-        # Enforce file_path type
-        if not isinstance(file_path, Path):
-            file_path = Path(file_path)
-
-        # Check if file is patched
-        if self.is_patched(file_path, patch_name, platform=platform):
-            log.info(f"File {file_path.name} has already been patched with {patch_name}")
-            return True
-
-        # Create backup if requested
-        if create_backup:
-            if not self._create_backup(file_path):
-                return False
-
-        # Apply the patch
-        return self._apply_patch(file_path, patch)
-
-    def _apply_patch(self, file_path: Path, pattern: PatchPattern) -> bool:
-        """Apply a patch pattern to a file"""
-        try:
-            # For macOS, handle the actual binary inside the .app
-            actual_file = file_path
-            if file_path.suffix.lower() == ".app" and file_path.is_dir():
-                exe_info = self.get_executable_info()
-                if exe_info and exe_info.path_postfix:
-                    actual_file = file_path / exe_info.path_postfix
-
-            with open(actual_file, "r+b") as f:
-                with mmap.mmap(f.fileno(), 0) as mm:
-                    image = hex_matching.BinaryImage(mm[:])
-                    binary_hex = binascii.hexlify(image.data).decode()
-
-                    binary_hex_patched, applied = self._apply_patch_to_hex(
-                        binary_hex, pattern, pattern.display_name, image
-                    )
-                    if not applied:
-                        self.logger.info(f"Pattern not found in file")
-                        return False
-
-                    # Convert the patched binary hex back to binary
-                    binary_data_patched = binascii.unhexlify(binary_hex_patched)
-
-                    # Write the patched binary data back to the file
-                    log.info(f"Writing changes to file {file_path}")
-                    mm[:] = binary_data_patched
-                    mm.flush()
-
-                    log.info("Patch applied successfully.")
-                    return True
-        except Exception as e:
-            self.logger.error(f"Error applying patch: {e}")
-            return False
+        """Apply a single patch to the specified file."""
+        return self.patch_file_multiple(file_path, [patch_name], platform, create_backup).get(patch_name, False)
 
     def is_patched(self, file_path: Path, patch_name: str, platform: Optional[Platform] = None) -> bool:
         log.info(f"Checking if patched: {patch_name}")
@@ -534,19 +362,8 @@ class GamePatcher:
             return False
 
         try:
-            # Handle macOS .app
-            actual_file = file_path
-            if file_path.suffix.lower() == ".app" and file_path.is_dir():
-                exe_info = self.get_executable_info(platform)
-                if exe_info and exe_info.path_postfix:
-                    actual_file = file_path / exe_info.path_postfix
-
-            with open(actual_file, "rb") as f:
-                image = hex_matching.BinaryImage(f.read())
-            binary_hex = binascii.hexlify(image.data).decode()
-
-            # Look for the patch site holding the replaced value
-            return self._find_patch_site(binary_hex, image, patch, patch.hex_replace, patch_name) is not None
+            data = self._resolve_binary(Path(file_path), platform).read_bytes()
+            return auto_patch.scan(data, patch.checksum_string, patch.replacement_bytes).fully_patched
         except Exception as e:
             self.logger.error(f"Error checking patch status: {e}")
             return False
