@@ -10,7 +10,7 @@ import shutil
 
 from app_services import services
 from config.path_helpers import os_darwin, system
-from patchers import models
+from patchers import hex_matching, models
 
 from .models import *
 
@@ -51,6 +51,8 @@ class GamePatcher:
                     hex_find=patch_data.get("hex_find", ""),
                     hex_replace=patch_data.get("hex_replace", ""),
                     patch_pattern=patch_data.get("patch_pattern", ""),
+                    anchored_pattern=patch_data.get("anchored_pattern", ""),
+                    anchor_string=patch_data.get("anchor_string", ""),
                 )
 
             platforms[platform_enum] = PlatformConfig(
@@ -331,7 +333,8 @@ class GamePatcher:
 
             with open(actual_file, "r+b") as f:
                 with mmap.mmap(f.fileno(), 0) as mm:
-                    original_hex = binascii.hexlify(mm).decode()
+                    image = hex_matching.BinaryImage(mm[:])
+                    original_hex = binascii.hexlify(image.data).decode()
                     patched_hex = original_hex  # Original working copy and comparison
 
                     results = {}
@@ -342,7 +345,7 @@ class GamePatcher:
                         log.info(f"Applying patch: {patch_name}")
 
                         # Apply patch to current hex string
-                        temp_hex, applied = self._apply_patch_to_hex(patched_hex, pattern, patch_name)
+                        temp_hex, applied = self._apply_patch_to_hex(patched_hex, pattern, patch_name, image)
                         results[patch_name] = applied
 
                         if applied:
@@ -377,35 +380,72 @@ class GamePatcher:
             log.error(f"Critical error occurred while applying patches: {e}")
             return {patch_name: False for patch_name, _ in patches}
 
-    def _apply_patch_to_hex(self, binary_hex: str, pattern: PatchPattern, patch_name: str) -> tuple[str, bool]:
-        try:
-            regex = pattern.compile_regex()
-            match = regex.search(binary_hex)
+    def _find_patch_site(
+        self,
+        binary_hex: str,
+        image: Optional[hex_matching.BinaryImage],
+        pattern: PatchPattern,
+        hex_value: str,
+        patch_name: str,
+    ) -> Optional[tuple[re.Match, tuple[int, int]]]:
+        """
+        Locate where `hex_value` sits for this patch. Returns the match and the hex string span to patch.
 
+        Tries the string-anchored pattern first (when configured and the executable format is supported),
+        then falls back to the plain `patch_pattern`.
+        """
+
+        attempts = []
+        if pattern.has_anchor:
+            if image is not None and image.supported:
+                accept = hex_matching.make_anchor_check(image, pattern.anchor_string)
+                attempts.append(("anchored", pattern.compile_anchored_regex(hex_value), accept))
+            else:
+                log.info(f"Anchored lookup unavailable for '{patch_name}' (unsupported executable format)", silent=True)
+        if pattern.patch_pattern:
+            attempts.append(("pattern", pattern.compile_regex(hex_value), None))
+
+        for method, regex, accept in attempts:
+            match = hex_matching.find_aligned(regex, binary_hex, accept)
             if not match:
+                log.info(f"'{patch_name}': no {method} match", silent=True)
+                continue
+
+            span = hex_matching.target_span(match, hex_value)
+            if span is None:
+                log.error(f"Cannot find '{hex_value}' in matched {method} pattern for patch: {patch_name}")
+                continue
+
+            log.info(f"'{patch_name}': found via {method} lookup at file offset {span[0] // 2:#x}", silent=True)
+            return match, span
+
+        return None
+
+    def _apply_patch_to_hex(
+        self,
+        binary_hex: str,
+        pattern: PatchPattern,
+        patch_name: str,
+        image: Optional[hex_matching.BinaryImage] = None,
+    ) -> tuple[str, bool]:
+        try:
+            site = self._find_patch_site(binary_hex, image, pattern, pattern.hex_find, patch_name)
+
+            if not site:
                 log.info(f"Pattern not found for patch: {patch_name}")
                 return binary_hex, False
 
-            matched_line = binary_hex[match.start() : match.end()]
-            log.info(f"MATCHED BYTES: {matched_line.upper()}", silent=True)
+            match, (target_start, target_end) = site
+            log.info(f"MATCHED BYTES: {match.group().upper()}", silent=True)
             log.info(f"MATCH POSITION: {match.start()}", silent=True)
-            hex_index = matched_line.upper().rfind(pattern.hex_find.upper())
 
-            if hex_index == -1:
-                log.error(f"Cannot find '{pattern.hex_find}' in matched pattern for patch: {patch_name}")
-                return binary_hex, False
+            binary_hex_patched = binary_hex[:target_start] + pattern.hex_replace.lower() + binary_hex[target_end:]
 
-            patched_line = (
-                matched_line[:hex_index]
-                + pattern.hex_replace.lower()
-                + matched_line[hex_index + len(pattern.hex_find) :]
+            log.info(f"Patch '{patch_name}' - Original: {match.group().upper()}", silent=True)
+            log.info(
+                f"Patch '{patch_name}' - Patched:  {binary_hex_patched[match.start() : match.end()].upper()}",
+                silent=True,
             )
-
-            log.info(f"Patch '{patch_name}' - Original: {matched_line.upper()}", silent=True)
-            log.info(f"Patch '{patch_name}' - Patched:  {patched_line.upper()}", silent=True)
-
-            # Apply to the full hex string
-            binary_hex_patched = binary_hex[: match.start()] + patched_line + binary_hex[match.end() :]
 
             return binary_hex_patched, True
         except Exception as e:
@@ -457,35 +497,17 @@ class GamePatcher:
                 if exe_info and exe_info.path_postfix:
                     actual_file = file_path / exe_info.path_postfix
 
-            regex = pattern.compile_regex()
-
             with open(actual_file, "r+b") as f:
                 with mmap.mmap(f.fileno(), 0) as mm:
-                    binary_hex = binascii.hexlify(mm).decode()
+                    image = hex_matching.BinaryImage(mm[:])
+                    binary_hex = binascii.hexlify(image.data).decode()
 
-                    match = regex.search(binary_hex)
-                    if not match:
-                        self.logger.info(f"Pattern found in file")
-                        return False
-
-                    matched_line = binary_hex[match.start() : match.end()]
-                    hex_index = matched_line.upper().rfind(pattern.hex_find.upper())
-
-                    if hex_index == -1:
-                        self.logger.error(f"Cannot find '{pattern.hex_find}' in matched pattern")
-                        return False
-
-                    # Replace 'hex_find' with 'hex_replace' before 'hex_find'
-                    patched_line = (
-                        matched_line[:hex_index]
-                        + pattern.hex_replace.lower()
-                        + matched_line[hex_index + len(pattern.hex_find) :]
+                    binary_hex_patched, applied = self._apply_patch_to_hex(
+                        binary_hex, pattern, pattern.display_name, image
                     )
-
-                    log.info(f"Patched hex: {str(patched_line).upper()}")
-
-                    # Apply the patch
-                    binary_hex_patched = binary_hex[: match.start()] + patched_line + binary_hex[match.end() :]
+                    if not applied:
+                        self.logger.info(f"Pattern not found in file")
+                        return False
 
                     # Convert the patched binary hex back to binary
                     binary_data_patched = binascii.unhexlify(binary_hex_patched)
@@ -520,13 +542,11 @@ class GamePatcher:
                     actual_file = file_path / exe_info.path_postfix
 
             with open(actual_file, "rb") as f:
-                binary_hex = binascii.hexlify(f.read()).decode()
+                image = hex_matching.BinaryImage(f.read())
+            binary_hex = binascii.hexlify(image.data).decode()
 
-            # Create pattern with replaced value
-            check_pattern = patch.patch_pattern.replace("%s", patch.hex_replace)
-            regex = re.compile(check_pattern, re.IGNORECASE)
-
-            return regex.search(binary_hex) is not None
+            # Look for the patch site holding the replaced value
+            return self._find_patch_site(binary_hex, image, patch, patch.hex_replace, patch_name) is not None
         except Exception as e:
             self.logger.error(f"Error checking patch status: {e}")
             return False

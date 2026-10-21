@@ -8,6 +8,7 @@ from typing import Callable, Dict, List, Optional
 from app_services import services
 from config import definitions
 from config.path_helpers import os_darwin, os_linux, os_windows, system
+from patchers import hex_matching
 
 log = logging.getLogger("Patcher Models")
 
@@ -40,11 +41,21 @@ class PatchPattern:
     hex_find: str
     hex_replace: str
     patch_pattern: str
+    # Optional, tried before `patch_pattern`. `%a` marks an operand that must reference a string fully matching `anchor_string` (see patchers.hex_matching).
+    anchored_pattern: str = ""
+    anchor_string: str = ""
 
-    def compile_regex(self) -> re.Pattern:
-        """Compile the regex pattern with the hex_find value"""
-        pattern_string = self.patch_pattern.replace("%s", self.hex_find)
-        return re.compile(pattern_string, re.IGNORECASE)
+    @property
+    def has_anchor(self) -> bool:
+        return bool(self.anchored_pattern and self.anchor_string and "%a" in self.anchored_pattern)
+
+    def compile_regex(self, hex_value: Optional[str] = None) -> re.Pattern:
+        """Compile `patch_pattern` with `%s` as a named group holding `hex_value` (default: hex_find)"""
+        return hex_matching.build_regex(self.patch_pattern, hex_value or self.hex_find)
+
+    def compile_anchored_regex(self, hex_value: Optional[str] = None) -> re.Pattern:
+        """Compile `anchored_pattern` with `%s` and `%a` as named groups"""
+        return hex_matching.build_regex(self.anchored_pattern, hex_value or self.hex_find)
 
 
 @dataclass

@@ -2,13 +2,13 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_VERSION = [2, 2, 1]
+APP_VERSION = [2, 3, 0]
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
 
-REPO_BRANCH: str = "dev"
-TRACKING_BRANCH: str = "dev"
+REPO_BRANCH: str = "update-patching"
+TRACKING_BRANCH: str = "update-patching"
 
 SUPPORTED_GAMES = ("Stellaris",)
 
