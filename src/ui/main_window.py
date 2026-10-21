@@ -524,14 +524,22 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.error(f"Failed to initialise patcher for {self.configuration.game}")
             return False
 
-        patches_to_apply = [patch_name for patch_name in self.configuration.selected_patches]
-
         # --- Determine platform ---
         platform = (
             patcher_models.Platform.detect_current()
             if not self.configuration.is_proton
             else patcher_models.Platform.WINDOWS
         )
+
+        available_patches = self.multi_game_patcher.get_available_patches_for_game(
+            self.configuration.game, self.configuration.version, platform=platform
+        )
+
+        # Ignore saved patch names that no longer exist (e.g. from an older patterns.json)
+        patches_to_apply = [name for name in self.configuration.selected_patches if name in available_patches]
+        outdated_patches = [name for name in self.configuration.selected_patches if name not in available_patches]
+        if outdated_patches:
+            log.info(f"Ignoring saved patches that no longer exist: {outdated_patches}", silent=True)
 
         if self.patch_config_dialog and not patches_to_apply:
             log.warning(f"Aborting Patch process. No patches selected for configuration: {self.configuration}")
@@ -541,13 +549,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.warning(
                 f"No patches selected or available. Applying all available patches corresponding to '{self.selected_version}' version.\nUse the configuration window to select patches to apply."
             )
-            patches_to_apply = [
-                patch_name
-                for patch_name, config in self.multi_game_patcher.get_available_patches_for_game(
-                    self.configuration.game, self.configuration.version, platform=platform
-                ).items()
-                if config.enabled or config.required
-            ]
+            patches_to_apply = [name for name, patch in available_patches.items() if patch.enabled]
+
+        # Required patches are always applied
+        for name, patch in available_patches.items():
+            if patch.required and name not in patches_to_apply:
+                patches_to_apply.append(name)
 
         with self.settings.batch_update():
             self.settings.game(self.configuration.game).last_patched_platform = platform
