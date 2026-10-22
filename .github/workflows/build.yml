@@ -1,6 +1,6 @@
 # Builds the Windows and Linux executables with the scripts in builds/ and uploads them as artifacts.
 #
-# Start it:
+# To start:
 #   - Manually: GitHub > Actions > Build > Run workflow (pick the builder)
 #   - From a tag: git tag v3.0.0 && git push origin v3.0.0
 #
