@@ -45,15 +45,15 @@ class Updater:
 
         self.pulled_releases = self.fetch_releases(max_fetch=self._releases_max_fill)
 
-        non_pre_idx = self.get_first_non_pre_release(self.pulled_releases)
+        stable_idx = self.get_first_non_pre_release(self.pulled_releases)
 
-        if self.pulled_releases:
-            has_new_version = self.has_new_release(self.local_version, self.pulled_releases[non_pre_idx])
-            self.has_new_version = has_new_version
-        else:
-            log.info("No releases available")
+        if stable_idx is None:
+            log.info("No stable releases available")
             self.has_new_version = False
             return False
+
+        has_new_version = self.has_new_release(self.local_version, self.pulled_releases[stable_idx])
+        self.has_new_version = has_new_version
 
         self.last_checked_timestamp = int(time.time())
 
@@ -93,29 +93,27 @@ class Updater:
 
         return releases
 
-    def get_first_non_pre_release(self, releases: dict) -> int:
-        # Return if releases not dict type
-        if not isinstance(releases, dict):
-            return 0
+    def get_first_non_pre_release(self, releases: list[dict]) -> Optional[int]:
+        """
+        Index of the newest stable release (not a pre-release or draft) in `releases`.
+        GitHub lists releases newest first. Returns None when there is no stable release.
+        """
+        if not isinstance(releases, list):
+            return None
 
-        # Get first non pre-release version index
-        log.info(
-            f"Getting first non pre-release available from list of supplied {len(releases)} releases.", silent=True
-        )
+        log.info(f"Getting first stable release from {len(releases)} supplied releases.", silent=True)
 
-        log.debug(f"{json.dumps(releases, indent=2)}")
-
-        for i, release in enumerate(self.pulled_releases):
-            pre_release = release.get("prerelease")
+        for i, release in enumerate(releases):
             name = release.get("name")
             tag = release.get("tag_name")
-            if not pre_release:
-                log.info(f"Release number {i} {name} ({tag}) is not a pre-release. Comparing against it.", silent=True)
-                return i
-            else:
-                log.info(f"Release number {i} {name} ({tag}) is set as pre-release. Skipping.", silent=True)
+            if release.get("prerelease") or release.get("draft"):
+                log.info(f"Release number {i} {name} ({tag}) is a pre-release or draft. Skipping.", silent=True)
+                continue
 
-        return 0  # Return first index, I guess
+            log.info(f"Release number {i} {name} ({tag}) is a stable release. Comparing against it.", silent=True)
+            return i
+
+        return None
 
     def has_new_release(self, current: list[int], remote: dict) -> bool:
         log.info(f"Local version: {current}", silent=True)
@@ -159,7 +157,7 @@ class Updater:
         digit = ""
         constructed_version = []
 
-        for c in version:
+        for c in version or "":  # Release names can be empty
             log.debug(f"{digit=}")
             log.debug(f"-> '{c}'")
 
