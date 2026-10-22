@@ -178,3 +178,6 @@ GitHub-Issues
 
 # PyInstaller bootloader build
 .pyinstaller-bootloader/
+
+# Don't store binaries in Git
+Stellaris-Checksum-Patcher-*

@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+      - venv:/app/.venv
+      - ccache:/app/.ccache
+  app-nuitka:
+    extends: app
+    command: [ "uv", "run", "./builds/build-nuitka.py" ]
+  app-pyinstaller:
+    extends: app
+    command: [ "uv", "run", "./builds/build-pyinstaller.py" ]
+
+volumes:
+  venv:
+  ccache:
