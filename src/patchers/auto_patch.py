@@ -39,6 +39,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
 
+from config.definitions import FILE_FORMAT
+
 log = logging.getLogger("Auto Patch")
 
 DEFAULT_CHECKSUM_STRING = "[0-9a-f]{32}"
@@ -47,6 +49,14 @@ DEFAULT_REPLACEMENT = "31C00F1F00"  # XOR EAX,EAX + 3-byte NOP
 CALL_OPCODE = 0xE8  # CALL rel32, always 5 bytes long
 CALL_LENGTH = 5
 MAX_CALL_DISTANCE = 16  # How many bytes after the string reference we look for the CALL
+
+MACHO_MAGICS = (
+    b"\xfe\xed\xfa\xce",  # 32-bit
+    b"\xfe\xed\xfa\xcf",  # 64-bit
+    b"\xce\xfa\xed\xfe",  # 32-bit, byte-swapped
+    b"\xcf\xfa\xed\xfe",  # 64-bit, byte-swapped
+    b"\xca\xfe\xba\xbe",  # Universal (fat) binary
+)
 
 
 # ============================================================================
@@ -102,7 +112,7 @@ class Executable:
             if size:
                 executable = bool(flags & 0x20000000)  # IMAGE_SCN_MEM_EXECUTE
                 self.sections.append(Section(raw_offset, image_base + virtual_address, size, executable))
-        self.format = "pe"
+        self.format = FILE_FORMAT.PE
 
     def _read_elf(self):
         header_offset = struct.unpack_from("<Q", self.data, 0x20)[0]
@@ -117,7 +127,7 @@ class Executable:
             size = struct.unpack_from("<Q", self.data, header + 32)[0]
             if size:
                 self.sections.append(Section(file_offset, address, size, executable=bool(flags & 1)))
-        self.format = "elf"
+        self.format = FILE_FORMAT.ELF
 
     def address_of(self, offset: int) -> Optional[int]:
         """File offset -> memory address."""
@@ -139,6 +149,20 @@ class Executable:
         if address is None:
             return None
         return address + CALL_LENGTH + struct.unpack_from("<i", self.data, call_offset + 1)[0]
+
+
+def detect_format(path: Path) -> Optional[str]:
+    """Executable format from the file's first bytes: "pe" (Windows), "elf" (Linux), "macho" (macOS) or None."""
+    with open(path, "rb") as f:
+        magic = f.read(4)
+
+    if magic[:2] == b"MZ":
+        return FILE_FORMAT.PE
+    if magic == b"\x7fELF":
+        return FILE_FORMAT.ELF
+    if magic in MACHO_MAGICS:
+        return FILE_FORMAT.MACHO
+    return None
 
 
 # ============================================================================
@@ -206,7 +230,7 @@ def _find_references(exe: Executable, addresses: dict) -> List[tuple]:
             if next_instruction + struct.unpack_from("<i", exe.data, offset + 3)[0] in addresses:
                 references.append((offset, offset + 7))
 
-        if exe.format == "elf":
+        if exe.format == FILE_FORMAT.ELF:
             for match in mov.finditer(exe.data, start, end):
                 offset = match.start()
                 if struct.unpack_from("<I", exe.data, offset + 1)[0] in addresses:

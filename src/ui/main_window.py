@@ -525,11 +525,17 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             return False
 
         # --- Determine platform ---
-        platform = (
+        # The Native/Proton choice, kept in settings to restore the UI next time
+        configured_platform = (
             patcher_models.Platform.detect_current()
             if not self.configuration.is_proton
             else patcher_models.Platform.WINDOWS
         )
+
+        # Patch for whatever the selected binary actually is (ex.: Linux binary patched from macOS)
+        platform = patcher.detect_platform(game_binary_path) or configured_platform
+        if platform != configured_platform:
+            log.info(f"Selected binary is a {platform} executable; using {platform} patches.")
 
         available_patches = self.multi_game_patcher.get_available_patches_for_game(
             self.configuration.game, self.configuration.version, platform=platform
@@ -556,8 +562,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             if patch.required and name not in patches_to_apply:
                 patches_to_apply.append(name)
 
+        if not patches_to_apply:
+            log.error(
+                f"No patches available for {self.configuration.game} '{self.configuration.version}' on {platform}."
+            )
+            return False
+
         with self.settings.batch_update():
-            self.settings.game(self.configuration.game).last_patched_platform = platform
+            self.settings.game(self.configuration.game).last_patched_platform = configured_platform
             self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
 
         log.info(f"Patches to apply: {patches_to_apply}", silent=True)
@@ -1041,10 +1053,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         if self.configuration.is_proton:
             binary_path = self.settings.game(game).proton_install_path
-            platform = patcher_models.Platform.WINDOWS
+            configured_platform = patcher_models.Platform.WINDOWS
         else:
             binary_path = self.settings.game(game).install_path
-            platform = patcher_models.Platform.detect_current()
+            configured_platform = patcher_models.Platform.detect_current()
 
         if not binary_path or not Path(binary_path).exists():
             log.info(f"No saved {game} executable to check yet: '{binary_path}'", silent=True)
@@ -1053,6 +1065,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         patcher = self.multi_game_patcher.get_game_patcher(game, self.configuration.version)
         if not patcher:
             return None
+
+        platform = patcher.detect_platform(Path(binary_path)) or configured_platform
 
         patch_names = [
             name for name, patch in patcher.get_available_patches(platform).items() if patch.enabled or patch.required

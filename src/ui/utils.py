@@ -414,7 +414,8 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
     log.info(f"Attempting to auto-locate game installation.")
     auto_located_path = game_patcher.locate_game_install()
 
-    if os_darwin() and not configuration.is_proton:
+    # macOS: point inside the .app bundle at the actual binary
+    if auto_located_path and os_darwin() and not configuration.is_proton and path_postfix:
         auto_located_path = auto_located_path / path_postfix
 
     if auto_located_path:

@@ -18,9 +18,15 @@ REPO_NAME = "Stellaris-Exe-Checksum-Patcher"
 
 
 class OS_TYPE:
-    WINDOWS = "Windows"
-    LINUX = "Linux"
-    DARWIN = "Darwin"
+    WINDOWS: str = "Windows"
+    LINUX: str = "Linux"
+    DARWIN: str = "Darwin"
+
+
+class FILE_FORMAT:
+    PE: str = "pe"
+    ELF: str = "elf"
+    MACHO: str = "macho"
 
 
 @dataclass

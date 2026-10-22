@@ -6,6 +6,7 @@ import logging
 import shutil
 
 from app_services import services
+from config.definitions import FILE_FORMAT
 from config.path_helpers import os_darwin, system
 from patchers import auto_patch, models
 
@@ -112,6 +113,25 @@ class GamePatcher:
 
         self.exe_info = None
         return None
+
+    def detect_platform(self, file_path: Path) -> Optional[Platform]:
+        """Platform the executable was built for, read from its file format. None if unknown."""
+        file_path = Path(file_path)
+
+        if file_path.suffix.lower() == ".app" and file_path.is_dir():
+            return Platform.DARWIN
+
+        try:
+            file_format = auto_patch.detect_format(file_path)
+        except OSError as e:
+            log.error(f"Unable to read executable format of '{file_path}': {e}")
+            return None
+
+        return {
+            FILE_FORMAT.PE: Platform.WINDOWS,
+            FILE_FORMAT.ELF: Platform.LINUX,
+            FILE_FORMAT.MACHO: Platform.DARWIN,
+        }.get(file_format)
 
     def _create_backup(self, file_path: Path) -> bool:
         """Create a backup of the file"""
@@ -342,7 +362,9 @@ class GamePatcher:
             log.error(f"✗ Failed to apply patch '{patch_name}': {result.error}")
             return False
 
-        log.info(f"✓ Applied Patch: '{patch_name}' ({len(result.sites)} checksum checks, official checksum {result.checksum})")
+        log.info(
+            f"✓ Applied Patch: '{patch_name}' ({len(result.sites)} checksum checks, official checksum {result.checksum})"
+        )
         return True
 
     def patch_file(
