@@ -121,6 +121,7 @@ def main():
         "nuitka",
         "--standalone",
         "--onefile",
+        "--assume-yes-for-downloads",
         "--enable-plugin=pyside6",
         # "--include-qt-plugins=sensible",
         "--include-data-dir=src/ui/fonts=ui/fonts",
