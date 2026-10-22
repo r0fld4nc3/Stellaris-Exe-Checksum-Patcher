@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-# builds/docker-build-linux.py
+# builds/build-docker-nuitka-linux.py
 """
 Single entry point to build the Docker image and run the Nuitka Linux build
 inside it. Works from both Linux and macOS hosts, always producing an
 x86_64 (linux/amd64) Linux binary regardless of host architecture.
 
-Usage:
-    uv run builds/docker-build-linux.py -- -p linux --keep-build
-    uv run builds/docker-build-linux.py             # defaults to Dockerfile CMD
+Run from the project root (only needs the Python standard library):
+    python3 builds/build-docker-nuitka-linux.py                         # defaults to Dockerfile CMD (-p linux)
+    python3 builds/build-docker-nuitka-linux.py -p linux --keep-build   # arguments go to build-nuitka.py
+    python3 builds/build-docker-nuitka-linux.py --rebuild               # rebuild the image without Docker's cache
+
+Every argument except --rebuild is passed to build-nuitka.py inside the container.
 """
 
 import os
@@ -53,8 +56,10 @@ def main() -> None:
 
     host_system = platform.system()
     host_arch = platform.machine()
-    # Forward all arguments to the container entrypoint
+    # Our commands first. Forward everything else to the container entrypoint
     extra_args = sys.argv[1:]
+    rebuild = "--rebuild" in extra_args
+    extra_args = [arg for arg in extra_args if arg != "--rebuild"]
 
     print(f"Host OS/Arch: {host_system}/{host_arch}")
     print(f"Target: {TARGET_PLATFORM} (forced, regardless of host)")
@@ -69,21 +74,12 @@ def main() -> None:
             "emulation on Apple Silicon' in Docker Desktop > Settings > General."
         )
 
-    print(f"\n==> Building image {IMAGE_NAME}...")
-    run(
-        [
-            "docker",
-            "build",
-            "--platform",
-            TARGET_PLATFORM,
-            "--no-cache",
-            "-t",
-            IMAGE_NAME,
-            "-f",
-            str(dockerfile),
-            str(project_root),
-        ]
-    )
+    print(f"\n==> Building image {IMAGE_NAME}{' (no cache)' if rebuild else ''}...")
+    build_cmd = ["docker", "build", "--platform", TARGET_PLATFORM]
+    if rebuild:
+        build_cmd.append("--no-cache")
+    build_cmd.extend(["-t", IMAGE_NAME, "-f", str(dockerfile), str(project_root)])
+    run(build_cmd)
 
     print("\n==> Running build container...")
     docker_run_cmd = ["docker", "run", "--rm", "-v", f"{project_root}:/app"]
@@ -96,7 +92,7 @@ def main() -> None:
     # Pass host UID/GID to restore file ownership
     if hasattr(os, "getuid"):
         docker_run_cmd.extend(["-e", f"HOST_UID={os.getuid()}"])
-        docker_run_cmd.extend(["-e", f"HOST_GID={os.getuid()}"])
+        docker_run_cmd.extend(["-e", f"HOST_GID={os.getgid()}"])
 
     docker_run_cmd.append(IMAGE_NAME)
     docker_run_cmd.extend(extra_args)

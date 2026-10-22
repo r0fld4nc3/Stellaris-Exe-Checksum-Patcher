@@ -1,0 +1,33 @@
+# Files Docker should not send as build context for builds/build-docker-ubuntu.
+# The container builds from the bind-mounted project, so this only keeps the image small and fast to build.
+
+# Version control and CI
+.git
+.github
+
+# Local environments (the image creates its own in /opt/venv)
+.venv
+venv
+env
+
+# Python caches
+**/__pycache__
+**/*.py[cod]
+.mypy_cache
+.pytest_cache
+
+# Editors, OS and tooling
+.idea
+.vscode
+.claude
+**/.DS_Store
+
+# Build outputs from previous runs
+main.build
+main.dist
+main.onefile-build
+build
+dist
+Stellaris-Checksum-Patcher-*
+nuitka-crash-report.xml
+*.exe
