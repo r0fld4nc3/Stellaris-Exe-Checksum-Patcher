@@ -1,0 +1,51 @@
+{
+    "Stellaris": {
+        "latest": {
+            "windows": {
+                "description": "Settings for native Windows and Linux Proton.",
+                "exe_filename": "stellaris.exe",
+                "path_postfix": "",
+                "patches": {
+                    "checksum_patch": {
+                        "display_name": "Checksum",
+                        "description": "Make every checksum check pass: achievements can be earned with mods, and the modified-checksum warning and tooltip are hidden.",
+                        "required": true,
+                        "enabled": true,
+                        "checksum_string": "[0-9a-f]{32}",
+                        "replace_call_with": "31C00F1F00"
+                    }
+                }
+            },
+            "linux": {
+                "description": "Settings for native Linux builds.",
+                "exe_filename": "stellaris",
+                "path_postfix": "",
+                "patches": {
+                    "checksum_patch": {
+                        "display_name": "Checksum",
+                        "description": "Make every checksum check pass: achievements can be earned with mods, and the modified-checksum warning and tooltip are hidden.",
+                        "required": true,
+                        "enabled": true,
+                        "checksum_string": "[0-9a-f]{32}",
+                        "replace_call_with": "31C00F1F00"
+                    }
+                }
+            },
+            "darwin": {
+                "description": "Settings for macOS builds.",
+                "exe_filename": "stellaris.app",
+                "path_postfix": "Contents/MacOS/stellaris",
+                "patches": {
+                    "checksum_patch": {
+                        "display_name": "Checksum",
+                        "description": "Make every checksum check pass: achievements can be earned with mods, and the modified-checksum warning and tooltip are hidden.",
+                        "required": true,
+                        "enabled": true,
+                        "checksum_string": "[0-9a-f]{32}",
+                        "replace_call_with": "31C00F1F00"
+                    }
+                }
+            }
+        }
+    }
+}
