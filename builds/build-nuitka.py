@@ -127,7 +127,7 @@ def main():
         "--include-data-dir=src/ui/icons=ui/icons",
         "--include-data-dir=src/ui/styles=ui/styles",
         "--include-data-dir=src/achievements=achievements/",
-        "--include-data-file=src/patch_patterns/patterns.json=patch_patterns/patterns.json",
+        "--include-data-file=src/patch_patterns/patterns_v2.json=patch_patterns/patterns_v2.json",
         f"--output-filename={output_filename}",
     ]
 

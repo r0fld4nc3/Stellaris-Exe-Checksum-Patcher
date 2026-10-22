@@ -16,7 +16,7 @@ from patchers.models import Platform
 
 log = logging.getLogger("Patterns")  # isort: skip
 
-PATTERNS_FILE_NAME = "patterns.json"
+PATTERNS_FILE_NAME = "patterns_v2.json"
 PATTERNS_URL = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/src/patch_patterns/{PATTERNS_FILE_NAME}"
 PATTERNS_LOCAL = services().config.config_dir / PATTERNS_FILE_NAME
 PATTERNS_DISTRIBUTED_FILE = Path(__file__).parent / PATTERNS_FILE_NAME
@@ -109,7 +109,7 @@ def get_patterns_config_local() -> dict:
         log.error(f"Expected local patterns file does not exist: {PATTERNS_LOCAL}")
 
         # Copy from local distribution to config dir
-        config_dir = config_dir
+        config_dir = config.config_dir
         copy_dest = config_dir / PATTERNS_FILE_NAME
 
         try:
