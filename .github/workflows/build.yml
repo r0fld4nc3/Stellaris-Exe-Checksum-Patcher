@@ -1,0 +1,72 @@
+# Builds the Windows and Linux executables with the scripts in builds/ and uploads them as artifacts.
+#
+# Start it:
+#   - Manually: GitHub > Actions > Build > Run workflow (pick the builder)
+#   - From a tag: git tag v3.0.0 && git push origin v3.0.0
+#
+# Download the results from the run's "Artifacts" section.
+
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      builder:
+        description: Which build script to run
+        type: choice
+        options: [all, nuitka, pyinstaller]
+        default: all
+  push:
+    tags:
+      - "v*"
+      - "[0-9]*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.builder }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Same Ubuntu version as builds/build-docker-ubuntu
+        os: [windows-latest, ubuntu-24.04]
+        # Tags build everything; a manual run builds what was picked
+        builder: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.builder != 'all') && format('["{0}"]', inputs.builder) || '["nuitka", "pyinstaller"]') }}
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        # Based on builds/build-docker-ubuntu: compilers/patchelf for Nuitka, system libraries Qt loads
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential patchelf binutils file \
+            libglib2.0-0 libdbus-1-3 libgl1 libegl1 libfontconfig1 libfreetype6 \
+            libxkbcommon0 libxkbcommon-x11-0 libx11-6 libx11-xcb1 libxrender1 libxi6 libxfixes3 \
+            libxcb1 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render0 libxcb-render-util0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 \
+            libxcb-xinerama0 libxcb-xinput0 libxcb-xkb1 libxcb-util1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python and dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Build
+        run: uv run python builds/build-${{ matrix.builder }}.py -p ${{ runner.os == 'Windows' && 'windows' || 'linux' }}
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stellaris-Checksum-Patcher-${{ matrix.builder }}-${{ runner.os == 'Windows' && 'windows' || 'linux' }}
+          path: Stellaris-Checksum-Patcher-*
+          if-no-files-found: error
