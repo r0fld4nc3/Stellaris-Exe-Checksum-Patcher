@@ -7,7 +7,7 @@ HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
 
-REPO_BRANCH: str = "v2.2.2-main"
+REPO_BRANCH: str = "main"
 TRACKING_BRANCH: str = "release"
 
 SUPPORTED_GAMES = ("Stellaris",)
