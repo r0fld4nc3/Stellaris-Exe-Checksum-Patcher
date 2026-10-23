@@ -11,7 +11,6 @@ from config.runtime import get_config
 
 from utils.encodings import detect_file_encoding  # isort: skip
 
-
 log = logging.getLogger("Settings")
 
 _current: Optional["AppSettings"] = None
@@ -54,7 +53,7 @@ class AppSettings(AutoSaveHookedSettingsClass):
     app_version: str = ""
     accepted_welcome_dialog: bool = False
     update_last_checked: int = 0
-    max_allowed_binary_backups: int = 2
+    max_allowed_binary_backups: int = 1
     patch_patterns_update_last_checked: int = 0
     force_local_patterns: bool = False
     update_available: bool = False
@@ -202,6 +201,11 @@ class SettingsManager:
 
     def game(self, name: str) -> GameSettings:
         """Get or create Game settings."""
+        if not name or not name.strip():
+            # Never store an entry without a name. Hand back a detached object so callers don't crash.
+            log.warning("Requested game settings with an empty name; not saving it.")
+            return GameSettings()
+
         if name not in self.settings.games:
             game_settings = GameSettings()
             game_settings._manager = self  # Link manager to class

@@ -50,11 +50,14 @@ from .utils import (
     prompt_install_dir,
 )
 from .windows import (
-    ConfigureApplicationOptionsDialog,
     ConfigureSavePatchDialog,
     DisclaimerFixCheatedSave,
+    TabOptionsDialog,
     WelcomeDialog,
 )
+
+# Tabs shown in the Configure Application Options dialog, in display order.
+APP_OPTIONS_TABS = []
 
 # loggers to hook up to signals
 from updater.updater import log as updater_log  # isort: skip
@@ -309,7 +312,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.active_threads = []
 
         # --- Track if Configure Patch Dialog Opened ---
-        self.patch_config_dialog: ConfigureApplicationOptionsDialog | None = None
+        self.patch_config_dialog: TabOptionsDialog | None = None
 
         # --- Cache Configuration ---
         self.multi_game_patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
@@ -349,15 +352,18 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.updater.set_local_version(str(self._APP_VERSION))
 
         if not self.configuration.game:
-            self.configuration.game = self.settings.settings.last_selected_game
+            # Fall back to the default game so an entry is never created with an empty name
+            self.configuration.game = self.settings.settings.last_selected_game or SUPPORTED_GAMES[0]
 
-        _last_platform = self.settings.game(self.configuration.game).last_patched_platform
+        game_settings = self.settings.game(self.configuration.game)
+        _last_platform = game_settings.last_patched_platform
         if _last_platform:
             if os_linux() or os_darwin():
                 self.configuration.is_proton = _last_platform.lower() == patcher_models.Platform.WINDOWS
-        self.configuration.version = self.settings.game(self.configuration.game).last_patched_version
-        self.configuration.selected_patches = self.settings.game(self.configuration.game).patches
-        self.configuration.platform = self.settings.game(self.configuration.game).last_patched_platform
+        self.configuration.version = game_settings.last_patched_version
+        # Copy so edits to the configuration don't write into the saved settings
+        self.configuration.selected_patches = list(game_settings.patches)
+        self.configuration.platform = game_settings.last_patched_platform
 
     def load_app_styles(self):
         """Loads Styles, Icons and Fonts"""
@@ -535,7 +541,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Patch for whatever the selected binary actually is (ex.: Linux binary patched from macOS)
         platform = patcher.detect_platform(game_binary_path) or configured_platform
         if platform != configured_platform:
-            log.info(f"Selected binary is a {platform} executable; using {platform} patches.")
+            log.info(f"Selected binary is a {platform.value} executable. Using {platform.value} patches.")
 
         available_patches = self.multi_game_patcher.get_available_patches_for_game(
             self.configuration.game, self.configuration.version, platform=platform
@@ -547,17 +553,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         if outdated_patches:
             log.info(f"Ignoring saved patches that no longer exist: {outdated_patches}", silent=True)
 
-        if self.patch_config_dialog and not patches_to_apply:
-            log.warning(f"Aborting Patch process. No patches selected for configuration: {self.configuration}")
-            return False
-
-        if not patches_to_apply:
-            log.warning(
-                f"No patches selected or available. Applying all available patches corresponding to '{self.selected_version}' version.\nUse the configuration window to select patches to apply."
-            )
+        # Nothing saved or picked yet (patches are only saved after patching): use the defaults
+        if not patches_to_apply and not self.patch_config_dialog:
             patches_to_apply = [name for name, patch in available_patches.items() if patch.enabled]
+            log.info(f"No saved patch selection. Using default patches for '{self.configuration.version}'.")
 
-        # Required patches are always applied
+        # Required patches are always applied, even if not in the selection
         for name, patch in available_patches.items():
             if patch.required and name not in patches_to_apply:
                 patches_to_apply.append(name)
@@ -789,17 +790,17 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         if not self.patch_config_dialog:
             # Pass a copy of the config
-            self.patch_config_dialog = ConfigureApplicationOptionsDialog(
+            self.patch_config_dialog = TabOptionsDialog(
                 patcher=self.multi_game_patcher,
-                configuration=self.configuration,
+                configuration=copy.deepcopy(self.configuration),
                 font=QFont(self.app_font_bold, 12),
                 window_icon=self.windowIcon(),
+                # tabs=APP_OPTIONS_TABS,
                 parent=self,
             )
         else:
             # Refresh with a new copy if it exists
-            self.patch_config_dialog.patch_options_configuration = self.configuration
-            self.patch_config_dialog._populate_options()  # Refresh UI
+            self.patch_config_dialog.set_configuration(copy.deepcopy(self.configuration))
 
         # Set current game as last selected
         self.last_conf_game = self.configuration.game
@@ -816,8 +817,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 self.settings.settings.last_selected_game = self.configuration.game
                 self.settings.game(self.configuration.game).last_patched_platform = self.configuration.platform
                 if not self.configuration.selected_patches:
-                    self.configuration.selected_patches = self.settings.game(self.configuration.game).patches
-                self.settings.game(self.configuration.game).patches = self.configuration.selected_patches
+                    self.configuration.selected_patches = list(self.settings.game(self.configuration.game).patches)
+                # Patches are only saved to settings after a successful patch (see patch worker)
                 self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
 
             # --- Determine platform ---
@@ -848,9 +849,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # This should ensure patching works even if the user never
             # accepts the dialog.
             if _is_new_dialog and not self.configuration.selected_patches:
-                self.configuration.selected_patches = (
-                    self.patch_config_dialog.patch_options_configuration.selected_patches.copy()
-                )
+                self.configuration.selected_patches = self.patch_config_dialog.configuration.selected_patches.copy()
             log.info("Configuration unchanged.", silent=True)
 
     def open_configure_save_patch_options_window(self):
