@@ -14,20 +14,35 @@ X11: str = "xcb"
 def open_in_file_manager(path: Path):
     path = path.resolve()
 
+    # Open directories directly and not just select/reveal them.
+    # Reveal (select) files and macOS bundles in their parent(s).
+    # .app is technically a directory but `open` would launch the app.
+
+    # `-R` and `/select` is the command to reveal the files. Use this
+    # on files, not on directories
+
+    reveal = path.is_file() or (os_darwin() and path.suffix.lower() == ".app")
+
+    if os_windows():
+        # The trailing comma is part of the flag: `/select,<path>`. Windows... :eyeroll:
+        args = ["explorer.exe", "/select,"] if reveal else ["explorer.exe"]
+    elif os_linux():
+        # xdg-open can't select a file, so open its folder instead
+        args = ["xdg-open"]
+        if path.is_file():
+            path = path.parent
+    elif os_darwin():
+        args = ["open", "-R"] if reveal else ["open"]
+    else:
+        log.warning("No known Operating System")
+        return
+
+    args.append(str(path))
+
     try:
-        if os_windows():
-            subprocess.run(["explorer.exe", "/select,", str(path)])
-        elif os_linux():
-            if path.is_file():
-                # On UNIX open the directory not file itself
-                path = path.parent
-            subprocess.run(["xdg-open", str(path)])
-        elif os_darwin():
-            subprocess.run(["open", "-R", str(path)])
-        else:
-            log.warning("No known Operating System")
+        subprocess.run(args)
     except Exception as e:
-        log.error(f"Failed to open game folder: {e}")
+        log.error(f"Failed to open '{path}' in file manager: {e}")
 
 
 def is_backend_wayland() -> bool:
