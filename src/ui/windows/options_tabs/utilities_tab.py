@@ -80,6 +80,13 @@ class UtilitiesTab(OptionsTab):
         btn_show_game_folder.clicked.connect(lambda: self.show_game_folder())
         utilities_layout.addWidget(btn_show_game_folder)
 
+        # --- Show Save Games Folder Button ---
+        btn_show_save_games_folder = QPushButton("Show Save Games Folder")
+        btn_show_save_games_folder.setFlat(False)
+        btn_show_save_games_folder.setFont(font)
+        btn_show_save_games_folder.clicked.connect(self.show_save_games_folder)
+        utilities_layout.addWidget(btn_show_save_games_folder)
+
         # --- Open Config Directory Button ---
         btn_show_app_config_dir = QPushButton("Show App Config Folder")
         btn_show_app_config_dir.setFont(font)
@@ -300,6 +307,32 @@ class UtilitiesTab(OptionsTab):
                     # User cancelled
                     log.warning(f"User cancelled location. Aborting patch")
                     return None
+
+    def show_save_games_folder(self):
+        game = self.config.game
+
+        if not game:
+            log.warning("No game selected. Unable to locate save games folder.")
+            return
+
+        saved = self.svc.settings.game(game).save_games_folder
+        save_games_path = Path(saved) if saved else None
+
+        if not save_games_path or not save_games_path.is_dir():
+            from patchers.save_patcher import SavePatcher
+
+            located = SavePatcher(game).save_games_folders
+            save_games_path = located[0] if located else None  # TODO: Selection picker
+
+            if save_games_path:
+                self.svc.settings.game(game).save_games_folder = save_games_path.as_posix()
+
+        if not save_games_path:
+            log.warning(f"Could not find a save games folder for {game}.")
+            return
+
+        log.info(f"Opening save games folder: {save_games_path}", silent=True)
+        open_in_file_manager(save_games_path)
 
     def _find_game_path_worker_thread(self) -> Optional[Path]:
         """

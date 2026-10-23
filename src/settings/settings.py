@@ -41,6 +41,7 @@ class GameSettings(AutoSaveHookedSettingsClass):
 
     install_path: str = ""
     proton_install_path: str = ""
+    save_games_folder: str = ""
     patches: list[str] = field(default_factory=list)
     last_patched_version: str = ""
     last_patched_platform: str = ""

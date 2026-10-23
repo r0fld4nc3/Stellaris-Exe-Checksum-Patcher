@@ -23,6 +23,8 @@ from .models import GameSavePatchConfig
 
 log = logging.getLogger("Save Patcher")
 
+# TODO: More paths options (such as cloud saves and different distribution platforms support)
+# Check the wiki for details
 WINDOWS_PARADOX_INTERACTIVE_PATHS = [Path.home() / "Documents" / "Paradox Interactive"]
 
 LINUX_PARADOX_INTERACTIVE_PATHS = [Path.home() / ".local" / "share" / "Paradox Interactive"]
@@ -110,9 +112,9 @@ class SavePatcher:
         # Immediately kick-off a location task if possible
         self._locate_savegames_folder()
 
-    def _locate_savegames_folder(self):
+    def _locate_savegames_folder(self) -> list[Path]:
         if not self.game_name:
-            return False
+            return []
 
         if os_windows():
             potential_paths = WINDOWS_PARADOX_INTERACTIVE_PATHS
@@ -147,6 +149,8 @@ class SavePatcher:
                     self.save_games_folders.append(item)
 
         log.info(f"Found the following save games folder(s): {self.save_games_folders}")
+
+        return self.save_games_folders
 
     def collect_saves(self) -> dict[str, list[Path]]:
         if self.save_extension is None:
