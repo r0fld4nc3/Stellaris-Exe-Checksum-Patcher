@@ -1,7 +1,9 @@
-# Stellaris Checksum Patcher (Enable Achievements w/ Mods!)
+# Stellaris Checksum Patcher
 
-[![Latest Release](https://img.shields.io/github/v/release/r0fld4nc3/stellaris-exe-checksum-patcher?style=for-the-badge&label=Latest%20Release)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases/latest)
-[![All-Time Downloads](https://img.shields.io/github/downloads/r0fld4nc3/stellaris-exe-checksum-patcher/total?style=for-the-badge&label=Total%20Downloads)](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases)
+### Earn Stellaris achievements while playing with mods
+
+[![Latest Release](https://img.shields.io/github/v/release/r0fld4nc3/Stellaris-Exe-Checksum-Patcher?style=for-the-badge&label=Latest%20Release)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/latest)
+[![All-Time Downloads](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/total?style=for-the-badge&label=Total%20Downloads)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases)
 
 If you'd like to support me:
 
@@ -9,196 +11,311 @@ If you'd like to support me:
 
 ---
 
-### An easy and painless way to patch the game's executable to enable Achievements being earnable with mods that change the game's Checksum.
+## Purpose
 
-# ⚠️ Antivirus False Positives
+Stellaris turns off achievements when you play with mods that change the game's files. This can be true even for harmless mods, such as visual or quality-of-life ones.
 
-Some antivirus software (including Bitdefender, Windows Defender, and others) may flag this executable as a PUP (Potentially Unwanted Program) or Trojan. **This is a false positive.**
+This app makes a small, automatic change to the game's executable so that achievements stay enabled while you use those mods. No technical knowledge is needed. You click a button and the app does the rest.
 
-The binary is compiled using [Nuitka](https://nuitka.net/), which is frequently used by malware authors due to its source code protection. Antivirus software often flags Nuitka-compiled binaries preemptively as a precaution, even for legitimate applications.
+<p align="center">
+<img src="media/stellaris-checksum-patcher-07-01.png" width="762" alt="Stellaris Checksum Patcher main window">
+</p>
 
-The source code is open and available in this repository for your review. If you have concerns, you can compile the executable yourself from the source.
+<p align="center">
+<img src="media/stellaris-checksum-patcher-07-02.png" width="762" alt="Stellaris Checksum Patcher configuration window">
+</p>
 
-For more details see [Issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/issues/39) where you may find this discussion and the source for these claims.
+> [!IMPORTANT]
+> Please read the [Disclaimer](#disclaimer) and [My Stance](#my-stance) before using this tool. In short: use it for quality-of-life and visual mods, not to cheat.
 
-**Update - February 6:** If you would like to use a different binary that is not compiled with Nuitka which has the probability to have a reduced virus warning chance, please use the provided [`PyInstaller`-labelled executable in Releases](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/3.0.0/Stellaris-Checksum-Patcher-PyInstaller-win.exe). Currently only available for Windows.
+---
 
-# Usage
-* Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
+## How to use it
 
-| Platform                                                                                                                             | Version              |
-|--------------------------------------------------------------------------------------------------------------------------------------|----------------------|
-| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/3.0.0/Stellaris-Checksum-Patcher-win.exe)   | 3.0.0               |
-| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/3.0.0/Stellaris-Checksum-Patcher-linux)       | 3.0.0               |
-| macOS                                                                                                                                | Currently None       |
+### 1. Download
 
-Please refer to the below **Build & Run From Source** section if you don't wish to run the binary file.
+Pick the version for your system:
 
-# ⚙️ Build Source
+| System  | Download |
+|---------|----------|
+| Windows | [Stellaris-Checksum-Patcher-win.exe](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/latest/download/Stellaris-Checksum-Patcher-win.exe) |
+| Linux   | [Stellaris-Checksum-Patcher-linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/latest/download/Stellaris-Checksum-Patcher-linux) |
+| macOS   | Not available yet |
 
-The following describes the steps needed to compile the source code to a one-file distributable binary/executable. The result should be a single file that is the packaged application into a runnable binary.
+All versions are also listed on the [Releases page](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases).
 
 > [!NOTE]
-> Compiling to a target platform requires the process to be started from that same platform, i.e.: Compiling to Windows must be done in Windows, to Linux in Lunux, etc.
+> Windows or your antivirus may show a warning when you download or open the app. This is expected and explained in [Troubleshooting](#troubleshooting--faq).
 
-### Requirements:
+### 2. Patch the game
 
-* [Python 3.14](https://www.python.org/downloads/latest/python3.14/) (Can be managed by UV)
-* [UV](https://docs.astral.sh/uv/) (Very recommended)
+1. Close Stellaris if it is running.
+2. Open the Stellaris Checksum Patcher.
+3. Click **Patch Executable**.
+4. If the app can't find your Stellaris installation, it will ask you to select the game's install folder. It remembers this for next time.
+5. Wait for the app to confirm that patching is done.
 
-### Pull
+That's it. Launch Stellaris as usual and play with your mods.
 
-#### git clone
-For a more in-depth explanation, look into _[How To](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository?platform=linux&tool=webui)_
+Previously, this was mostly targeted at specifically Ironman saves, however, Paradox has since made it possible to earn achievements without Ironman.
 
-* In a terminal, navigate to the desired location in the filesystem.
-* Run:
+Before changing anything, the app saves a backup of your original game executable.
+
+---
+
+## Features
+
+### 🔧 Patch Executable
+
+- Looks for your Steam installation of Stellaris automatically. If it can't find it, it asks you to select the folder.
+- Creates a versioned backup of your current game executable.
+- Applies the selected patches (or the default ones if you haven't chosen any).
+- Remembers your installation folder for next time.
+
+### 💾 Fix Save
+
+**What it's for:** When the game detects that its files have been modified, it can remove a specific line in a save file that allows achievements to be earned. 
+This can happen mid-playthrough or after a game update, even from a small mod. **Fix Save** lets you restore that line, so you don't lose a long playthrough's achievement progress and can keep playing with your favourite mods.
+
+This is the fix most people need.
+
+**Other fixes available:**
+
+- **Convert to or from Ironman:** switch a save to Ironman, or turn an Ironman save back into a normal one.
+- **Remove the "cheated" flag:** if you used console commands, the game marks the save as cheated. This option removes that mark.
+
+> [!WARNING]
+> The "cheated" flag exists for a reason. Please only use these fixes in the spirit described in [My Stance](#my-stance). Achievements are meant to be earned fairly.
+
+**How to use it:**
+
+1. Click **Fix Save**.
+2. Choose which fixes you want to apply.
+3. Select the save file to work on.
+4. The app saves a backup of your save in its configuration folder, under "save games".
+5. The app applies the fixes you selected.
+
+If something doesn't look right afterwards, restore your save from that backup.
+
+---
+
+## Troubleshooting & FAQ
+
+### ⚠️ My antivirus flagged the app as a virus or "PUP"
+
+Some antivirus programs (including Bitdefender and Windows Defender) may flag this app as a Potentially Unwanted Program or Trojan. **This is a false positive.**
+
+The app is packaged with [Nuitka](https://nuitka.net/), a tool that turns Python programs into single executables. Malware authors also use tools like this, so some antivirus programs flag anything built with them as a precaution, even legitimate software.
+
+What you can do:
+
+- **Review the code.** The full source code is in this repository.
+- **Build it yourself.** See [For developers](#for-developers) below.
+- **Try the PyInstaller version.** It is packaged differently and may trigger fewer warnings. Windows only for now: [Download (PyInstaller, Windows)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/latest/download/Stellaris-Checksum-Patcher-PyInstaller-win.exe)
+- **Read the discussion.** See [Issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/issues/39) for details and sources.
+
+### Windows says "Windows protected your PC"
+
+This is common for apps from independent developers. Windows shows it for programs that aren't signed with a paid certificate, or whose signature it doesn't recognise yet. It does not mean the app is harmful. Getting a certificate would mean paying and registering with Microsoft, which I haven't done.
+
+To continue, click **More info**, then **Run anyway**.
+
+### How do I know my download is genuine?
+
+This tool is only hosted in this GitHub project. If in doubt, compare your file's version and date, and its checksum, with the ones in the release page for the version you downloaded.
+
+### How do I restore the original game file?
+
+Each time you patch, the app saves a backup copy of your original game executable in the game's install folder. You have two ways to go back to the unpatched version.
+
+**Option 1: Restore the backup yourself**
+
+1. Open the app's **Utility Window** (cogwheel at the top right).
+2. Click the button that opens your Stellaris install folder.
+3. Delete the patched executable: `stellaris.exe` on Windows, `stellaris` on Linux.
+4. Rename the backup copy to the original name: `stellaris.exe` on Windows, `stellaris` on Linux.
+
+**Option 2: Let Steam repair it**
+
+This also works if a game update or something else has broken the game.
+
+1. Delete the executable from the install folder, as in step 3 above.
+2. Have Steam verify your game files. The Utility Window has a shortcut button for this. In Steam, you can also right-click Stellaris, choose **Properties**, open **Installed Files**, and click **Verify integrity of game files**.
+3. Steam downloads a fresh, unpatched copy.
+
+### Do I need to patch again after a game update?
+
+Probably, yes. Updates often replace the game's executable, which removes the patch. After Stellaris updates, open the app and patch again to be safe.
+
+### Does it work with non-Steam installs?
+
+Until now, probably not. Version 3.0.0 is on the way with a reworked patching method that should be more reliable and better prepared for future game updates. As a bonus, it may also work with installs outside of Steam. Check the [Releases page](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases) for updates on this.
+
+---
+
+## Disclaimer
+
+- **Do not** upload the modified Stellaris executable to download or distribution sites.
+- Use at your own risk. By using this software, you agree that I, the developer, take no responsibility for your actions, what you choose to do with the modified file, or any damages that may result from using this software.
+- The goal of this tool is simply to offer a faster, more automated way to enable achievements alongside mods, for a better personal experience.
+- My stance on this is explained in the next section.
+
+## My Stance
+
+The main reason for this patch is that we are barred from great quality-of-life and visual mods if we want to hunt for achievements.
+
+I don't want to make achievements easier, cheesier or cheatier to get, as that would devalue the effort behind them. I support there being no console access and no other way around the challenge, and I understand how difficult, or nearly impossible, it is to regulate which mods are valid for Ironman and which are not.
+
+**Therefore, I do not condone or support using this tool to install content that enables cheating or unfairly makes achievements easier to get, and this application was not made with that in mind.**
+
+I can't enforce this, so I ask for good judgement and fairness when playing Ironman with the patch in place. These achievements were made with great care and passion by fellow people, and we should respect the work they put into them.
+
+---
+
+<a id="for-developers"></a>
+
+## ⚙️ For developers
+
+Everything below is for people who want to build the app themselves or run it directly from the source code. If you only want to use the app, you don't need any of it.
+
+**Requirements** (for both options below):
+
+- [Python 3.14](https://www.python.org/downloads/latest/python3.14/) (can be managed by UV)
+- [UV](https://docs.astral.sh/uv/) (strongly recommended)
+
+### Get the source code
+
+<details>
+<summary><b>Option A: git clone</b></summary>
+
+For a more detailed explanation, see GitHub's guide to [cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository?platform=linux&tool=webui).
+
+In a terminal, go to the folder where you want the project, then run:
+
 ```shell
 git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher
 cd Stellaris-Exe-Checksum-Patcher
 ```
 
-#### Without git clone
-* Go to the [Code Section](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher) and download the [source code](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/archive/refs/heads/main.zip) from the target branch.
-* Optionally, choose a specific branch first and then download the source code through the green button at the top (`<> Code`).
+</details>
 
-### Compile
+<details>
+<summary><b>Option B: download a ZIP (no git needed)</b></summary>
 
-* In the project's main directory.
-* Run:
+1. Go to the [repository page](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher) and [download the source code](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/archive/refs/heads/main.zip).
+2. To use a different branch, choose it first, then download via the green **`<> Code`** button at the top.
+3. Unzip the file.
 
-#### Nuitka:
+</details>
 
-Depending on the host machine, it is possible that ISA levels change and break compatibility.
+### Option 1: Run from source (no compiling)
 
-To maximise system compatibility, it is recommended to run throught a bare Docker container running a base Ubuntu which outputs a file as compatible as possible with most systems, asking only for baseline instructions.
+This installs the project's dependencies, creates a virtual environment and launches the app. It's handy for development, but every user must have the requirements installed.
+
+<details>
+<summary><b>Windows</b></summary>
+
+**Without a terminal:**
+
+1. Open the `Stellaris-Exe-Checksum-Patcher/scripts` folder.
+2. Double-click `dev-run.bat`.
+3. A terminal window opens, updates the dependencies and launches the app.
+
+**With a terminal:**
+
+1. Open a terminal and `cd` into `Stellaris-Exe-Checksum-Patcher/scripts`.
+2. Run `.\dev-run.bat` (or `dev-run.bat`, or `&"dev-run.bat"` in PowerShell, whichever works).
+
+</details>
+
+<details>
+<summary><b>Linux</b></summary>
+
+**Without a terminal:**
+
+1. Open the `Stellaris-Exe-Checksum-Patcher/scripts` folder.
+2. Right-click `dev-run.sh` > **Properties** and allow it to be run as a program (the exact wording depends on your file manager).
+3. Double-click it to launch.
+
+**With a terminal:**
+
+1. Open a terminal and `cd` into `Stellaris-Exe-Checksum-Patcher/scripts`.
+2. Run:
+
+```shell
+chmod +x dev-run.sh; ./dev-run.sh
+```
+
+</details>
+
+### Option 2: Build your own executable
+
+This packages the app into a single runnable file. When the build finishes, the file is saved in the project's main folder.
+
+> [!NOTE]
+> When building natively outside of a containerised environment, you must build on the platform you are building for: build the Windows version on Windows, the Linux version on Linux, and so on.
+
+Run these commands from the project's main folder.
+
+**With Nuitka:**
+
+*Linux, using Docker (recommended)*
+
+For the widest compatibility on Linux, build inside a clean Ubuntu Docker container. This produces a file that only needs baseline CPU instructions, so it runs on as many systems as possible. [Docker](https://docs.docker.com/get-docker/) must be installed and running. This works from Linux or macOS hosts and always produces a 64-bit (x86_64) Linux binary, whatever your computer's architecture.
 
 ```shell
 uv run ./builds/build-docker-nuitka-linux.py
 ```
 
-If your host OS is not enforcing a high ISA level, the process can be simplified by running:
+Arguments:
+
+- `--rebuild`: rebuild the Docker image from scratch, ignoring Docker's cache.
+- Any other argument is passed on to `build-nuitka.py` (listed below). For example, `-kb` keeps the build files:
+
+```shell
+uv run ./builds/build-docker-nuitka-linux.py --keep-build
+```
+
+> [!NOTE]
+> On Apple Silicon Macs, the x86_64 build runs under emulation and is slower. Enabling **Use Rosetta for x86_64/amd64 emulation on Apple Silicon** in Docker Desktop (Settings > General) speeds it up. Only one Docker build can run at a time.
+
+*Directly on your machine*
+
+If your machine doesn't use newer-than-baseline CPU instructions, or you're building on Windows for Windows, you can use the simpler build:
 
 ```shell
 uv run ./builds/build-nuitka.py
 ```
 
-Available arguments:
-- `-p`, `--platform` `[linux, windows, auto]`: Target platform for the build (default: auto-detect)
-- `-kb`, `--keep-build`: Keep build files after building.
+Arguments:
 
-#### PyInstaller:
+- `-p`, `--platform` `[linux, windows, auto]`: target platform (default: auto-detect)
+- `-kb`, `--keep-build`: keep build files after building
+
+Output file: `Stellaris-Checksum-Patcher-Nuitka-linux` or `Stellaris-Checksum-Patcher-Nuitka-win.exe`.
+
+**With PyInstaller:**
+
 ```shell
 uv run ./builds/build-pyinstaller.py
 ```
 
-Available arguments:
-- `-p`, `--platform` `[linux, windows, auto]`: Target platform for the build (default: auto-detect)
-- `-kb`, `--keep-build`: Keep build files after building.
-- `--skip-bootloader`: Skip custom PyInstaller bootloader build (use standard PyInstaller bootloader).
-- `--force-bootloader`: Force rebuild of custom bootloader even if one exists.
+Unless you skip it, the script first builds a custom PyInstaller bootloader if it can't find one. This is a one-time step that can take a few minutes and needs `git` and a C compiler (`gcc` on Linux).
 
-# ⚙️ Sync & Run From Source
+Arguments:
 
-The following describes the steps needed to run the source code without the need to compile a binary/executable. This is useful for fast development iteration as it offsets the burden to each user.
+- `-p`, `--platform` `[linux, windows, auto]`: target platform (default: auto-detect)
+- `-kb`, `--keep-build`: keep build files after building
+- `--skip-bootloader`: use the standard PyInstaller bootloader instead of building a custom one
+- `--force-bootloader`: rebuild the custom bootloader even if one already exists
 
-As a side-effect, each user must meet the configuration requirements.
+Output file: `Stellaris-Checksum-Patcher-PyInstaller-linux` or `Stellaris-Checksum-Patcher-PyInstaller-win.exe`.
 
-This will sync the project's requirements, create a virtual environment and run the project via the System/Venv python.
+---
 
-### Requirements: 
-* [Python 3.13](https://www.python.org/downloads/release/python-3139/) (Can be managed by UV)
-* [UV](https://docs.astral.sh/uv/) (Very recommended)
+## Sources
 
-#### git clone
-For a more in-depth explanation, look into _[How To](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository?platform=linux&tool=webui)_
+This was a side project, mainly for learning and honing skills. The method is based on these guides:
 
-* In a terminal, navigate to the desired location in the filesystem.
-* Run:
-```shell
-git clone https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher
-cd Stellaris-Exe-Checksum-Patcher
-```
-
-#### Without git clone
-* Go to the [Code Section](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher) and download the [source code](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/archive/refs/heads/main.zip) from the target branch.
-* Optionally, choose a specific branch first and then download the source code through the green button at the top (`<> Code`).
-
-### Windows
-
-  * Uncompress the zip file.
-
-  * #### Method 1 - Non-terminal
-    * Enter `Stellaris-Exe-Checksum-Patcher/scripts` directory.
-    * Double-click `dev-run.bat` to launch.
-    * It should spawn a terminal window, update the required dependencies and launch.
-
-  * #### Method 2 - Terminal
-    * Open a terminal and `cd` into the `Stellaris-Exe-Checksum-Patcher/scripts` directory.
-    * Run `&"dev-run.bat"`, `dev-run.bat` or `.\dev-run.bat`, whichever works.
-    * It should update the required dependencies and launch.
-
-### Linux
-  * Uncompress the archive.
-
-  * #### Method 1 - Non-terminal
-    * Enter `Stellaris-Exe-Checksum-Patcher/scripts` directory.
-    * Right click `dev-run.sh` > Properties > **Executable as Program** (if it isn't already set).
-    * Double-click to launch.
-
-  * #### Method 2 - Terminal
-    * Open a terminal and `cd` into the `Stellaris-Exe-Checksum-Patcher/scripts` directory.
-    * Run `chmod +x dev-run.sh; ./dev-run.sh`
-
-# Disclaimer
-* Remember to **NOT** upload the modified Stellaris executable to download or distribution sites.
-* Use at your own risk. By using this software, you agree that I, the developer, take no responsibility for your actions, what you choose to do with the modified file and any and all damages that may present themselves by using this software.
-* The goal of this is to simply offer a faster and more automated way to enable mod compatibility with Achievements for a better personal experience.
-* Clarification of my stance on this further down.
-
-<p align="center">
-<img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-07-01.png" width="762">
-</p>
-
-<p align="center">
-<img src="https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/blob/main/media/stellaris-checksum-patcher-07-02.png" width="762">
-</p>
-
-# Patches
-* **Patch Executable**
-  * This method will automatically check for a Steam installation and patch the executable.
-  * If it cannot find the installation, will prompt via dialog for the installation folder.
-  * It will create a versioned backup of the current game binary.
-  * Applies selected (or default) patches. Select patches from the **Configuration Window**
-  * Will remember the installation location for next time.
-
-* **Fix Save**
-  * Select desired fixes/changes to apply to the save file.
-  * Prompt for a save file to work on.
-  * A backup is created in the Application's configuration directory under "save games".
-  * Attempts to apply the selected fixes.
-
-# Notes
-* **This tool is currently only hosted on this GitHub project. In doubt, please compare your file and version/date to the SHA256 and MD5 table.**
-
-* ### "Windows protected your PC" Warning
-  * This is a common issue with unsigned or newly signed certificates. There isn't much I can do about it unless I generate a signature/certificate, pay and upload it to Microsoft. I can assure you this is nothing to be concerned about, it is simply Windows notifying that it might not recognise the signature from the common signatures pool.
-
-
-# My Stance
-The sole reason for this patch comes mostly for the fact that we are barred from amazing Quality of Life and Visual mods if we wish to hunt for those Achievements, which can only be obtained by playing Ironman. 
-
-I don't wish to make it so that it becomes easier, _cheesier_ or _cheatier_ to acquire those Achievements as personally that would also completely devalue the effort made. I do support there being no access to the console or any other way to circumvent certain aspects that deter from the challenge, and I understand how difficult or nearly impossible it is to dynamically regulate which mods would be valid for Ironman and which ones would not.
-
-**Therefore, I do not condone and do not support bypassing this restriction by the developers with the aim of installing content that would enable cheating or unfairly facilitate the acquisition of Achievements, nor was this application made with that belief in mind.**
-
-I understand I cannot regulate this either and therefore ask for sensibility and fairness when playing Ironman with the patch in place. These achievements and everything surrounding them were done with great care and passion by fellow people, and it is our responsibility to be respectful to their creations which they poured their hearts and hours into.
-
-# Sources
-This method was a side project mainly for learning purposes and honing skills.
-
-This method is based off of these following guides:
-
-- [Enabling Achievements in Stellaris With Mods (All game versions) [SRE] by class101](https://steamcommunity.com/sharedfiles/filedetails/?id=2460079052)
-
-- [How to enable Achievements with ANY mod by Chillsmeit](https://steamcommunity.com/sharedfiles/filedetails/?id=2719382752)
+- [Enabling Achievements in Stellaris With Mods (All game versions) [SRE]](https://steamcommunity.com/sharedfiles/filedetails/?id=2460079052) by class101
+- [How to enable Achievements with ANY mod](https://steamcommunity.com/sharedfiles/filedetails/?id=2719382752) by Chillsmeit
