@@ -50,7 +50,7 @@ from .utils import (
     prompt_install_dir,
 )
 from .windows import (
-    ConfigurePatchOptionsDialog,
+    ConfigureApplicationOptionsDialog,
     ConfigureSavePatchDialog,
     DisclaimerFixCheatedSave,
     WelcomeDialog,
@@ -309,7 +309,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.active_threads = []
 
         # --- Track if Configure Patch Dialog Opened ---
-        self.patch_config_dialog: ConfigurePatchOptionsDialog | None = None
+        self.patch_config_dialog: ConfigureApplicationOptionsDialog | None = None
 
         # --- Cache Configuration ---
         self.multi_game_patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
@@ -789,7 +789,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         if not self.patch_config_dialog:
             # Pass a copy of the config
-            self.patch_config_dialog = ConfigurePatchOptionsDialog(
+            self.patch_config_dialog = ConfigureApplicationOptionsDialog(
                 patcher=self.multi_game_patcher,
                 configuration=self.configuration,
                 font=QFont(self.app_font_bold, 12),

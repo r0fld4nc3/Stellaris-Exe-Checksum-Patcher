@@ -34,7 +34,7 @@ from .welcome_dialog import WelcomeDialog
 log = logging.getLogger("Patch Config")
 
 
-class ConfigurePatchOptionsDialog(QDialog):
+class ConfigureApplicationOptionsDialog(QDialog):
     svc = services()
 
     def __init__(
