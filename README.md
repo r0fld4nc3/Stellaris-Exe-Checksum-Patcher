@@ -149,7 +149,9 @@ Probably, yes. Updates often replace the game's executable, which removes the pa
 
 ### Does it work with non-Steam installs?
 
-Until now, probably not. Version 3.0.0 is on the way with a reworked patching method that should be more reliable and better prepared for future game updates. As a bonus, it may also work with installs outside of Steam. Check the [Releases page](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases) for updates on this.
+Version 3.0.0 introduces a completely overhauled patching method that should be more reliable and better prepared for future game updates. 
+
+As a bonus, it may also work with installs outside of Steam. Check the [Releases page](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases) for updates on this.
 
 ---
 
