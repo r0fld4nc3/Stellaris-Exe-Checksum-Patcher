@@ -21,15 +21,15 @@ The source code is open and available in this repository for your review. If you
 
 For more details see [Issue #39](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/issues/39) where you may find this discussion and the source for these claims.
 
-**Update - February 6:** If you would like to use a different binary that is not compiled with Nuitka which has the probability to have a reduced virus warning chance, please use the provided [`PyInstaller`-labelled executable in Releases](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.1/Stellaris-Checksum-Patcher-PyInstaller-win.exe). Currently only available for Windows.
+**Update - February 6:** If you would like to use a different binary that is not compiled with Nuitka which has the probability to have a reduced virus warning chance, please use the provided [`PyInstaller`-labelled executable in Releases](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.2.2/Stellaris-Checksum-Patcher-PyInstaller-win.exe). Currently only available for Windows.
 
 # Usage
 * Download the executable by clicking the above **``Badges``** or in [Releases](https://github.com/r0fld4nc3/stellaris-exe-checksum-patcher/releases).
 
 | Platform                                                                                                                             | Version              |
 |--------------------------------------------------------------------------------------------------------------------------------------|----------------------|
-| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.1/Stellaris-Checksum-Patcher-win.exe)   | v2.1.1               |
-| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.1.1/Stellaris-Checksum-Patcher-linux)       | v2.1.1               |
+| [Windows](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.2.2/Stellaris-Checksum-Patcher-win.exe)   | v2.2.2               |
+| [Linux](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/download/v2.2.2/Stellaris-Checksum-Patcher-linux)       | v2.2.2               |
 | macOS                                                                                                                                | Currently None       |
 
 Please refer to the below **Build & Run From Source** section if you don't wish to run the binary file.
