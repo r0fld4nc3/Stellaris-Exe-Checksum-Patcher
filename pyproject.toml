@@ -28,7 +28,7 @@ dependencies = [
 Repository = "https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher.git"
 
 [dependency-groups]
-dev = ["nuitka~=2.8.9", "pyinstaller~=6.18.0"]
+dev = ["nuitka~=4.3.1","pyinstaller~=6.18.0"]
 
 [tool.uv]
 # Minimum versions for indirect dependencies to stay above known security fixes.

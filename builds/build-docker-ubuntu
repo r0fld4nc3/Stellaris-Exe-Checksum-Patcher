@@ -35,7 +35,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
-RUN uv python install 3.13 && uv sync --locked --all-extras --dev
+RUN uv python install 3.14 && uv sync --locked --all-extras --dev
 
 # Baked-in source (overridden by bind mount at runtime, kept for standalone use)
 COPY . .

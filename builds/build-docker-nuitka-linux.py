@@ -20,6 +20,9 @@ import sys
 from pathlib import Path
 
 IMAGE_NAME = "stellaris-linux-builder"
+# Container name so only one build can exist at a given time.
+# This would break otherwise because builds share the project's main.build folder, so two at once break each other.
+CONTAINER_NAME = "stellaris-linux-build"
 TARGET_PLATFORM = "linux/amd64"  # To force output regardless of host arch
 CACHE_VOLUMES = {
     "stellaris-nuitka-cache": "/root/.cache/Nuitka",
@@ -47,8 +50,38 @@ def check_docker_available() -> None:
         sys.exit(1)
 
 
+def check_no_running_build() -> None:
+    """Exit if a build container is already running, and clear out a stopped leftover."""
+    result = subprocess.run(
+        ["docker", "ps", "-a", "--filter", f"name=^{CONTAINER_NAME}$", "--format", "{{.State}}"],
+        capture_output=True,
+        text=True,
+    )
+    state = result.stdout.strip()
+    if not state:
+        return
+
+    if state in ("running", "restarting", "paused"):
+        print(
+            f"Error: a build is already running in container '{CONTAINER_NAME}'.\n"
+            "Wait for it to finish, or stop it with:\n"
+            f"    docker stop {CONTAINER_NAME}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # Stopped but not removed (ex.: Docker restarted mid-build). Safe to remove.
+    subprocess.run(["docker", "rm", CONTAINER_NAME], capture_output=True)
+
+
+def stop_build_container() -> None:
+    print(f"\nInterrupted. Stopping container '{CONTAINER_NAME}'...", file=sys.stderr)
+    subprocess.run(["docker", "stop", "--time", "5", CONTAINER_NAME], capture_output=True)
+
+
 def main() -> None:
     check_docker_available()
+    check_no_running_build()
 
     script_dir = Path(__file__).parent.resolve()
     project_root = script_dir.parent
@@ -79,10 +112,27 @@ def main() -> None:
     if rebuild:
         build_cmd.append("--no-cache")
     build_cmd.extend(["-t", IMAGE_NAME, "-f", str(dockerfile), str(project_root)])
-    run(build_cmd)
+    try:
+        run(build_cmd)
+    except KeyboardInterrupt:
+        print("\nInterrupted while building the image.", file=sys.stderr)
+        sys.exit(130)
 
     print("\n==> Running build container...")
-    docker_run_cmd = ["docker", "run", "--rm", "-v", f"{project_root}:/app"]
+    # --name: Docker refuses a second container with the same name, so overlapping builds can't start.
+    # --init: runs a small init process as PID 1 so stop signals reach the build.
+    docker_run_cmd = [
+        "docker",
+        "run",
+        "--rm",
+        "--init",
+        "--name",
+        CONTAINER_NAME,
+        "--platform",
+        TARGET_PLATFORM,
+        "-v",
+        f"{project_root}:/app",
+    ]
 
     for volume, mount in CACHE_VOLUMES.items():
         docker_run_cmd.extend(["-v", f"{volume}:{mount}"])
@@ -99,6 +149,10 @@ def main() -> None:
 
     try:
         run(docker_run_cmd)
+    except KeyboardInterrupt:
+        # Ctrl+C only stops the docker client. The container keeps running unless stopped.
+        stop_build_container()
+        sys.exit(130)
     except subprocess.CalledProcessError as e:
         print(f"\nBuild failed with error code {e.returncode}", file=sys.stderr)
         sys.exit(1)
