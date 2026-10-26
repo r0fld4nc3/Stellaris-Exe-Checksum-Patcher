@@ -4,9 +4,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from app_services import services
 from config import definitions
-from config.path_helpers import os_darwin, os_linux, os_windows, system
+from config.path_helpers import os_windows, system
 
 log = logging.getLogger("Patcher Models")
 
@@ -25,7 +24,17 @@ class Platform(str, Enum):
 
     @classmethod
     def detect_current(cls) -> "Platform":
-        return system().lower()
+        return cls.parse(system()) or cls.WINDOWS
+
+    @classmethod
+    def parse(cls, value) -> Optional["Platform"]:
+        """Platform from an enum or a string such as "windows" or "Linux". None if empty or unknown."""
+        if isinstance(value, cls):
+            return value
+        try:
+            return cls(str(value).lower()) if value else None
+        except ValueError:
+            return None
 
 
 @dataclass
@@ -54,28 +63,27 @@ class PatchConfiguration:
     """Holds the complete user-selected patch configuration"""
 
     game: str
-    version: str
-    is_proton: bool
-    platform: str = field(default_factory=str)
+    version: str = KEY_VERSION_LATEST
+    # Platform of the binary to patch. A Windows binary on Linux/macOS runs through Proton.
+    platform: Platform = field(default_factory=Platform.detect_current)
     selected_patches: List[str] = field(default_factory=list)
 
+    @property
+    def is_proton(self) -> bool:
+        """Patching the Windows binary on Linux/macOS (run through Proton)."""
+        return not os_windows() and self.platform == Platform.WINDOWS
+
     @classmethod
-    def create_default(cls, patcher, game: str = None) -> "PatchConfiguration":
+    def create_default(cls, patcher, game: str = None) -> Optional["PatchConfiguration"]:
+        """Latest version of `game` (or the first available game) for the native binary. None if no games."""
         games = patcher.get_available_games()
         selected_game = game or (games[0] if games else None)
 
         if not selected_game:
-            raise ValueError("No games available")
+            log.error("No games available")
+            return None
 
-        return cls(
-            game=selected_game,
-            version=KEY_VERSION_LATEST,
-            platform=(os_windows() or (os_linux() and services().config.use_proton)),
-            selected_patches=[],
-        )
-
-    def with_game(self, game: str) -> "PatchConfiguration":
-        return PatchConfiguration(game=game, version=KEY_VERSION_LATEST, is_proton=self.is_proton, selected_patches=[])
+        return cls(game=selected_game)
 
 
 @dataclass

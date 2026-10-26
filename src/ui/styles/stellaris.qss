@@ -148,8 +148,3 @@ QWidget[enabled="false"] {
 QTabBar::tab {
     color: rgb(255, 255, 255);
 }
-
-/* UtilitiesGameCombobox */
-QComboBox#UtilitiesGameCombobox {
-    color: rgb(255, 255, 255);
-}

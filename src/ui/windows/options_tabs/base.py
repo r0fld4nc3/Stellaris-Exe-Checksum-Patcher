@@ -1,3 +1,5 @@
+from typing import Optional
+
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget
@@ -15,8 +17,6 @@ class OptionsContext(QObject):
     They read/write the shared configuration here and use signals to react to each other.
     """
 
-    # The selected game/version/platform changed
-    configuration_changed = Signal()
     # User picked a different game (from any tab). Carries the game name object.
     game_changed = Signal(str)
     # Ask dialog to reload every tab
@@ -68,11 +68,13 @@ class OptionsTab(QWidget):
     def config(self, value: PatchConfiguration):
         self.ctx.configuration = value
 
+    @property
+    def selected_game(self) -> Optional[str]:
+        """Game picked in any GameComboBox. Game-specific actions act on this."""
+        return self.config.game if self.config else None
+
     def load(self):
         """Fill the UI from the configuration/settings. Called when added and every time the dialog is refreshed."""
-
-    def apply(self, configuration: PatchConfiguration):
-        """Write UI selections into the configuration. Called when the dialog result is collected."""
 
     def cleanup(self):
         """Release resources (threads, etc.) when the dialog closes."""

@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
 
 from app_services import services
 from config.definitions import APP_VERSION_STR, SUPPORTED_GAMES, TRACKING_BRANCH
-from config.path_helpers import os_darwin, os_linux, os_windows, system
+from config.path_helpers import os_linux, os_windows
 
 # Patch Patterns
 from patch_patterns.patterns import (
@@ -317,8 +317,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.configuration = patcher_models.PatchConfiguration(
             game="",
-            version=patcher_models.KEY_VERSION_LATEST,
-            is_proton=(os_windows() or (self.app_config.use_proton)),
+            platform=(
+                patcher_models.Platform.WINDOWS
+                if self.app_config.use_proton
+                else patcher_models.Platform.detect_current()
+            ),
         )
         self.save_configuration: patcher_models.GameSavePatchConfig = None
         self.last_conf_game = ""
@@ -348,14 +351,13 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             self.configuration.game = self.settings.settings.selected_game or SUPPORTED_GAMES[0]
 
         game_settings = self.settings.game(self.configuration.game)
-        _last_platform = game_settings.patched_platform
-        if _last_platform:
-            if os_linux() or os_darwin():
-                self.configuration.is_proton = _last_platform.lower() == patcher_models.Platform.WINDOWS
+        # Restore the platform last patched with (Native or Proton), if one was saved
+        saved_platform = patcher_models.Platform.parse(game_settings.patched_platform)
+        if saved_platform:
+            self.configuration.platform = saved_platform
         self.configuration.version = game_settings.patched_version
         # Copy so edits to the configuration don't write into the saved settings
         self.configuration.selected_patches = list(game_settings.patches)
-        self.configuration.platform = game_settings.patched_platform
 
     def load_app_styles(self):
         """Loads Styles, Icons and Fonts"""
@@ -524,11 +526,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Determine platform ---
         # The Native/Proton choice, kept in settings to restore the UI next time
-        configured_platform = (
-            patcher_models.Platform.detect_current()
-            if not self.configuration.is_proton
-            else patcher_models.Platform.WINDOWS
-        )
+        configured_platform = self.configuration.platform
 
         # Patch for whatever the selected binary actually is (ex.: Linux binary patched from macOS)
         platform = patcher.detect_platform(game_binary_path) or configured_platform
@@ -659,9 +657,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         game_binary_path_posix = game_binary_path.resolve().as_posix()
 
         if game_binary_path:
-            if (os_linux() or self.app_config.use_proton) and self.configuration.is_proton:
-                self.settings.game(self.configuration.game).proton_install_path = game_binary_path_posix
-            elif os_darwin() and self.configuration.is_proton:
+            if self.configuration.is_proton:
                 self.settings.game(self.configuration.game).proton_install_path = game_binary_path_posix
             else:
                 self.settings.game(self.configuration.game).install_path = game_binary_path_posix
@@ -806,20 +802,16 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
             self.settings.settings.selected_game = self.configuration.game
             self.settings.game(self.configuration.game).patched_platform = self.configuration.platform
+            # Proton choice is shared with the rest of the app, once user accept.
+            self.app_config.use_proton = self.configuration.is_proton
+
             if not self.configuration.selected_patches:
                 self.configuration.selected_patches = list(self.settings.game(self.configuration.game).patches)
             # Patches are only saved to settings after a successful patch (see patch worker)
             self.settings.game(self.configuration.game).patched_version = self.configuration.version
 
-            # --- Determine platform ---
-            platform = (
-                patcher_models.Platform.detect_current()
-                if not self.configuration.is_proton
-                else patcher_models.Platform.WINDOWS
-            )
-
             available_patches = self.multi_game_patcher.get_available_patches_for_game(
-                self.configuration.game, self.configuration.version, platform=platform
+                self.configuration.game, self.configuration.version, platform=self.configuration.platform
             )
             selected_patches_str = ", ".join(
                 [v.display_name for k, v in available_patches.items() if k in self.configuration.selected_patches]
@@ -831,7 +823,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 original_config.game != self.configuration.game
                 or original_config.version != self.configuration.version
                 or original_config.selected_patches != self.configuration.selected_patches
-                or original_config.is_proton != self.configuration.is_proton
+                or original_config.platform != self.configuration.platform
             ):
                 self.swap_btn_patch_to_patch_binary()
         else:
@@ -975,16 +967,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Fallback if still empty
         precached_game = self.configuration.game or self.settings.settings.selected_game or SUPPORTED_GAMES[0]
 
-        # Determine platform
-        platform = None
-        if self.configuration.platform:
-            try:
-                platform = patcher_models.Platform(self.configuration.platform.lower())
-            except ValueError:
-                log.warning(f"Invalid saved platform '{self.configuration.platform}', auto-detecting", silent=True)
-        if platform is None:
-            platform = patcher_models.Platform.WINDOWS if self.configuration.is_proton else system()
-            self.configuration.platform = str(platform)
+        platform = self.configuration.platform
 
         # Get available version and find first one with patches available
         all_versions = self.multi_game_patcher.get_available_versions(precached_game)
@@ -1035,12 +1018,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         """
         game = self.configuration.game
 
+        configured_platform = self.configuration.platform
         if self.configuration.is_proton:
             binary_path = self.settings.game(game).proton_install_path
-            configured_platform = patcher_models.Platform.WINDOWS
         else:
             binary_path = self.settings.game(game).install_path
-            configured_platform = patcher_models.Platform.detect_current()
 
         if not binary_path or not Path(binary_path).exists():
             log.info(f"No saved {game} executable to check yet: '{binary_path}'", silent=True)
