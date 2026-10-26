@@ -214,7 +214,7 @@ class PatchConfigTab(OptionsTab):
         # Clear key cache for new game
         self._display_key_to_pattern_key.clear()
 
-        last_platform_str = self.svc.settings.game(game_name).last_patched_platform
+        last_platform_str = self.svc.settings.game(game_name).patched_platform
 
         # Convert to Enum
         if last_platform_str:

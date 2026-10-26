@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
 )
 
 from app_services import services
-from config.definitions import APP_VERSION, SUPPORTED_GAMES, TRACKING_BRANCH
+from config.definitions import APP_VERSION_STR, SUPPORTED_GAMES, TRACKING_BRANCH
 from config.path_helpers import os_darwin, os_linux, os_windows, system
 
 # Patch Patterns
@@ -70,10 +70,7 @@ log = logging.getLogger("UI")
 
 
 class StellarisChecksumPatcherGUI(QMainWindow):
-    _APP_VERSION = "v" + ".".join([str(v) for v in APP_VERSION[0:3]])
-    if len(APP_VERSION) > 3:
-        _APP_VERSION += "-"
-        _APP_VERSION += "-".join(str(v) for v in APP_VERSION[3:])
+    _APP_VERSION = APP_VERSION_STR
 
     svc = services()
     app_config = svc.config
@@ -138,7 +135,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.setWindowOpacity(0.95)
         self.is_patching = False
-        self._prev_app_version = ""
 
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
         self.resize_move_filter = EventFilterMoveResize(self)
@@ -347,23 +343,19 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.check_update()
 
     def load_settings(self):
-        self._prev_app_version = self.settings.settings.app_version
-        self.settings.settings.app_version = self._APP_VERSION
-        self.updater.set_local_version(str(self._APP_VERSION))
-
         if not self.configuration.game:
             # Fall back to the default game so an entry is never created with an empty name
-            self.configuration.game = self.settings.settings.last_selected_game or SUPPORTED_GAMES[0]
+            self.configuration.game = self.settings.settings.selected_game or SUPPORTED_GAMES[0]
 
         game_settings = self.settings.game(self.configuration.game)
-        _last_platform = game_settings.last_patched_platform
+        _last_platform = game_settings.patched_platform
         if _last_platform:
             if os_linux() or os_darwin():
                 self.configuration.is_proton = _last_platform.lower() == patcher_models.Platform.WINDOWS
-        self.configuration.version = game_settings.last_patched_version
+        self.configuration.version = game_settings.patched_version
         # Copy so edits to the configuration don't write into the saved settings
         self.configuration.selected_patches = list(game_settings.patches)
-        self.configuration.platform = game_settings.last_patched_platform
+        self.configuration.platform = game_settings.patched_platform
 
     def load_app_styles(self):
         """Loads Styles, Icons and Fonts"""
@@ -569,8 +561,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             )
             return False
 
-        self.settings.game(self.configuration.game).last_patched_platform = configured_platform
-        self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
+        self.settings.game(self.configuration.game).patched_platform = configured_platform
+        self.settings.game(self.configuration.game).patched_version = self.configuration.version
 
         log.info(f"Patches to apply: {patches_to_apply}", silent=True)
 
@@ -812,12 +804,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # Also update app style
             self.apply_app_style()
 
-            self.settings.settings.last_selected_game = self.configuration.game
-            self.settings.game(self.configuration.game).last_patched_platform = self.configuration.platform
+            self.settings.settings.selected_game = self.configuration.game
+            self.settings.game(self.configuration.game).patched_platform = self.configuration.platform
             if not self.configuration.selected_patches:
                 self.configuration.selected_patches = list(self.settings.game(self.configuration.game).patches)
             # Patches are only saved to settings after a successful patch (see patch worker)
-            self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
+            self.settings.game(self.configuration.game).patched_version = self.configuration.version
 
             # --- Determine platform ---
             platform = (
@@ -878,18 +870,13 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         log.debug("Trigger update check.")
         log.debug(
-            f"{self._APP_VERSION} == {self._prev_app_version} = {self._APP_VERSION == self._prev_app_version}",
-            silent=True,
-        )
-        log.debug(
             f"{now} - {last_checked} < {self.app_config.update_check_cooldown} = {now - last_checked < self.app_config.update_check_cooldown}",
             silent=True,
         )
 
-        if self._APP_VERSION == self._prev_app_version:
-            if now - last_checked < self.app_config.update_check_cooldown:
-                self.check_update_finished()
-                return
+        if now - last_checked < self.app_config.update_check_cooldown:
+            self.check_update_finished()
+            return
 
         thread_update = Threader(target=self.updater.check_for_update)
         # thread_id = thread_update.currentThread()
@@ -986,7 +973,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.multi_game_patcher.reload_patterns()
 
         # Fallback if still empty
-        precached_game = self.configuration.game or self.settings.settings.last_selected_game or SUPPORTED_GAMES[0]
+        precached_game = self.configuration.game or self.settings.settings.selected_game or SUPPORTED_GAMES[0]
 
         # Determine platform
         platform = None
@@ -1185,7 +1172,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # Save after the threads have stopped.
         # memory() settings, ensure save_if_dirty call to write them to disk.
-        self.settings.settings.app_version = self._APP_VERSION
         self.settings.settings.window_width = self.width()
         self.settings.settings.window_height = self.height()
         self.settings.save_if_dirty()

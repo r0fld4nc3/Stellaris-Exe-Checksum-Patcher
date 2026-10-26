@@ -271,6 +271,7 @@ def _dataclass_from_dict(cls, data: dict):
     """
     Create `cls` from `data`, checking each field's type against its default value.
     Missing or wrongly typed values keep the default. Unknown keys are kept in `_unknown`.
+    Locked fields always keep their default value(s) and are ignored but still written.
     """
     obj = cls()
     known = set()
@@ -282,6 +283,9 @@ def _dataclass_from_dict(cls, data: dict):
 
         if f.name == "games" or f.name not in data:
             continue  # games are handled by the caller
+
+        if cls._is_locked_field(f.name):
+            continue
 
         value = data[f.name]
         default = f.default if f.default is not MISSING else f.default_factory()

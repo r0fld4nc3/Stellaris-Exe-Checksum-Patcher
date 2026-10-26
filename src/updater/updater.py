@@ -8,6 +8,7 @@ import certifi
 import requests
 
 from app_services import services
+from config.definitions import APP_VERSION_STR
 
 log = logging.getLogger("Updater")
 
@@ -32,7 +33,8 @@ class Updater:
 
         self.download_location = ""  # Local disk location to save the downloaded file.
 
-        self.local_version = [0, 0, 1]  # Default version, should be dynamically substituted.
+        # Always the built-in version.
+        self.local_version = self.construct_version_list_from_str(APP_VERSION_STR)
 
         self.has_new_version = False
 
@@ -189,10 +191,6 @@ class Updater:
         log.info(f"API: {_api}", silent=True)
 
         return _user, _repo, _api
-
-    def set_local_version(self, version: str):
-        self.local_version = self.construct_version_list_from_str(version)
-        log.info(f"Set local version {version}", silent=True)
 
 
 def init(user: str = "", repo_name: str = "") -> Updater:

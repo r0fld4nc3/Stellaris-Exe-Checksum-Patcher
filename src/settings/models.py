@@ -5,8 +5,12 @@ Every public field is one setting. How it is stored depends on how it is declare
 
     accepted_welcome_dialog: bool = False      # plain field -> written to disk immediately
     window_width: int = memory(800)            # memory()    -> kept in memory, written on close
+    app_version: str = memory("v3", locked=True)  # locked   -> always the default, write-only
 
 Memory settings are also written whenever an immediate setting is saved, and when the options dialog closes.
+
+Locked settings always hold their default value(s). The value in the file is ignored when loading,
+and assigning one raises an error. They are still written on every save (ex.: which app version wrote the file).
 
 Good rule of thumb: change a list by assigning a new one:
     `game.patches = applied`
@@ -20,15 +24,22 @@ Only assignments are noticed and saved.
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
+from config.definitions import APP_VERSION_STR
+
 if TYPE_CHECKING:
     from .settings import SettingsManager
 
 _MEMORY = "MEMORY"
+_LOCKED = "LOCKED"
 
 
-def memory(default):
-    """Setting that is kept in memory and only written to disk later."""
-    return field(default=default, metadata={_MEMORY: True})
+def memory(default, locked: bool = False):
+    """
+    Setting that is kept in memory and only written to disk later.
+
+    locked=True: the value can never change. It is always `default`, never loaded from the file.
+    """
+    return field(default=default, metadata={_MEMORY: True, _LOCKED: locked})
 
 
 @dataclass
@@ -48,14 +59,26 @@ class AutoSaveHookedSettingsClass:
             object.__setattr__(self, name, value)
             return
 
+        if self._is_locked_field(name):
+            raise AttributeError(f"Setting '{name}' is locked and can't be changed.")
+
         with manager.lock:
             object.__setattr__(self, name, value)
             manager._on_change(save_now=not self._is_memory_field(name))
 
     @classmethod
     def _is_memory_field(cls, name: str) -> bool:
+        return cls._field_flag(name, _MEMORY)
+
+    @classmethod
+    def _is_locked_field(cls, name: str) -> bool:
+        return cls._field_flag(name, _LOCKED)
+
+    @classmethod
+    def _field_flag(cls, name: str, flag: str) -> bool:
+        """True if field `name` was declared with `flag` set in its metadata (see memory())."""
         f = cls.__dataclass_fields__.get(name)
-        return f is not None and f.metadata.get(_MEMORY, False)
+        return f is not None and f.metadata.get(flag, False)
 
 
 @dataclass
@@ -66,23 +89,27 @@ class GameSettings(AutoSaveHookedSettingsClass):
     proton_install_path: str = ""
     save_games_folder: str = ""
     patches: list[str] = field(default_factory=list)
-    last_patched_version: str = ""
-    last_patched_platform: str = ""
+    patched_version: str = ""
+    patched_platform: str = ""
 
 
 @dataclass
 class AppSettings(AutoSaveHookedSettingsClass):
     """Main application settings."""
 
+    # --- Locked ---
+    # Want it to show first on the list of settings.
+    # Records which app version last wrote the file. Never read back.
+    app_version: str = memory(APP_VERSION_STR, locked=True)
+
     # --- Saved immediately ---
     accepted_welcome_dialog: bool = False
     force_local_patterns: bool = False
-    last_selected_game: str = ""
+    selected_game: str = ""
     steam_install_path: str = ""
     games: dict[str, GameSettings] = field(default_factory=dict)
 
     # --- Kept in memory ---
-    app_version: str = memory("")
     window_width: int = memory(800)
     window_height: int = memory(600)
     update_last_checked: int = memory(0)

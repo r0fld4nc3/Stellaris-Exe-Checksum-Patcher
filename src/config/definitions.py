@@ -3,6 +3,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 APP_VERSION = [3, 0, 0]
+
+# Display form of APP_VERSION, ex.:
+# [3, 0, 0] -> "v3.0.0"
+# [3, 0, 0, "beta", 1] -> "v3.0.0-beta-1"
+APP_VERSION_STR: str = "v" + ".".join(str(v) for v in APP_VERSION[0:3])
+if len(APP_VERSION) > 3:
+    APP_VERSION_STR += "-" + "-".join(str(v) for v in APP_VERSION[3:])
+
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
