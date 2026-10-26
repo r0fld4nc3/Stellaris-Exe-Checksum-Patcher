@@ -7,8 +7,8 @@ HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
 
-REPO_BRANCH: str = "dev"
-TRACKING_BRANCH: str = "dev"
+REPO_BRANCH: str = "v3"  # Used for APIs and remote requests
+TRACKING_BRANCH: str = "v3-dev"  # Used for local tracking and visual indicators. No remote impact.
 
 SUPPORTED_GAMES = ("Stellaris",)
 
