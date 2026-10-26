@@ -1138,6 +1138,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             welcome_dialog = WelcomeDialog(QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self)
             welcome_dialog.show()
 
+    def show_settings_if_load_problem(self):
+        """Notify once if settings file couldn't be loaded at startup."""
+        if self.settings.load_problem:
+            QMessageBox.warning(self, "Settings", self.settings.load_problem)
+
     def show_fix_cheated_save_dialog(self) -> bool:
         # --- Show welcome dialog ---
         fix_cheated_save_disclaimer_dialog = DisclaimerFixCheatedSave(
@@ -1151,6 +1156,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.adapt_to_screen_size()
         self.terminal_display.clear()
 
+        self.show_settings_if_load_problem()
         self.show_welcome_dialog()
 
         sys.exit(self.app.exec())
