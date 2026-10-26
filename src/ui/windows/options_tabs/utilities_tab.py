@@ -22,6 +22,7 @@ from utils.platform import open_in_file_manager
 from ...utils import find_game_path, prompt_install_dir, restore_window_focus
 from ..welcome_dialog import WelcomeDialog
 from .base import OptionsContext, OptionsTab
+from .shared_widgets.game_combobox import GameComboBox
 
 log = logging.getLogger("Patch Config")
 
@@ -51,11 +52,18 @@ class UtilitiesTab(OptionsTab):
         desc_label.setWordWrap(True)
         utilities_tab_layout.addWidget(desc_label)
 
-        # --- Selected Game Label ---
-        self.utilities_selected_game_label = QLabel()
-        self.utilities_selected_game_label.setObjectName("UtilitiesGameLabel")
-        self.utilities_selected_game_label.setFont(font)
-        utilities_tab_layout.addWidget(self.utilities_selected_game_label)
+        # --- Selected Game Dropdown ---
+        # Game-specific buttons below act on whichever game is selected here.
+        selected_game_layout = QHBoxLayout()
+        selected_game_label = QLabel("Game:")
+        selected_game_label.setObjectName("UtilitiesGameLabel")
+        selected_game_label.setFont(font)
+        self.utilities_selected_game_combobox = GameComboBox(self.ctx)
+        self.utilities_selected_game_combobox.setObjectName("UtilitiesGameCombobox")
+        self.utilities_selected_game_combobox.setToolTip("Game that the utilities below act on.")
+        selected_game_layout.addWidget(selected_game_label)
+        selected_game_layout.addWidget(self.utilities_selected_game_combobox, 1)
+        utilities_tab_layout.addLayout(selected_game_layout)
 
         # --- Scroll Area ---
         utilities_scroll_area = QScrollArea()
@@ -155,14 +163,11 @@ class UtilitiesTab(OptionsTab):
         utilities_scroll_area.setWidget(utilities_content_widget)
         utilities_tab_layout.addWidget(utilities_scroll_area)
 
-        # --- React to selection changes made in other tabs ---
-        self.ctx.configuration_changed.connect(self._update_selected_game_label)
-
     # --- OptionsTab hooks ---
 
     def load(self):
         log.info("Load Settings")
-        self._update_selected_game_label()
+        self.utilities_selected_game_combobox.populate()
 
         # Backups slider (no signal: value comes from settings, nothing to save)
         max_backups = self.svc.settings.settings.max_allowed_binary_backups
@@ -194,9 +199,10 @@ class UtilitiesTab(OptionsTab):
 
     # --- Helpers ---
 
-    def _update_selected_game_label(self):
-        game = self.config.game if self.config else None
-        self.utilities_selected_game_label.setText(f"SELECTED GAME: {game}")
+    @property
+    def selected_game(self) -> Optional[str]:
+        """Game picked in the dropdown, which game-specific utilities act on."""
+        return self.config.game if self.config else None
 
     def _update_max_backups_label(self, value: int):
         self.max_backup_value_label.setText("Off" if value <= 0 else str(value))
@@ -204,7 +210,12 @@ class UtilitiesTab(OptionsTab):
     # --- Slots ---
 
     def _validate_steam_game_files(self):
-        install_path = self.svc.settings.game(self.config.game).install_path
+        game = self.selected_game
+        if not game:
+            log.warning("No game selected. Unable to validate game files.")
+            return
+
+        install_path = self.svc.settings.game(game).install_path
         app_id = self.svc.steam_helper.get_app_id_from_install_path(install_path)
 
         # Remove the binary file before verifying
@@ -226,7 +237,11 @@ class UtilitiesTab(OptionsTab):
             log.error(f"Error restoring window focus: {e}")
 
     def show_game_folder(self, auto_located_path: Optional[Path] = None, _retry_attempted: bool = False):
-        game = self.config.game
+        game = self.selected_game
+        if not game:
+            log.warning("No game selected. Unable to locate game folder.")
+            return None
+
         paths = [
             self.svc.settings.game(game).install_path,
             self.svc.settings.game(game).proton_install_path,
@@ -309,7 +324,7 @@ class UtilitiesTab(OptionsTab):
                     return None
 
     def show_save_games_folder(self):
-        game = self.config.game
+        game = self.selected_game
 
         if not game:
             log.warning("No game selected. Unable to locate save games folder.")

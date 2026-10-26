@@ -476,3 +476,28 @@ class MultiGamePatcher:
         if patcher:
             return patcher.get_available_patches(platform)
         return {}
+
+    def get_versions_with_patches(self, game_name: str, platform: Optional[Platform] = None) -> List[str]:
+        """Versions of `game_name` that have at least one patch for `platform`, in patterns-file order."""
+        return [
+            version
+            for version in self.get_available_versions(game_name)
+            if self.get_available_patches_for_game(game_name, version, platform)
+        ]
+
+    def pick_version(
+        self, game_name: str, platform: Optional[Platform] = None, preferred: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        Choose which version of `game_name` to select.
+
+        Order: `preferred` (ex.: the saved version), then 'latest', then the first version with patches.
+        Only versions with patches for `platform` are considered. Returns None if there are none.
+        """
+        candidates = self.get_versions_with_patches(game_name, platform)
+
+        for version in (preferred, KEY_VERSION_LATEST):
+            if version and version in candidates:
+                return version
+
+        return candidates[0] if candidates else None

@@ -149,7 +149,7 @@ QTabBar::tab {
     color: rgb(255, 255, 255);
 }
 
-/* UtilitiesGameLabel */
-QLabel#UtilitiesGameLabel {
+/* UtilitiesGameCombobox */
+QComboBox#UtilitiesGameCombobox {
     color: rgb(255, 255, 255);
 }

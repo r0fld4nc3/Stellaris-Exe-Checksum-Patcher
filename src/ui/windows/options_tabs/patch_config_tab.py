@@ -17,6 +17,7 @@ from patchers import PatchConfiguration
 from patchers import models as patcher_models
 
 from .base import OptionsContext, OptionsTab
+from .shared_widgets.game_combobox import GameComboBox
 
 log = logging.getLogger("Patch Config")
 
@@ -50,8 +51,7 @@ class PatchConfigTab(OptionsTab):
         # --- Game & Version Selection ---
         selection_layout = QHBoxLayout()
 
-        self.game_combobox = QComboBox()
-        self.game_combobox.setFont(font)
+        self.game_combobox = GameComboBox(self.ctx)
 
         self.version_combobox = QComboBox()
         self.version_combobox.setFont(font)
@@ -86,7 +86,8 @@ class PatchConfigTab(OptionsTab):
         patch_layout.addWidget(self.patches_scroll_area)
 
         # --- Signals ---
-        self.game_combobox.currentTextChanged.connect(self._on_game_changed)
+        # Game can be picked here or in another tab. Rebuild versions/patches regardless
+        self.ctx.game_changed.connect(self._on_game_changed)
         self.version_combobox.currentTextChanged.connect(self._on_version_changed)
 
     # --- OptionsTab hooks ---
@@ -108,13 +109,7 @@ class PatchConfigTab(OptionsTab):
                 log.error(f"Failed to create valid configuration")
                 return
 
-        log.info(f"Retrieving available games to add to game combobox.", silent=True)
-        available_games = self.ctx.patcher.get_available_games()
-        self.game_combobox.blockSignals(True)
-        self.game_combobox.clear()
-        self.game_combobox.addItems(available_games)
-        self.game_combobox.setCurrentText(self.config.game)
-        self.game_combobox.blockSignals(False)
+        self.game_combobox.populate()
 
         # Update platform UI
         if os_linux() or os_darwin():
@@ -210,6 +205,8 @@ class PatchConfigTab(OptionsTab):
 
     # --- Slots ---
     def _on_game_changed(self, game_name: str):
+        """Per-tab decision on what to do when the selected game changes."""
+
         versions = self.ctx.patcher.get_available_versions(game_name)
         self.version_combobox.blockSignals(True)
         self.version_combobox.clear()
@@ -241,34 +238,18 @@ class PatchConfigTab(OptionsTab):
             else:
                 self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.NATIVE)
 
-        # Add available versions provided they have patches
-        available_versions_with_patches = []
         for version_key in versions:
             # Build a cache of display versions and the real key they represent
             # Visual nicety and cached retrieval is fast and won't break with formatting
             display_version: str = version_key.capitalize() if not " " in version_key else version_key.title()
             self._display_key_to_pattern_key[display_version] = version_key
-
-            patches = self.ctx.patcher.get_available_patches_for_game(game_name, version_key, self._current_platform)
-            log.debug(
-                f"ON GAME CHANGED: Patches for version {version_key} on platform {self._current_platform}: {patches=}"
-            )
             self.version_combobox.addItem(display_version)
-            if patches:
-                available_versions_with_patches.append(version_key)
 
-        # Determine version to select
-        target_version_key = None
-
-        # If it's the same as current config, try to use that version
-        if game_name == self.config.game and self.config.version in available_versions_with_patches:
-            target_version_key = self.config.version
-        # Otherwise, prefer 'latest' if available
-        elif patcher_models.KEY_VERSION_LATEST in available_versions_with_patches:
-            target_version_key = patcher_models.KEY_VERSION_LATEST
-        # Fall back to first available version
-        elif available_versions_with_patches:
-            target_version_key = available_versions_with_patches[0]
+        # Keep the configured version if it still applies, otherwise let the patcher choose.
+        # (Changing game resets the configured version, see OptionsContext.select_game.)
+        target_version_key = self.ctx.patcher.pick_version(
+            game_name, platform=self._current_platform, preferred=self.config.version
+        )
 
         if target_version_key:
             display_name = next(

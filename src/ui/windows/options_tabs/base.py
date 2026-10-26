@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QWidget
 
 from app_services import services
 from patchers import MultiGamePatcher, PatchConfiguration
+from patchers.models import KEY_VERSION_LATEST
 
 
 class OptionsContext(QObject):
@@ -16,6 +17,8 @@ class OptionsContext(QObject):
 
     # The selected game/version/platform changed
     configuration_changed = Signal()
+    # User picked a different game (from any tab). Carries the game name object.
+    game_changed = Signal(str)
     # Ask dialog to reload every tab
     reload_requested = Signal()
 
@@ -24,6 +27,21 @@ class OptionsContext(QObject):
         self.patcher = patcher
         self.configuration = configuration
         self.font = font
+
+    def select_game(self, game: str):
+        """
+        Propagate `game` as the selected game for every tab.
+
+        Version and patch selections belong to the previous game, so they are reset.
+        Tabs that depend on them (Patch Configuration, etc.) rebuild them on `game_changed`.
+        """
+        if not game or not self.configuration or game == self.configuration.game:
+            return
+
+        self.configuration.game = game
+        self.configuration.version = KEY_VERSION_LATEST
+        self.configuration.selected_patches = []
+        self.game_changed.emit(game)
 
 
 class OptionsTab(QWidget):
