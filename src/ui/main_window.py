@@ -569,9 +569,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             )
             return False
 
-        with self.settings.batch_update():
-            self.settings.game(self.configuration.game).last_patched_platform = configured_platform
-            self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
+        self.settings.game(self.configuration.game).last_patched_platform = configured_platform
+        self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
 
         log.info(f"Patches to apply: {patches_to_apply}", silent=True)
 
@@ -813,13 +812,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # Also update app style
             self.apply_app_style()
 
-            with self.settings.batch_update():
-                self.settings.settings.last_selected_game = self.configuration.game
-                self.settings.game(self.configuration.game).last_patched_platform = self.configuration.platform
-                if not self.configuration.selected_patches:
-                    self.configuration.selected_patches = list(self.settings.game(self.configuration.game).patches)
-                # Patches are only saved to settings after a successful patch (see patch worker)
-                self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
+            self.settings.settings.last_selected_game = self.configuration.game
+            self.settings.game(self.configuration.game).last_patched_platform = self.configuration.platform
+            if not self.configuration.selected_patches:
+                self.configuration.selected_patches = list(self.settings.game(self.configuration.game).patches)
+            # Patches are only saved to settings after a successful patch (see patch worker)
+            self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
 
             # --- Determine platform ---
             platform = (
@@ -1163,20 +1161,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
     def closeEvent(self, event):
         log.info("Application is closing. Shutting down procedure")
-
-        self.settings.save_settings()
-
         log.info("Shutdown")
         event.accept()
         self.app_quit()
 
     def app_quit(self):
         log.info("Quitting Application. Performing graceful shutdown procedure.")
-
-        with self.settings.batch_update():
-            self.settings.settings.app_version = self._APP_VERSION
-            self.settings.settings.window_width = self.width()
-            self.settings.settings.window_height = self.height()
 
         try:
             if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
@@ -1192,6 +1182,13 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                         log.error(f"Error in stopping Thread. {e}")
         except Exception as e:
             log.error(e)
+
+        # Save after the threads have stopped.
+        # memory() settings, ensure save_if_dirty call to write them to disk.
+        self.settings.settings.app_version = self._APP_VERSION
+        self.settings.settings.window_width = self.width()
+        self.settings.settings.window_height = self.height()
+        self.settings.save_if_dirty()
 
         log.info("Application shutdown.")
 

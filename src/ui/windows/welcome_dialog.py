@@ -216,8 +216,7 @@ class WelcomeDialog(QDialog):
         content_layout.addLayout(button_layout)
 
     def _on_confirm(self):
-        with self.settings.batch_update():
-            self.settings.settings.accepted_welcome_dialog = True
+        self.settings.settings.accepted_welcome_dialog = True
         self.accept()
 
     def adapt_to_screen_size(self, parent=None, width_pct: int = 50, height_pct: int = 80):

@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from app_services import services
 from patchers import MultiGamePatcher, PatchConfiguration
 
 from .options_tabs import PatchConfigTab, UtilitiesTab
@@ -93,6 +94,10 @@ class TabOptionsDialog(QDialog):
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
+
+        # Write memory() changed settings when the dialog closes, regardless of how it closes (OK, Cancel or X)
+        self.finished.connect(lambda _result: services().settings.save_if_dirty())
+
         for button in button_box.buttons():
             button.setFont(self._font)
         ok_cancel_layout.addWidget(button_box)

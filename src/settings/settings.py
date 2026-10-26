@@ -3,8 +3,9 @@ Application settings, kept in memory and saved to a JSON file.
 
 How it works:
 - The file is read once at startup (init() -> SettingsManager.load()).
-- Everyone reads and changes the in-memory dataclasses (AppSettings, GameSettings).
-- Changing a public field saves the whole file right away, unless inside `batch_update()`, which saves once at the end instead.
+- Everyone reads and changes the in-memory dataclasses (AppSettings, GameSettings in models.py).
+- Changing a plain field saves the whole file right away.
+- Changing a `memory()` field only marks the settings as changed. It is written by the next immediate save, or by `save_if_dirty()`, which runs when the options dialog closes and when the app quits.
 
 Safety rules:
 - The file is always written and read as UTF-8, regardless of the OS language.
@@ -43,12 +44,11 @@ class SettingsManager:
         self.backup_file = self.config_file.with_name(self.config_file.name + ".bak")
 
         # RLock (re-entrant) because a save can happen while the same thread already holds
-        # the lock, ex.: assigning a field inside batch_update().
+        # the lock, ex.: assigning a field holds the lock and then saves.
         self.lock = threading.RLock()
 
         self.settings = self._attach(AppSettings())
-        self._dirty = False
-        self._batch_depth = 0
+        self._dirty = False  # Something changed in memory that isn't on disk yet
 
         # False when the settings file couldn't be read AND couldn't be moved aside.
         # Saving would destroy it, don't do it.
@@ -157,11 +157,23 @@ class SettingsManager:
 
     # ---------- Saving ----------
 
-    def _mark_dirty(self):
-        """Called on every field change. Saves now, or at the end of the current batch."""
+    def _on_change(self, save_now: bool):
+        """
+        Called on every field change (with the lock held).
+
+        save_now=True:  plain field. Save now.
+        save_now=False: memory() field. Only remember that something changed.
+        """
         self._dirty = True
-        if self._batch_depth == 0:
+        if save_now:
             self.save_settings()
+
+    def save_if_dirty(self) -> bool:
+        """Write the settings only if something changed since the last save. Thread-safe call."""
+        with self.lock:
+            if not self._dirty:
+                return True
+            return self.save_settings()
 
     def save_settings(self) -> bool:
         """Write the current settings to disk. Thread-safe call."""
@@ -230,7 +242,9 @@ class SettingsManager:
         with self.lock:
             if name not in self.settings.games:
                 self.settings.games[name] = self._attach(GameSettings())
-                self._mark_dirty()
+                # Empty entry isn't worth a write on its own.
+                # Wait until next save to write to disk.
+                self._on_change(save_now=False)
             return self.settings.games[name]
 
     def has_game(self, name: str) -> bool:
@@ -240,49 +254,14 @@ class SettingsManager:
         with self.lock:
             if name in self.settings.games:
                 del self.settings.games[name]
-                self._mark_dirty()
+                self._on_change(save_now=True)
                 return True
             return False
-
-    # ---------- Batching ----------
-
-    def batch_update(self):
-        """
-        Group several changes into one save:
-
-            with settings.batch_update():
-                settings.settings.window_width = 800
-                settings.settings.window_height = 600
-
-        Holds the lock for the whole block, so other threads wait until it's done.
-        """
-        return _BatchContext(self)
 
     def _attach(self, obj):
         """Link a settings object to this manager so changes to it get saved."""
         obj._manager = self
         return obj
-
-
-class _BatchContext:
-    """Context manager behind SettingsManager.batch_update(). Can be nested."""
-
-    def __init__(self, manager: SettingsManager):
-        self.manager = manager
-
-    def __enter__(self):
-        self.manager.lock.acquire()
-        self.manager._batch_depth += 1
-        return self.manager
-
-    def __exit__(self, *args):
-        try:
-            self.manager._batch_depth -= 1
-            # Only the outermost batch saves
-            if self.manager._batch_depth == 0 and self.manager._dirty:
-                self.manager.save_settings()
-        finally:
-            self.manager.lock.release()
 
 
 # ---------- Dataclass <-> dict helpers ----------
