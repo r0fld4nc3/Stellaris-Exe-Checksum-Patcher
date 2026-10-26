@@ -405,22 +405,24 @@ class MultiGamePatcher:
             self.patterns_file = Path(self.patterns_file)
 
         if not self.patterns_file.exists():
+            self.logger.warning(f"Patterns file not found: {self.patterns_file}", silent=True)
             return {}
 
         self.logger.info(f"Loading patterns file: {self.patterns_file}", silent=True)
 
-        with open(self.patterns_file, "r") as f:
-            f = json.load(f)
-            self.patterns_config = f
-            self.games = list(self.patterns_config.keys())
-            return f
+        raw = self.patterns_file.read_bytes()
+        self.patterns_config = json.loads(raw)
+        self.games = list(self.patterns_config.keys())
+
+        self.logger.info(f"Loaded patterns: {json.dumps(self.patterns_config, indent=2)}", silent=True)
+        return self.patterns_config
 
     def reload_patterns(self) -> Dict:
         log.info(f"Reload Patterns...", silent=True)
         return self._load_patterns()
 
     def get_available_games(self) -> List[str]:
-        self.logger.info(f"Available games: {self.games}", silent=True)
+        self.logger.debug(f"Available games: {self.games}", silent=True)
         return self.games
 
     def get_available_versions(self, game_name: str) -> List[str]:
@@ -430,12 +432,12 @@ class MultiGamePatcher:
         if game_config:
             versions = list(game_config.keys())
             if versions:
-                self.logger.info(f"Available versions for '{game_name}': {versions}", silent=True)
+                self.logger.debug(f"Available versions for '{game_name}': {versions}", silent=True)
                 return versions
         return []
 
     def get_game_patcher(self, game_name: str, version: str = KEY_VERSION_LATEST) -> Optional[GamePatcher]:
-        self.logger.info(f"Get game patcher for game: '{game_name}': '{version}'", silent=True)
+        self.logger.debug(f"Get game patcher for game: '{game_name}': '{version}'", silent=True)
 
         if game_name not in self.games:
             self.logger.error(f"Game '{game_name}' not found in patterns.")
@@ -457,7 +459,7 @@ class MultiGamePatcher:
             self.logger.error(f"Version '{version}' not found for game '{game_name}'.")
             return None
         else:
-            self.logger.info(f"Got version '{version}' config.", silent=True)
+            self.logger.debug(f"Got version '{version}' config.", silent=True)
             self.logger.debug(json.dumps(version_config, indent=2), silent=True)
 
         return GamePatcher(game_name=game_name, version_config=version_config)
@@ -468,7 +470,7 @@ class MultiGamePatcher:
 
         platform_str = platform if platform else "None"
 
-        self.logger.info(
+        self.logger.debug(
             f"Getting available patches for '{game_name}': '{version}' {'on ' + platform_str if platform else ''}",
             silent=True,
         )

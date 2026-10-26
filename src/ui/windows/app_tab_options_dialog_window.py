@@ -143,10 +143,9 @@ class TabOptionsDialog(QDialog):
         ok_cancel_layout.addWidget(button_box)
 
         # --- Tabs ---
-        log.info(tabs)
         if not tabs:
-            log.info(f"Passed tab list is empty: {tabs}. Using defaults {APP_OPTIONS_TABS}")
             # Can be empty, defined a default to fallback to.
+            log.debug(f"No tabs passed. Using defaults {APP_OPTIONS_TABS}")
             tabs = APP_OPTIONS_TABS
 
         for tab_cls in tabs:

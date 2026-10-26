@@ -4,7 +4,7 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from PySide6.QtCore import QSize, Qt, QThreadPool, Slot
 from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
@@ -313,8 +313,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Cache Configuration ---
         self.multi_game_patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
 
-        self.selected_version = patcher_models.KEY_VERSION_LATEST
-
         self.configuration = patcher_models.PatchConfiguration(
             game="",
             platform=(
@@ -325,10 +323,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         )
         self.save_configuration: patcher_models.GameSavePatchConfig = None
         self.last_conf_game = ""
-
-        # --- Cache available patches to display ---
-        self.available_patches: dict = {}
-        self.available_versions: List[str] = []
 
         self.load_settings()
 
@@ -969,38 +963,22 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         platform = self.configuration.platform
 
-        # Get available version and find first one with patches available
-        all_versions = self.multi_game_patcher.get_available_versions(precached_game)
-        selected_version = self.configuration.version or patcher_models.KEY_VERSION_LATEST
-
-        def _has_patches(v):
-            return bool(self.multi_game_patcher.get_available_patches_for_game(precached_game, v, platform))
-
-        if selected_version not in all_versions or not _has_patches(selected_version):
-            for version in all_versions:
-                if _has_patches(version):
-                    selected_version = version
-                    log.info(f"Selected version '{version}' for {precached_game} on {platform}", silent=True)
-                    break
-            else:
-                log.warning(
-                    f"No version with patches found for {precached_game} on {platform}, using fallback '{selected_version}'",
-                    silent=True,
-                )
-
-        # Update selection version cache
-        self.selected_version = selected_version
+        # Keep the saved version if it has patches, otherwise let the patcher choose
+        fallback_version = self.configuration.version or patcher_models.KEY_VERSION_LATEST
+        selected_version = self.multi_game_patcher.pick_version(
+            precached_game, platform=platform, preferred=fallback_version
+        )
+        if not selected_version:
+            selected_version = fallback_version
+            log.warning(
+                f"No version with patches found for {precached_game} on {platform}, using fallback '{selected_version}'",
+                silent=True,
+            )
 
         # --- Cache Configuration ---
         self.configuration.game = precached_game
-        self.configuration.version = self.selected_version
+        self.configuration.version = selected_version
         self.last_conf_game = self.configuration.game
-
-        if self.configuration.game:
-            self.available_patches = self.multi_game_patcher.get_available_patches_for_game(
-                self.configuration.game, version=self.selected_version
-            )
-            self.available_versions = self.multi_game_patcher.get_available_versions(self.configuration.game)
 
     def check_file_already_patched(self, *_):
         """Scan the saved game executable in the background and log whether it is already patched."""
