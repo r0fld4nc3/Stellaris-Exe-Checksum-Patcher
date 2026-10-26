@@ -58,7 +58,7 @@ class PatchConfigTab(OptionsTab):
         self.version_combobox.setMaximumWidth(140)
 
         selection_layout.addWidget(QLabel("Game:"))
-        selection_layout.addWidget(self.game_combobox, 1)
+        selection_layout.addWidget(self.game_combobox)
         selection_layout.addWidget(QLabel("Version:"))
         selection_layout.addWidget(self.version_combobox, 1)
         patch_layout.addLayout(selection_layout)

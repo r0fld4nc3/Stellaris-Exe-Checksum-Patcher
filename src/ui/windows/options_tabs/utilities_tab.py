@@ -62,7 +62,8 @@ class UtilitiesTab(OptionsTab):
         self.utilities_selected_game_combobox.setObjectName("UtilitiesGameCombobox")
         self.utilities_selected_game_combobox.setToolTip("Game that the utilities below act on.")
         selected_game_layout.addWidget(selected_game_label)
-        selected_game_layout.addWidget(self.utilities_selected_game_combobox, 1)
+        selected_game_layout.addWidget(self.utilities_selected_game_combobox)
+        selected_game_layout.addStretch()
         utilities_tab_layout.addLayout(selected_game_layout)
 
         # --- Scroll Area ---

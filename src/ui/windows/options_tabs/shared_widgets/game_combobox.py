@@ -8,6 +8,11 @@ log = logging.getLogger("GameComboBox")
 
 
 class GameComboBox(QComboBox):
+    # Width of the closed box, in characters.
+    # Fixed, so long game names never widen the dialog or push neighbouring widgets out of view.
+    # Popup list still shows full names.
+    MIN_CONTENTS_LENGTH = 16
+
     """
     Dropdown of supported games, linked to the shared options configuration.
 
@@ -19,6 +24,8 @@ class GameComboBox(QComboBox):
         super().__init__(parent)
         self.ctx = context
         self.setFont(context.font)
+        self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.setMinimumContentsLength(self.MIN_CONTENTS_LENGTH)
 
         self.currentTextChanged.connect(self.ctx.select_game)
         self.ctx.game_changed.connect(self.sync)
