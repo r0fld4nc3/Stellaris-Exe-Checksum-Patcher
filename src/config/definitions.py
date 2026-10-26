@@ -16,7 +16,7 @@ APP_FOLDER: str = "Apps"
 APP_NAME: str = "StellarisChecksumPatcher"
 
 REPO_BRANCH: str = "v3"  # Used for APIs and remote requests
-TRACKING_BRANCH: str = "v3-dev"  # Used for local tracking and visual indicators. No remote impact.
+TRACKING_BRANCH: str = "v3"  # Used for local tracking and visual indicators. No remote impact.
 
 SUPPORTED_GAMES = ("Stellaris",)
 
