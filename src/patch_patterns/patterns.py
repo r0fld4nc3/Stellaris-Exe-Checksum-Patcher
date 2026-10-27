@@ -69,8 +69,8 @@ def get_patterns_config_remote() -> dict:
         if os_windows() or (os_linux() and config.use_proton):
             config_key = Platform.WINDOWS
         elif os_linux() and not config.use_proton:
-            config_key = Platform.WINDOWS
-        elif os_darwin:
+            config_key = Platform.LINUX
+        elif os_darwin():
             config_key = Platform.DARWIN
         else:
             log.warning("Unsupported OS detected. Defaulting to Windows patterns")
