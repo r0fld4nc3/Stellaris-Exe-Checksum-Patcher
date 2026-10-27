@@ -11,8 +11,6 @@ import requests
 
 from app_services import services
 from config.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
-from config.path_helpers import os_darwin, os_linux, os_windows
-from patchers.models import Platform
 
 log = logging.getLogger("Patterns")  # isort: skip
 
@@ -66,25 +64,12 @@ def get_patterns_config_remote() -> dict:
         log.info(f"Successfully fetched remote patterns.")
         log.info(json.dumps(patterns_data, indent=2), silent=True)
 
-        if os_windows() or (os_linux() and config.use_proton):
-            config_key = Platform.WINDOWS
-        elif os_linux() and not config.use_proton:
-            config_key = Platform.LINUX
-        elif os_darwin():
-            config_key = Platform.DARWIN
-        else:
-            log.warning("Unsupported OS detected. Defaulting to Windows patterns")
-            config_key = Platform.WINDOWS
+        # Save patterns file. Local patterns aren't forced here.
+        log.info(f"Saving remote patterns to config dir: {PATTERNS_LOCAL}")
+        with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
+            f.write(json.dumps(patterns_data, indent=2))
 
-        # Save patterns file
-        if not config.use_local_patterns or not settings.settings.force_local_patterns:
-            log.info(f"Saving remote patterns to config dir: {PATTERNS_LOCAL}")
-            with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
-                f.write(json.dumps(patterns_data, indent=2))
-
-        log.info(f"[Remote] Loading patterns for '{config_key}'")
-
-        return patterns_data.get(config_key)
+        return patterns_data
 
     except requests.exceptions.Timeout:
         log.error("Request timed out.")
