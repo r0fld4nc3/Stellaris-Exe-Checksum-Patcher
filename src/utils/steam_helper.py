@@ -92,7 +92,8 @@ class SteamHelper:
         for lib in self.steam_library_paths:
             log.info(f'Checking Library "{lib}"')
             for file in lib.iterdir():
-                if not file.is_file() or STEAM_APP_MANIFEST_FILE_PREFIX not in file.name:
+                # "startswith" over "in": skips macOS "._appmanifest_*.acf" metadata files on non-Apple drives
+                if not file.is_file() or not file.name.lower().startswith(STEAM_APP_MANIFEST_FILE_PREFIX):
                     continue
 
                 app_ids = self.get_from_vdf_file(file, VDF_APPID_KEY)

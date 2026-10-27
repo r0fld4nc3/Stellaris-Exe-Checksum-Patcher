@@ -583,7 +583,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # Save applied patches
             self.settings.game(self.configuration.game).patches = applied
 
-        self.swap_btn_patch_to_launch_game()
+            # Only launch the game when something was applied.
+            self.swap_btn_patch_to_launch_game()
 
         return all_patches_success
 

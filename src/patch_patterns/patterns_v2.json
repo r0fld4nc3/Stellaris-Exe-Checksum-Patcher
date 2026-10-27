@@ -32,19 +32,10 @@
                 }
             },
             "darwin": {
-                "description": "Settings for macOS builds.",
+                "description": "Settings for macOS builds. Patching macOS executables isn't supported yet, so there are no patches. Executable info is kept to locate the game.",
                 "exe_filename": "stellaris.app",
                 "path_postfix": "Contents/MacOS/stellaris",
-                "patches": {
-                    "checksum_patch": {
-                        "display_name": "Checksum",
-                        "description": "Make every checksum check pass: achievements can be earned with mods, and the modified-checksum warning and tooltip are hidden.",
-                        "required": true,
-                        "enabled": true,
-                        "checksum_string": "[0-9a-f]{32}",
-                        "replace_call_with": "31C00F1F00"
-                    }
-                }
+                "patches": {}
             }
         }
     }
