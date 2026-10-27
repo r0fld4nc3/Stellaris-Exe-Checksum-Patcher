@@ -19,6 +19,7 @@ from config.path_helpers import os_darwin, os_linux
 from patchers import PatchConfiguration
 from patchers import models as patcher_models
 from thread_utils import Threader
+from utils.helpers import block_signals
 from utils.platform import open_in_file_manager
 
 from ...utils import find_game_path, prompt_install_dir, restore_window_focus
@@ -346,20 +347,18 @@ class GameUtilitiesTab(OptionsTab):
         """Select the configured platform in the Native/Proton picker (Linux/macOS only)."""
         index = self.platform_picker.findData(self.config.platform.value)
         if index >= 0:
-            self.platform_picker.blockSignals(True)
-            self.platform_picker.setCurrentIndex(index)
-            self.platform_picker.blockSignals(False)
+            with block_signals(self.platform_picker):
+                self.platform_picker.setCurrentIndex(index)
 
     def _show_versions(self, game: str):
         """Fill the version dropdown for `game` and select the configured version."""
-        self.version_combobox.blockSignals(True)
-        self.version_combobox.clear()
-        for version in self.ctx.patcher.get_available_versions(game):
-            # Show a tidy name ("Latest"), keep the patterns key ("latest") as the item's data
-            label = version.capitalize() if " " not in version else version.title()
-            self.version_combobox.addItem(label, version)
-        self.version_combobox.setCurrentIndex(max(self.version_combobox.findData(self.config.version), 0))
-        self.version_combobox.blockSignals(False)
+        with block_signals(self.version_combobox):
+            self.version_combobox.clear()
+            for version in self.ctx.patcher.get_available_versions(game):
+                # Show a tidy name ("Latest"), keep the patterns key ("latest") as the item's data
+                label = version.capitalize() if " " not in version else version.title()
+                self.version_combobox.addItem(label, version)
+            self.version_combobox.setCurrentIndex(max(self.version_combobox.findData(self.config.version), 0))
 
     def _rebuild_patches(self):
         """Show a checkbox per patch for the configured game, version and platform."""

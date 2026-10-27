@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from patch_patterns.patterns import get_patterns_config_remote
+from utils.helpers import block_signals
 from utils.platform import open_in_file_manager
 
 from ..welcome_dialog import WelcomeDialog
@@ -141,9 +142,8 @@ class UtilitiesTab(OptionsTab):
 
         # Backups slider (no signal: value comes from settings, nothing to save)
         max_backups = self.svc.settings.settings.max_allowed_binary_backups
-        self.max_backups_slider.blockSignals(True)
-        self.max_backups_slider.setValue(max_backups)
-        self.max_backups_slider.blockSignals(False)
+        with block_signals(self.max_backups_slider):
+            self.max_backups_slider.setValue(max_backups)
         self._update_max_backups_label(max_backups)
 
         # Reflect settings in UI
@@ -158,10 +158,8 @@ class UtilitiesTab(OptionsTab):
             Qt.CheckState.Checked if use_local_patterns else Qt.CheckState.Unchecked
         )
 
-        # TODO: Helper pattern for this blockSignals.
-        self.chkbox_include_prerelease_updates.blockSignals(True)
-        self.chkbox_include_prerelease_updates.setChecked(self.svc.settings.settings.include_prerelease_updates)
-        self.chkbox_include_prerelease_updates.blockSignals(False)
+        with block_signals(self.chkbox_include_prerelease_updates):
+            self.chkbox_include_prerelease_updates.setChecked(self.svc.settings.settings.include_prerelease_updates)
 
     # --- Slots ---
 

@@ -2,6 +2,8 @@ import logging
 
 from PySide6.QtWidgets import QComboBox
 
+from utils.helpers import block_signals
+
 from ..base import OptionsContext
 
 log = logging.getLogger("GameComboBox")
@@ -34,16 +36,14 @@ class GameComboBox(QComboBox):
         """Refill games list, then select the configured game."""
         log.info(f"Retrieving available games to add.", silent=True)
 
-        self.blockSignals(True)
-        self.clear()
-        self.addItems(self.ctx.patcher.get_available_games())
-        self.blockSignals(False)
+        with block_signals(self):
+            self.clear()
+            self.addItems(self.ctx.patcher.get_available_games())
         self.sync()
 
     def sync(self, *_):
         """Show the configured game. Avoud re-triggering a selection change."""
         game = self.ctx.configuration.game if self.ctx.configuration else None
         if game and game != self.currentText():
-            self.blockSignals(True)
-            self.setCurrentText(game)
-            self.blockSignals(False)
+            with block_signals(self):
+                self.setCurrentText(game)
