@@ -34,8 +34,10 @@ def check_bootloader_exists() -> bool:
                     bootloader_file = bootloader_path / item.name / "run.exe"
                     break
         else:
+            # Folder names: "Linux-64bit-intel", "Darwin-64bit", ...
             for item in bootloader_path.iterdir():
-                if "linux" in item.name.lower():
+                print(f"{system} in {item.name.lower()}: {system in item.name.lower()}")
+                if system in item.name.lower():
                     bootloader_file = bootloader_path / item.name / "run"
                     break
 
@@ -150,7 +152,7 @@ def process_args() -> argparse.Namespace:
     parser.add_argument(
         "-p",
         "--platform",
-        choices=["linux", "windows", "auto"],
+        choices=["linux", "windows", "macos", "auto"],
         default="auto",
         help="Target platform for the build (default: auto-detect)",
     )
@@ -196,6 +198,7 @@ def main():
     FILENAME = f"Stellaris-Checksum-Patcher-{BUILD_SOURCE}"
     OUTPUT_FILENAME_LINUX = f"{FILENAME}-linux"
     OUTPUT_FILENAME_WIN = f"{FILENAME}-win.exe"
+    OUTPUT_FILENAME_MACOS = f"{FILENAME}-macos"
 
     arg_platform = args.platform.lower()
 
@@ -205,6 +208,8 @@ def main():
             arg_platform = "linux"
         elif SYS_PLATFORM == "windows":
             arg_platform = "windows"
+        elif SYS_PLATFORM == "darwin":
+            arg_platform = "macos"
         else:
             print(f"Warning: Unsupported platform '{SYS_PLATFORM}', defaulting to Linux")
             arg_platform = "linux"
@@ -214,6 +219,8 @@ def main():
         output_filename = OUTPUT_FILENAME_LINUX
     elif arg_platform == "windows":
         output_filename = OUTPUT_FILENAME_WIN
+    elif arg_platform == "macos":
+        output_filename = OUTPUT_FILENAME_MACOS
     else:
         output_filename = FILENAME
 
@@ -289,6 +296,8 @@ def main():
         )
     else:
         cmd.extend(["--noupx"])  # Disabling UPX compression could reduce false positives
+        if arg_platform == "macos":
+            cmd.append("--target-arch=arm64")
 
     cmd.append(str(entry_point))
 

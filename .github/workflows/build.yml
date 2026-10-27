@@ -1,4 +1,4 @@
-# Builds the Windows and Linux executables with the scripts in builds/ and uploads them as artifacts.
+# Builds the Windows, Linux and macOS executables with the scripts in builds/ and uploads them as artifacts.
 #
 # To start:
 #   - Manually: GitHub > Actions > Build > Run workflow (pick the builder)
@@ -29,13 +29,16 @@ jobs:
     name: ${{ matrix.builder }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
+    env:
+      PLATFORM: ${{ startsWith(matrix.os, 'windows') && 'windows' || startsWith(matrix.os, 'macos') && 'macos' || 'linux' }}
 
     strategy:
       fail-fast: false
       matrix:
         # Same Ubuntu version as builds/build-docker-ubuntu
-        os: [windows-latest, ubuntu-24.04]
-        # Tags build everything; a manual run builds what was picked
+        # macos-latest is Apple Silicon (arm64)
+        os: [windows-latest, ubuntu-24.04, macos-latest]
+        # Tags build everything. Manual run builds what was picked
         builder: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.builder != 'all') && format('["{0}"]', inputs.builder) || '["nuitka", "pyinstaller"]') }}
 
     steps:
@@ -62,11 +65,11 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Build
-        run: uv run python builds/build-${{ matrix.builder }}.py -p ${{ runner.os == 'Windows' && 'windows' || 'linux' }}
+        run: uv run python builds/build-${{ matrix.builder }}.py -p ${{ env.PLATFORM }}
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
-          name: Stellaris-Checksum-Patcher-${{ matrix.builder }}-${{ runner.os == 'Windows' && 'windows' || 'linux' }}
+          name: Stellaris-Checksum-Patcher-${{ matrix.builder }}-${{ env.PLATFORM }}
           path: Stellaris-Checksum-Patcher-*
           if-no-files-found: error
