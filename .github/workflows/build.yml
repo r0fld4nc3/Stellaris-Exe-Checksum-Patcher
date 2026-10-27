@@ -67,6 +67,15 @@ jobs:
       - name: Build
         run: uv run python builds/build-${{ matrix.builder }}.py -p ${{ env.PLATFORM }}
 
+      - name: Zip macOS app bundle
+        if: runner.os == 'macOS'
+        # Artifact upload drops symlinks and executable permissions inside .app bundles; ditto keeps them
+        run: |
+          for app in Stellaris-Checksum-Patcher-*.app; do
+            ditto -c -k --keepParent "$app" "${app%.app}.zip"
+            rm -rf "$app"
+          done
+
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:

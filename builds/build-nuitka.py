@@ -124,8 +124,10 @@ def main():
         "uv",
         "run",
         "nuitka",
-        "--standalone",
-        "--onefile",
+        # "--standalone",
+        # "--onefile",
+        # "app" is the same as onefile, except on macOS where it makes an .app bundle (no terminal window)
+        "--mode=app",
         "--assume-yes-for-downloads",
         "--enable-plugin=pyside6",
         # "--include-qt-plugins=sensible",
@@ -159,7 +161,13 @@ def main():
             # CCFLAGS
             os.environ["CCFLAGS"] = f"-O3 {LINUX_BUILD_ARGS}"
         elif arg_platform == "macos":
-            cmd.append("--macos-target-arch=arm64")
+            cmd.extend(
+                [
+                    "--macos-target-arch=arm64",
+                    "--macos-app-name=Stellaris Checksum Patcher",
+                    "--macos-app-icon=src/ui/icons/checksum_patcher_icon.icns",
+                ]
+            )
         cmd.extend(
             [
                 "--product-name=Stellaris-Checksum-Patcher",
@@ -173,6 +181,16 @@ def main():
     # Run the build
     try:
         subprocess.run(cmd, cwd=project_root, check=True)
+
+        if arg_platform == "macos":
+            # Nuitka names the bundle after the entry point (main.app).
+            # Rename it, replacing any previous build.
+            app_bundle = project_root / f"{output_filename}.app"
+            if app_bundle.is_dir():
+                shutil.rmtree(app_bundle)
+            (project_root / f"{ENTRY_POINT_NAME}.app").rename(app_bundle)
+            output_filename = app_bundle.name
+
         print(f"\nBuild process finished: {output_filename}")
 
         if arg_platform == "linux":

@@ -297,7 +297,18 @@ def main():
     else:
         cmd.extend(["--noupx"])  # Disabling UPX compression could reduce false positives
         if arg_platform == "macos":
-            cmd.append("--target-arch=arm64")
+            # .app bundle so it launches without a terminal window.
+            # onedir because PyInstaller deprecated onefile .app bundles.
+            cmd.remove("--onefile")
+            cmd.extend(
+                [
+                    "--onedir",
+                    "--windowed",
+                    "--target-arch=arm64",
+                    "--icon=src/ui/icons/checksum_patcher_icon.icns",
+                ]
+            )
+            output_filename = f"{output_filename}.app"
 
     cmd.append(str(entry_point))
 
@@ -310,8 +321,12 @@ def main():
         dist_path = project_root / "dist" / output_filename
 
         if dist_path.exists():
-            # Cut the file to the main project folder
-            shutil.move(dist_path, project_root / output_filename)
+            # Cut the file to the main project folder, replacing a previous build
+            # (moving onto an existing .app folder would nest it inside instead)
+            final_path = project_root / output_filename
+            if final_path.is_dir():
+                shutil.rmtree(final_path)
+            shutil.move(dist_path, final_path)
     except subprocess.CalledProcessError as e:
         print(f"\nBuild failed with error code {e.returncode}", file=sys.stderr)
         sys.exit(1)
