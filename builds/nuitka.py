@@ -158,6 +158,9 @@ def main():
 
             os.environ["CC"] = str(cc_wrapper)
             os.environ["CXX"] = str(cxx_wrapper)
+            # Wrappers are new temp files on every run. ccache's default check is file modification time
+            # and it would never get a cache hit. Identify the compiler by its version output instead.
+            os.environ.setdefault("CCACHE_COMPILERCHECK", "%compiler% -v")
             # CCFLAGS
             os.environ["CCFLAGS"] = f"-O3 {LINUX_BUILD_ARGS}"
         elif arg_platform == "macos":
