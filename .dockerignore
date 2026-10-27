@@ -1,4 +1,4 @@
-# Files Docker should not send as build context for builds/build-docker-ubuntu.
+# Files Docker should not send as build context for builds/support/ubuntu.Dockerfile.
 # The container builds from the bind-mounted project, so this only keeps the image small and fast to build.
 
 # Version control and CI

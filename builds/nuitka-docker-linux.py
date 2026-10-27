@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-# builds/build-docker-nuitka-linux.py
+# builds/nuitka-docker-linux.py
 """
 Single entry point to build the Docker image and run the Nuitka Linux build
 inside it. Works from both Linux and macOS hosts, always producing an
 x86_64 (linux/amd64) Linux binary regardless of host architecture.
 
 Run from the project root (only needs the Python standard library):
-    python3 builds/build-docker-nuitka-linux.py                         # defaults to Dockerfile CMD (-p linux)
-    python3 builds/build-docker-nuitka-linux.py -p linux --keep-build   # arguments go to build-nuitka.py
-    python3 builds/build-docker-nuitka-linux.py --rebuild               # rebuild the image without Docker's cache
+    python3 builds/nuitka-docker-linux.py                         # defaults to Dockerfile CMD (-p linux)
+    python3 builds/nuitka-docker-linux.py -p linux --keep-build   # arguments go to nuitka.py
+    python3 builds/nuitka-docker-linux.py --rebuild               # rebuild the image without Docker's cache
 
-Every argument except --rebuild is passed to build-nuitka.py inside the container.
+Every argument except --rebuild is passed to nuitka.py inside the container.
 """
 
 import os
@@ -85,7 +85,7 @@ def main() -> None:
 
     script_dir = Path(__file__).parent.resolve()
     project_root = script_dir.parent
-    dockerfile = script_dir / "build-docker-ubuntu"
+    dockerfile = script_dir / "support" / "ubuntu.Dockerfile"
 
     host_system = platform.system()
     host_arch = platform.machine()

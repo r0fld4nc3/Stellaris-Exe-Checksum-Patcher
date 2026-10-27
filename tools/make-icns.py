@@ -3,9 +3,9 @@ Convert images (PNG, JPEG, ICO or anything macOS 'sips' can read) to macOS .icns
 macOS only: uses the built-in 'sips' and 'iconutil' tools. Needs only the Python standard library.
 
 Usage:
-    python3 builds/make-icns.py icon.png                       # writes icon.icns next to the source
-    python3 builds/make-icns.py a.png b.png c.ico              # converts each file
-    python3 builds/make-icns.py src/ui/icons/*.png -o out/     # writes into another folder
+    python3 tools/make-icns.py icon.png                       # writes icon.icns next to the source
+    python3 tools/make-icns.py a.png b.png c.ico              # converts each file
+    python3 tools/make-icns.py src/ui/icons/*.png -o out/     # writes into another folder
 
 Sizes larger than the source image are skipped rather than upscaled.
 Recommended 1024x1024 source for an icon that stays sharp at every size.

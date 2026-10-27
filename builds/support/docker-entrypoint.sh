@@ -5,7 +5,7 @@ cd /app
 uv sync --locked --all-extras --dev
 
 build_status=0
-uv run python ./builds/build-nuitka.py "$@" || build_status=$?
+uv run python ./builds/nuitka.py "$@" || build_status=$?
 
 # Restore ownership from root to user.
 if [[ -n "${HOST_UID:-}" && -n "${HOST_GID:-}" ]]; then

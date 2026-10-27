@@ -219,33 +219,33 @@ This installs the project's dependencies, creates a virtual environment and laun
 
 **Without a terminal:**
 
-1. Open the `Stellaris-Exe-Checksum-Patcher/scripts` folder.
-2. Double-click `dev-run.bat`.
+1. Open the `Stellaris-Exe-Checksum-Patcher/dev` folder.
+2. Double-click `run.bat`.
 3. A terminal window opens, updates the dependencies and launches the app.
 
 **With a terminal:**
 
-1. Open a terminal and `cd` into `Stellaris-Exe-Checksum-Patcher/scripts`.
-2. Run `.\dev-run.bat` (or `dev-run.bat`, or `&"dev-run.bat"` in PowerShell, whichever works).
+1. Open a terminal and `cd` into `Stellaris-Exe-Checksum-Patcher/dev`.
+2. Run `.\run.bat` (or `run.bat`, or `&"run.bat"` in PowerShell, whichever works).
 
 </details>
 
 <details>
-<summary><b>Linux</b></summary>
+<summary><b>Linux and macOS</b></summary>
 
 **Without a terminal:**
 
-1. Open the `Stellaris-Exe-Checksum-Patcher/scripts` folder.
-2. Right-click `dev-run.sh` > **Properties** and allow it to be run as a program (the exact wording depends on your file manager).
+1. Open the `Stellaris-Exe-Checksum-Patcher/dev` folder.
+2. Right-click `run.sh` > **Properties** and allow it to be run as a program (the exact wording depends on your file manager).
 3. Double-click it to launch.
 
 **With a terminal:**
 
-1. Open a terminal and `cd` into `Stellaris-Exe-Checksum-Patcher/scripts`.
+1. Open a terminal and `cd` into `Stellaris-Exe-Checksum-Patcher/dev`.
 2. Run:
 
 ```shell
-chmod +x dev-run.sh; ./dev-run.sh
+chmod +x run.sh; ./run.sh
 ```
 
 </details>
@@ -266,16 +266,16 @@ Run these commands from the project's main folder.
 For the widest compatibility on Linux, build inside a clean Ubuntu Docker container. This produces a file that only needs baseline CPU instructions, so it runs on as many systems as possible. [Docker](https://docs.docker.com/get-docker/) must be installed and running. This works from Linux or macOS hosts and always produces a 64-bit (x86_64) Linux binary, whatever your computer's architecture.
 
 ```shell
-uv run ./builds/build-docker-nuitka-linux.py
+uv run ./builds/nuitka-docker-linux.py
 ```
 
 Arguments:
 
 - `--rebuild`: rebuild the Docker image from scratch, ignoring Docker's cache.
-- Any other argument is passed on to `build-nuitka.py` (listed below). For example, `-kb` keeps the build files:
+- Any other argument is passed on to `builds/nuitka.py` (listed below). For example, `-kb` keeps the build files:
 
 ```shell
-uv run ./builds/build-docker-nuitka-linux.py --keep-build
+uv run ./builds/nuitka-docker-linux.py --keep-build
 ```
 
 > [!NOTE]
@@ -286,32 +286,32 @@ uv run ./builds/build-docker-nuitka-linux.py --keep-build
 If your machine doesn't use newer-than-baseline CPU instructions, or you're building on Windows for Windows, you can use the simpler build:
 
 ```shell
-uv run ./builds/build-nuitka.py
+uv run ./builds/nuitka.py
 ```
 
 Arguments:
 
-- `-p`, `--platform` `[linux, windows, auto]`: target platform (default: auto-detect)
+- `-p`, `--platform` `[linux, windows, macos, auto]`: target platform (default: auto-detect)
 - `-kb`, `--keep-build`: keep build files after building
 
-Output file: `Stellaris-Checksum-Patcher-Nuitka-linux` or `Stellaris-Checksum-Patcher-Nuitka-win.exe`.
+Output file: `Stellaris-Checksum-Patcher-Nuitka-linux`, `Stellaris-Checksum-Patcher-Nuitka-win.exe` or `Stellaris-Checksum-Patcher-Nuitka-macos.app`.
 
 **With PyInstaller:**
 
 ```shell
-uv run ./builds/build-pyinstaller.py
+uv run ./builds/pyinstaller.py
 ```
 
 Unless you skip it, the script first builds a custom PyInstaller bootloader if it can't find one. This is a one-time step that can take a few minutes and needs `git` and a C compiler (`gcc` on Linux).
 
 Arguments:
 
-- `-p`, `--platform` `[linux, windows, auto]`: target platform (default: auto-detect)
+- `-p`, `--platform` `[linux, windows, macos, auto]`: target platform (default: auto-detect)
 - `-kb`, `--keep-build`: keep build files after building
 - `--skip-bootloader`: use the standard PyInstaller bootloader instead of building a custom one
 - `--force-bootloader`: rebuild the custom bootloader even if one already exists
 
-Output file: `Stellaris-Checksum-Patcher-PyInstaller-linux` or `Stellaris-Checksum-Patcher-PyInstaller-win.exe`.
+Output file: `Stellaris-Checksum-Patcher-PyInstaller-linux`, `Stellaris-Checksum-Patcher-PyInstaller-win.exe` or `Stellaris-Checksum-Patcher-PyInstaller-macos.app`.
 
 ---
 

@@ -1,4 +1,4 @@
-# builds/build-docker-ubuntu
+# builds/support/ubuntu.Dockerfile
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -40,8 +40,8 @@ RUN uv python install 3.14 && uv sync --locked --all-extras --dev
 # Baked-in source (overridden by bind mount at runtime, kept for standalone use)
 COPY . .
 
-COPY builds/build-docker-ubuntu-entrypoint.sh /build-docker-ubuntu-entrypoint.sh
-RUN chmod +x /build-docker-ubuntu-entrypoint.sh
+COPY builds/support/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
-ENTRYPOINT ["/build-docker-ubuntu-entrypoint.sh"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["-p", "linux"]

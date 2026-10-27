@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Same Ubuntu version as builds/build-docker-ubuntu
+        # Same Ubuntu version as builds/support/ubuntu.Dockerfile
         # macos-latest is Apple Silicon (arm64)
         os: [windows-latest, ubuntu-24.04, macos-latest]
         # Tags build everything. Manual run builds what was picked
@@ -47,7 +47,7 @@ jobs:
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
-        # Based on builds/build-docker-ubuntu: compilers/patchelf for Nuitka, system libraries Qt loads
+        # Based on builds/support/ubuntu.Dockerfile: compilers/patchelf for Nuitka, system libraries Qt loads
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -65,7 +65,7 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Build
-        run: uv run python builds/build-${{ matrix.builder }}.py -p ${{ env.PLATFORM }}
+        run: uv run python builds/${{ matrix.builder }}.py -p ${{ env.PLATFORM }}
 
       - name: Zip macOS app bundle
         if: runner.os == 'macOS'
