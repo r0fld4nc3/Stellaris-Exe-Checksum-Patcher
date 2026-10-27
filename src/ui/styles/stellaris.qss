@@ -139,7 +139,7 @@ QMenu::item {
 }
 
 /* ANY widget that is disabled */
-QWidget[enabled="false"] {
+QWidget:disabled {
     background-color: rgb(80, 80, 80);
     color: rgb(60, 60, 60);
     border-color: rgb(50, 50, 50);
