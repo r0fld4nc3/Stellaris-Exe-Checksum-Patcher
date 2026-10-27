@@ -789,6 +789,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Store last setting regarding pre-release updates
         include_prerelease_updates = self.settings.settings.include_prerelease_updates
 
+        # Settings change as soon as they're edited in the dialog. Keep a snapshot to undo them on Cancel.
+        settings_snapshot = self.settings.snapshot()
+
         # Show Configure Dialog and handle returns
         dialog_result = self.patch_config_dialog.exec()
 
@@ -831,15 +834,15 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             if self.settings.settings.include_prerelease_updates != include_prerelease_updates:
                 self.check_update(force=True)
         else:
+            # Cancelled (or closed): undo every settings change made in the dialog
+            self.settings.restore(settings_snapshot)
+
             # If first open and user cancelled, still populate with defaults
             # This should ensure patching works even if the user never
             # accepts the dialog.
             if _is_new_dialog and not self.configuration.selected_patches:
                 self.configuration.selected_patches = self.patch_config_dialog.configuration.selected_patches.copy()
             log.info("Configuration unchanged.", silent=True)
-
-            # Restore pre-release check checkbox to previous value
-            self.settings.settings.include_prerelease_updates = include_prerelease_updates
 
     def open_configure_save_patch_options_window(self):
         log.info("Opening save patch configuration window", silent=True)

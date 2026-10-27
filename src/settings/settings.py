@@ -6,6 +6,7 @@ How it works:
 - Everyone reads and changes the in-memory dataclasses (AppSettings, GameSettings in models.py).
 - Changing a plain field saves the whole file right away.
 - Changing a `memory()` field only marks the settings as changed. It is written by the next immediate save, or by `save_if_dirty()`, which runs when the options dialog closes and when the app quits.
+- `snapshot()` / `restore()` undo a batch of changes, ex.: when the options dialog is cancelled.
 
 Safety rules:
 - The file is always written and read as UTF-8, regardless of the OS language.
@@ -14,6 +15,7 @@ Safety rules:
 - A file we fail to read is never overwritten. It is renamed to `*.corrupt-<time>` first, and we try to recover from `*.bak` (a copy of the last file that loaded fine). If it can't even be renamed, saving is turned off for this session.
 """
 
+import copy
 import json
 import logging
 import os
@@ -229,6 +231,25 @@ class SettingsManager:
             except OSError:
                 pass
         return False
+
+    # ---------- Snapshots ----------
+
+    def snapshot(self) -> dict:
+        """
+        Copy of the current settings. Pass to `restore()` to undo every change made since.
+        """
+        with self.lock:
+            return copy.deepcopy(self._to_dict())
+
+    def restore(self, snapshot: dict) -> None:
+        """Put back settings from `snapshot()` and save. No effect if nothing changed."""
+        with self.lock:
+            if self._to_dict() == snapshot:
+                log.info("Settings snapshots match when attempting to restore. Skipping.", silent=True)
+                return
+            self.settings = self._from_dict(copy.deepcopy(snapshot))
+            self.save_settings()
+            log.info("Restored settings from snapshot.")
 
     # ---------- Games ----------
 
