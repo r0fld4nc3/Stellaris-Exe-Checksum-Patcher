@@ -115,6 +115,18 @@ class UtilitiesTab(OptionsTab):
             self.chkbox_use_local_patterns.setEnabled(False)
         utilities_layout.addWidget(self.chkbox_use_local_patterns)
 
+        # --- Include Pre-releases in Update Check Checkbox ---
+        self.chkbox_include_prerelease_updates = QCheckBox("Include Pre-releases in Update Check")
+        self.chkbox_include_prerelease_updates.setToolTip(
+            "When toggled, newer pre-releases also count as an available update, not only stable releases.\nPre-releases are early versions for testing and may be less stable."
+        )
+        self.chkbox_include_prerelease_updates.toggled.connect(self._on_include_prerelease_updates_toggled)
+
+        # Update checks don't run with --no-conn
+        if self.svc.config.prevent_conn:
+            self.chkbox_include_prerelease_updates.setEnabled(False)
+        utilities_layout.addWidget(self.chkbox_include_prerelease_updates)
+
         # --- Spacer ---
         utilities_layout.addStretch()
 
@@ -146,6 +158,11 @@ class UtilitiesTab(OptionsTab):
             Qt.CheckState.Checked if use_local_patterns else Qt.CheckState.Unchecked
         )
 
+        # TODO: Helper pattern for this blockSignals.
+        self.chkbox_include_prerelease_updates.blockSignals(True)
+        self.chkbox_include_prerelease_updates.setChecked(self.svc.settings.settings.include_prerelease_updates)
+        self.chkbox_include_prerelease_updates.blockSignals(False)
+
     # --- Slots ---
 
     def _on_max_backups_slider_changed(self, value: int):
@@ -163,6 +180,11 @@ class UtilitiesTab(OptionsTab):
                 self.svc.settings.settings.force_local_patterns = bool(state)
         else:
             log.warning("Checkbox in Partially Checked state. We shouldn't be here.", silent=True)
+
+    def _on_include_prerelease_updates_toggled(self, checked: bool):
+        self.svc.settings.settings.include_prerelease_updates = checked
+
+        log.info(f"Include pre-releases in update check: {checked}")
 
     def show_app_config_folder(self):
         config_dir = self.svc.config.config_dir

@@ -24,7 +24,7 @@ Only assignments are noticed and saved.
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
-from config.definitions import APP_VERSION_STR
+from config.definitions import APP_IS_PRERELEASE, APP_VERSION_STR
 
 if TYPE_CHECKING:
     from .settings import SettingsManager
@@ -101,10 +101,12 @@ class AppSettings(AutoSaveHookedSettingsClass):
     # Want it to show first on the list of settings.
     # Records which app version last wrote the file. Never read back.
     app_version: str = memory(APP_VERSION_STR, locked=True)
+    app_is_prerelease: bool = memory(APP_IS_PRERELEASE, locked=True)
 
     # --- Saved immediately ---
     accepted_welcome_dialog: bool = False
     force_local_patterns: bool = False
+    include_prerelease_updates: bool = False
     selected_game: str = ""
     steam_install_path: str = ""
     games: dict[str, GameSettings] = field(default_factory=dict)

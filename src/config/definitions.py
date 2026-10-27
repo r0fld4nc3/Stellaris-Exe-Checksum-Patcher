@@ -3,13 +3,17 @@ from dataclasses import dataclass
 from pathlib import Path
 
 APP_VERSION = [3, 0, 0]
+APP_IS_PRERELEASE: bool = True
 
 # Display form of APP_VERSION, ex.:
 # [3, 0, 0] -> "v3.0.0"
+# [3, 0, 0] + APP_IS_PRERELEASE -> "v3.0.0-pre"
 # [3, 0, 0, "beta", 1] -> "v3.0.0-beta-1"
 APP_VERSION_STR: str = "v" + ".".join(str(v) for v in APP_VERSION[0:3])
 if len(APP_VERSION) > 3:
     APP_VERSION_STR += "-" + "-".join(str(v) for v in APP_VERSION[3:])
+elif APP_IS_PRERELEASE:
+    APP_VERSION_STR += "-pre"
 
 HOST: str = "r0fld4nc3"
 APP_FOLDER: str = "Apps"

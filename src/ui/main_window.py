@@ -786,14 +786,20 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Set current game as last selected
         self.last_conf_game = self.configuration.game
 
+        # Store last setting regarding pre-release updates
+        include_prerelease_updates = self.settings.settings.include_prerelease_updates
+
         # Show Configure Dialog and handle returns
-        if self.patch_config_dialog.exec() == QFileDialog.DialogCode.Accepted:
+        dialog_result = self.patch_config_dialog.exec()
+
+        if dialog_result == QFileDialog.DialogCode.Accepted:
             # Only apply the changes to the configuration now
             self.configuration = self.patch_config_dialog.get_configuration()
 
             # Also update app style
             self.apply_app_style()
 
+            # Handle and update selected game(s) and configuration
             self.settings.settings.selected_game = self.configuration.game
             self.settings.game(self.configuration.game).patched_platform = self.configuration.platform
             # Proton choice is shared with the rest of the app, once user accept.
@@ -820,6 +826,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 or original_config.platform != self.configuration.platform
             ):
                 self.swap_btn_patch_to_patch_binary()
+
+            # Handle check pre-release updates if accepted.
+            if self.settings.settings.include_prerelease_updates != include_prerelease_updates:
+                self.check_update(force=True)
         else:
             # If first open and user cancelled, still populate with defaults
             # This should ensure patching works even if the user never
@@ -827,6 +837,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             if _is_new_dialog and not self.configuration.selected_patches:
                 self.configuration.selected_patches = self.patch_config_dialog.configuration.selected_patches.copy()
             log.info("Configuration unchanged.", silent=True)
+
+            # Restore pre-release check checkbox to previous value
+            self.settings.settings.include_prerelease_updates = include_prerelease_updates
 
     def open_configure_save_patch_options_window(self):
         log.info("Opening save patch configuration window", silent=True)
@@ -850,8 +863,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         return self.save_configuration
 
-    def check_update(self):
-        last_checked = self.settings.settings.update_last_checked
+    def check_update(self, force: bool = False):
+        last_checked = self.settings.settings.update_last_checked if not force else 0
+
         now = int(time.time())
 
         log.debug("Trigger update check.")
@@ -886,14 +900,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 update_available = False
 
         if update_available:
-            html = (
-                self.txt_browser_project_link.toHtml().replace("</p>", "").replace("</body>", "").replace("</html>", "")
+            html = self.project_link_html.replace(
+                "</a></p>", '</a><span style=" font-weight:700;"> (UPDATE AVAILABLE)</span></p>'
             )
-            html += '<span style=" font-weight:700;"> (UPDATE AVAILABLE)</span></p></body></html>'
             self.txt_browser_project_link.setHtml(html)
             self.lbl_title.setText(self.window_title_update_available)
             self.settings.settings.update_available = True
         else:
+            self.txt_browser_project_link.setHtml(self.project_link_html)
             self.lbl_title.setText(self.window_title)
 
     def open_faq_window(self):
