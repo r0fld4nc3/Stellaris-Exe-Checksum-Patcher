@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -19,7 +20,12 @@ from config.path_helpers import os_darwin, os_linux
 from patchers import PatchConfiguration
 from patchers import models as patcher_models
 from thread_utils import Threader
-from utils.helpers import block_signals
+from utils.helpers import (
+    block_signals,
+    delete_fpaths,
+    find_binary_backups,
+    get_fpath_size,
+)
 from utils.platform import open_in_file_manager
 
 from ...utils import find_game_path, prompt_install_dir, restore_window_focus
@@ -98,20 +104,26 @@ class GameUtilitiesTab(OptionsTab):
         utilities_layout = QVBoxLayout()
         patch_layout.addLayout(utilities_layout)
 
-        # --- Show Game Folder Button ---
-        btn_show_game_folder = QPushButton("Show Game Folder")
-        btn_show_game_folder.setFlat(False)
-        btn_show_game_folder.setFont(font)
-        # Lambda drops the `checked` argument from clicked()
-        btn_show_game_folder.clicked.connect(lambda: self.show_game_folder())
-        utilities_layout.addWidget(btn_show_game_folder)
+        # === Show X Folder Buttons Layout ===
+        show_x_folder_buttons_layout = QHBoxLayout()
+        utilities_layout.addLayout(show_x_folder_buttons_layout)
 
         # --- Show Save Games Folder Button ---
         btn_show_save_games_folder = QPushButton("Show Save Games Folder")
         btn_show_save_games_folder.setFlat(False)
         btn_show_save_games_folder.setFont(font)
         btn_show_save_games_folder.clicked.connect(self.show_save_games_folder)
-        utilities_layout.addWidget(btn_show_save_games_folder)
+        show_x_folder_buttons_layout.addWidget(btn_show_save_games_folder)
+
+        # --- Show Game Folder Button ---
+        btn_show_game_folder = QPushButton("Show Game Folder")
+        btn_show_game_folder.setFlat(False)
+        btn_show_game_folder.setFont(font)
+        # Lambda drops the `checked` argument from clicked()
+        btn_show_game_folder.clicked.connect(lambda: self.show_game_folder())
+        show_x_folder_buttons_layout.addWidget(btn_show_game_folder)
+
+        # ===========================================
 
         # --- Steam Validate Game Files Button ---
         btn_validate_game_files = QPushButton("Validate Integrity of Game Files (Steam)")
@@ -119,6 +131,13 @@ class GameUtilitiesTab(OptionsTab):
         btn_validate_game_files.setToolTip("Trigger the validation of game files through Steam.")
         btn_validate_game_files.clicked.connect(self.validate_steam_game_files)
         utilities_layout.addWidget(btn_validate_game_files)
+
+        # --- Delete Binary Backups Button ---
+        btn_delete_binary_backups = QPushButton("Delete Backups")
+        btn_delete_binary_backups.setFont(font)
+        btn_delete_binary_backups.setToolTip("Delete generated backups of the game executable made when patching.")
+        btn_delete_binary_backups.clicked.connect(self.delete_binary_backups)
+        utilities_layout.addWidget(btn_delete_binary_backups)
 
         # --- Signals ---
         # Every control writes its change into the shared configuration straight away.
@@ -139,7 +158,9 @@ class GameUtilitiesTab(OptionsTab):
                 log.error("Failed to create a default configuration")
                 return
 
-        self.config.platform = patcher_models.Platform.parse(self.config.platform) or patcher_models.Platform.detect_current()
+        self.config.platform = (
+            patcher_models.Platform.parse(self.config.platform) or patcher_models.Platform.detect_current()
+        )
 
         self.game_combobox.populate()
         self._on_game_changed(self.config.game)
@@ -165,7 +186,9 @@ class GameUtilitiesTab(OptionsTab):
 
         # Keep the configured version if it still applies, otherwise let the patcher choose.
         # (Changing game resets the configured version, see OptionsContext.select_game.)
-        picked_version = self.ctx.patcher.pick_version(game, platform=self.config.platform, preferred=self.config.version)
+        picked_version = self.ctx.patcher.pick_version(
+            game, platform=self.config.platform, preferred=self.config.version
+        )
         if picked_version:
             self.config.version = picked_version
         else:
@@ -330,7 +353,77 @@ class GameUtilitiesTab(OptionsTab):
         log.info(f"Opening save games folder: {save_games_path}", silent=True)
         open_in_file_manager(save_games_path)
 
+    def delete_binary_backups(self):
+        game = self.selected_game
+        if not game:
+            log.warning("No game selected. Unable to delete executable backups.")
+            return
+
+        # Backups of both the native and Proton executables
+        game_settings = self.svc.settings.game(game)
+        binary_paths = [Path(p) for p in (game_settings.install_path, game_settings.proton_install_path) if p]
+
+        if not binary_paths:
+            log.warning(f"No saved executable location for {game}. Unable to look for backups.")
+            self._show_message(
+                "No Game Location",
+                f"Couldn't find where {game} executable is yet.\n\n" "Patch the game or use Show Game Folder first.",
+            )
+            return
+
+        backups = sorted({b for path in binary_paths for b in find_binary_backups(path)})
+
+        if not backups:
+            log.info(f"No executable backups found for {game}.")
+            self._show_message("No Backups", f"No backups of the {game} executable were found.")
+            return
+
+        total_size = sum(get_fpath_size(b) for b in backups)
+
+        confirm = QMessageBox(self)
+        confirm.setIcon(QMessageBox.Icon.Question)
+        confirm.setWindowTitle("Delete Executable Backups")
+        confirm.setText(
+            f"Delete {len(backups)} backup(s) of the {game} executable ({self._format_size(total_size)})?\n\n"
+            "This can't be undone."
+        )
+        confirm.setDetailedText("\n".join(str(b) for b in backups))
+        confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        confirm.setDefaultButton(QMessageBox.StandardButton.No)
+
+        if confirm.exec() != QMessageBox.StandardButton.Yes:
+            log.info("Deleting executable backups cancelled.", silent=True)
+            return
+
+        deleted, failed = delete_fpaths(backups)
+        log.info(f"Deleted {len(deleted)} of {len(backups)} {game} executable backup(s).")
+
+        if failed:
+            self._show_message(
+                "Some Backups Not Deleted",
+                f"Deleted {len(deleted)} backup(s), but {len(failed)} could not be deleted:\n\n"
+                + "\n".join(str(f) for f in failed),
+                icon=QMessageBox.Icon.Warning,
+            )
+        else:
+            self._show_message("Backups Deleted", f"Deleted {len(deleted)} backup(s) of the {game} executable.")
+
     # --- Helpers ---
+
+    def _show_message(self, title: str, text: str, icon: QMessageBox.Icon = QMessageBox.Icon.Information):
+        msgbox = QMessageBox(self)
+        msgbox.setIcon(icon)
+        msgbox.setWindowTitle(title)
+        msgbox.setText(text)
+        msgbox.exec()
+
+    @staticmethod
+    def _format_size(size: int) -> str:
+        for unit in ("B", "KB", "MB"):
+            if size < 1024:
+                return f"{size:.0f} {unit}"
+            size /= 1024
+        return f"{size:.1f} GB"
 
     def _is_valid(self, config: Optional[PatchConfiguration]) -> bool:
         return bool(config and config.version and config.game in self.ctx.patcher.get_available_games())
