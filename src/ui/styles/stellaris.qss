@@ -154,3 +154,10 @@ QMessageBox QLabel,
 QMessageBox QTextEdit {
     color: rgb(255, 255, 255);
 }
+
+/* Manage Save Backups dialog */
+QDialog#SaveBackupsDialog QLabel,
+QDialog#SaveBackupsDialog QTreeView,
+QDialog#SaveBackupsDialog QHeaderView::section {
+    color: rgb(255, 255, 255);
+}
