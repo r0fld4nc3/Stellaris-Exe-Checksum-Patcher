@@ -68,6 +68,13 @@ class UtilitiesTab(OptionsTab):
         btn_show_app_config_dir.clicked.connect(self.show_app_config_folder)
         utilities_layout.addWidget(btn_show_app_config_dir)
 
+        # --- Manage Save Backups Button ---
+        btn_manage_save_backups = QPushButton("Manage Save Backups")
+        btn_manage_save_backups.setFont(font)
+        btn_manage_save_backups.setToolTip("Choose which of the generated save backups to keep or delete.")
+        btn_manage_save_backups.clicked.connect(self.show_save_backups_dialog)
+        utilities_layout.addWidget(btn_manage_save_backups)
+
         # --- Open Welcome Dialog Button ---
         btn_show_welcome_dialog = QPushButton("Show Welcome Dialog")
         btn_show_welcome_dialog.setFont(font)
@@ -201,6 +208,12 @@ class UtilitiesTab(OptionsTab):
 
         # New patterns may change games/versions/patches: reload every tab
         self.ctx.reload_requested.emit()
+
+    def show_save_backups_dialog(self):
+        from ..save_backups_dialog import SaveBackupsDialog
+
+        dialog = SaveBackupsDialog(self.ctx.font, parent=self.window())
+        dialog.exec()
 
     def show_welcome_dialog(self):
         dialog = self.window()

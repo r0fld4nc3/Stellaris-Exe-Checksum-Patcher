@@ -24,6 +24,7 @@ from utils.helpers import (
     block_signals,
     delete_fpaths,
     find_binary_backups,
+    format_size,
     get_fpath_size,
 )
 from utils.platform import open_in_file_manager
@@ -384,7 +385,7 @@ class GameUtilitiesTab(OptionsTab):
         confirm.setIcon(QMessageBox.Icon.Question)
         confirm.setWindowTitle("Delete Executable Backups")
         confirm.setText(
-            f"Delete {len(backups)} backup(s) of the {game} executable ({self._format_size(total_size)})?\n\n"
+            f"Delete {len(backups)} backup(s) of the {game} executable ({format_size(total_size)})?\n\n"
             "This can't be undone."
         )
         confirm.setDetailedText("\n".join(str(b) for b in backups))
@@ -416,14 +417,6 @@ class GameUtilitiesTab(OptionsTab):
         msgbox.setWindowTitle(title)
         msgbox.setText(text)
         msgbox.exec()
-
-    @staticmethod
-    def _format_size(size: int) -> str:
-        for unit in ("B", "KB", "MB"):
-            if size < 1024:
-                return f"{size:.0f} {unit}"
-            size /= 1024
-        return f"{size:.1f} GB"
 
     def _is_valid(self, config: Optional[PatchConfiguration]) -> bool:
         return bool(config and config.version and config.game in self.ctx.patcher.get_available_games())

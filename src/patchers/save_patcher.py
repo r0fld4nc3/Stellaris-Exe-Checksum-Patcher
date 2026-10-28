@@ -5,6 +5,7 @@ import shutil
 import ssl
 import tempfile
 import zipfile
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Union
@@ -18,6 +19,7 @@ from config.path_helpers import os_darwin, os_linux, os_windows
 
 # 3rd Party
 from utils.encodings import detect_file_encoding
+from utils.helpers import get_fpath_size
 
 from .models import GameSavePatchConfig
 
@@ -56,6 +58,9 @@ IRONMAN_NO = f"{IRONMAN_EQ_LINE}{NO}"
 CHEATED_ON_SAVE_LINE = "cheated_on_save="
 CHEATED_ON_SAVE_NO = "no"
 
+# Name of each save backup folder: saves_backup/<playthrough>/<timestamp>/<save file>
+SAVE_BACKUP_TIMESTAMP_FORMAT = "%Y-%m-%d %H-%M-%S"
+
 
 class IronmanMode(int, Enum):
     NONE = 0  # Don't address ironman flag
@@ -68,6 +73,73 @@ class CheatedMode(Enum):
     SET_NO = 0
     SET_YES = 1
     KEEP = 2
+
+
+@dataclass
+class SaveBackup:
+    """One save backup: a timestamped folder holding the save file(s) as they were before a fix."""
+
+    playthrough: str
+    folder: Path
+    created: datetime.datetime
+    files: list[Path] = field(default_factory=list)
+    size: int = 0
+
+
+def find_save_backups(backup_base_dir: Path | str | None = None) -> dict[str, list[SaveBackup]]:
+    """
+    Save backups made when fixing saves, by playthrough folder name.
+
+    Playthroughs with the newest backup come first, and each playthrough's backups are newest first.
+    """
+    base_dir = Path(backup_base_dir) if backup_base_dir else services().config.saves_backup_dir
+
+    if not base_dir.is_dir():
+        log.debug(f"No save backups folder: '{base_dir}'")
+        return {}
+
+    by_playthrough: dict[str, list[SaveBackup]] = {}
+
+    try:
+        playthrough_dirs = [d for d in base_dir.iterdir() if d.is_dir()]
+    except OSError as e:
+        log.warning(f"Unable to list save backups in '{base_dir}': {e}")
+        return {}
+
+    for playthrough_dir in playthrough_dirs:
+        backups: list[SaveBackup] = []
+
+        try:
+            backup_dirs = [d for d in playthrough_dir.iterdir() if d.is_dir()]
+        except OSError as e:
+            log.warning(f"Unable to list save backups in '{playthrough_dir}': {e}")
+            continue
+
+        for backup_dir in backup_dirs:
+            # Folder name is the backup time, fall back to when the folder was last changed
+            try:
+                created = datetime.datetime.strptime(backup_dir.name, SAVE_BACKUP_TIMESTAMP_FORMAT)
+            except ValueError:
+                created = datetime.datetime.fromtimestamp(backup_dir.stat().st_mtime)
+
+            files = sorted(f for f in backup_dir.iterdir() if f.is_file())
+            backups.append(
+                SaveBackup(
+                    playthrough=playthrough_dir.name,
+                    folder=backup_dir,
+                    created=created,
+                    files=files,
+                    size=get_fpath_size(backup_dir),
+                )
+            )
+
+        if backups:
+            backups.sort(key=lambda b: b.created, reverse=True)
+            by_playthrough[playthrough_dir.name] = backups
+
+    log.debug(f"Found save backups for {len(by_playthrough)} playthrough(s) in '{base_dir}'")
+
+    return dict(sorted(by_playthrough.items(), key=lambda item: item[1][0].created, reverse=True))
 
 
 class SavePatcher:
@@ -281,9 +353,9 @@ class SavePatcher:
 
         # Determine backup directory
         if backup_base_dir is None:
-            backup_base_dir = services().config.config_dir / "saves_backup"
+            backup_base_dir = services().config.saves_backup_dir
 
-        timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+        timestamp_str = datetime.datetime.now().strftime(SAVE_BACKUP_TIMESTAMP_FORMAT)
         backup_dir = backup_base_dir / save_file.parent.name / timestamp_str
         backup_file = backup_dir / save_file.name
 

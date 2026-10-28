@@ -69,6 +69,15 @@ def get_fpath_size(fp: Path) -> int:
         return 0
 
 
+def format_size(size: int) -> str:
+    """Size in bytes as a short readable string, e.g. `93 MB`."""
+    for unit in ("B", "KB", "MB"):
+        if size < 1024:
+            return f"{size:.0f} {unit}"
+        size /= 1024
+    return f"{size:.1f} GB"
+
+
 def delete_fpaths(fpaths: list[Path]) -> tuple[list[Path], list[Path]]:
     """Delete file(s) and/or folder(s). Returns (deleted, failed)."""
     deleted: list[Path] = []

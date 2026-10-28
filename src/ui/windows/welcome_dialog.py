@@ -168,7 +168,7 @@ class WelcomeDialog(QDialog):
 
                 <h3>Save Backups</h3>
                 <p>When fixing a save, a backup is created in the application's configuration directory.</p>
-                <p>It would be good practice to delete old and unused save backups from time to time. To do so, you can directly open the configuration folder from the <b>General Utilities Tab</b>, giving you direct access to the <b>save games</b> folder where all backups are stored.</p>
+                <p>It would be good practice to delete old and unused save backups from time to time. To do so, click <b>Manage Save Backups</b> in the <b>General Utilities Tab</b>. It lists every backup by playthrough and lets you choose which ones to keep and which to delete.</p>
 
                 <h2 style="text-align: center";>Closing Remarks</h2>
                 <p>Well, that should cover most of it for now. I hope this was informative without being too technical or tiring to read.</p>
