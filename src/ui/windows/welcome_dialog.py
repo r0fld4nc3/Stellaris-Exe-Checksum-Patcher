@@ -157,7 +157,7 @@ class WelcomeDialog(QDialog):
 
                 <h3>Handling Game Updates</h3>
                 <p>A game update is usually followed by a requirement to reapply the patches.</p>
-                <p>If you believe you should be receiving achievements or notice that certain patches did not apply correctly, go to the <b>General Utilities Tab</b> and click the button to <b>Validate Integrity of Game Files</b>.</p>
+                <p>If you believe you should be receiving achievements or notice that certain patches did not apply correctly, go to the <b>Game Utilities Tab</b> and click <b>Validate Integrity of Game Files (Steam)</b>.</p>
                 <p>This will start Steam's verification process. It should remove your executable file, which will be reacquired during verification. Once finished, apply the patches again, and you should be good to go.</p>
 
                 <h3>Restoring Achievements</h3>
