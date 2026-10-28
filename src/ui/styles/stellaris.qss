@@ -148,3 +148,9 @@ QWidget:disabled {
 QTabBar::tab {
     color: rgb(255, 255, 255);
 }
+
+/* Message boxes (text and "Show Details" box) */
+QMessageBox QLabel,
+QMessageBox QTextEdit {
+    color: rgb(255, 255, 255);
+}

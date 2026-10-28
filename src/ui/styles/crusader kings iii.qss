@@ -95,3 +95,9 @@ QWidget:disabled {
     color: rgb(60, 60, 60);
     border-color: rgb(50, 50, 50);
 }
+
+/* Message boxes (text and "Show Details" box) */
+QMessageBox QLabel,
+QMessageBox QTextEdit {
+    color: rgb(255, 255, 255);
+}

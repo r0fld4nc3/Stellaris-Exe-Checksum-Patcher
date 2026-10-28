@@ -751,7 +751,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             msgbox = QMessageBox(self)
             msgbox.setWindowTitle("Cheated Save")
             msgbox.setText("WARNING: Save is flagged as cheated. Fixes might not work without resetting this flag.")
-            msgbox.setStyleSheet("QLabel{ color: white}")
             msgbox.exec()
 
         # Reset the variable
@@ -916,7 +915,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
     def open_faq_window(self):
         msgbox = QMessageBox(self)
-        msgbox.setStyleSheet("QLabel{ color: white; font-size: 18px}")
+        msgbox.setStyleSheet("QLabel { font-size: 18px; }")
         msgbox.setWindowTitle("Quick Tips & FAQs")
         msgbox.setMaximumWidth(800)
         msg = """Patch Failed?
