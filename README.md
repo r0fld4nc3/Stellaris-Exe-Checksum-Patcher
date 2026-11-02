@@ -18,11 +18,13 @@ Stellaris turns off achievements when you play with mods that change the game's 
 This app makes a small, automatic change to the game's executable so that achievements stay enabled while you use those mods. No technical knowledge is needed. You click a button and the app does the rest.
 
 <p align="center">
-<img src="media/stellaris-checksum-patcher-07-01.png" width="762" alt="Stellaris Checksum Patcher main window">
+<img src="media/stellaris-checksum-patcher-08-01.png" width="49%" alt="Stellaris Checksum Patcher Main Windows Startup">
+<img src="media/stellaris-checksum-patcher-08-02.png" width="49%" alt="Stellaris Checksum Patcher Main Window Patched">
 </p>
 
 <p align="center">
-<img src="media/stellaris-checksum-patcher-07-02.png" width="762" alt="Stellaris Checksum Patcher configuration window">
+<img src="media/stellaris-checksum-patcher-08-03.png" width="49%" alt="Stellaris Checksum Patcher General Utilities">
+<img src="media/stellaris-checksum-patcher-08-04.png" width="49%" alt="Stellaris Checksum Patcher Game Utilities">
 </p>
 
 > [!IMPORTANT]
