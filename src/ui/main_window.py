@@ -328,6 +328,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.apply_app_style()
 
+        # Set the widgets whose states will be affected
+        self.widgets_state_switches: tuple[QWidget] = (
+            self.btn_patch_executable,
+            self.btn_fix_save_file,
+            self.btn_configure_patch_options,
+            self.terminal_display,
+        )
+
         # --- Load Patterns Fetch ---
         self.fetch_patterns_thread = Threader(self.fetch_patterns)
         self.active_threads.append(self.fetch_patterns_thread)
@@ -459,16 +467,23 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             self.terminal_display.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
 
     def enable_ui_elements(self):
-        self.btn_patch_executable.setEnabled(True)
+        for widget in self.widgets_state_switches:
+            widget.setEnabled(True)
+
+        # Edge-case
         self.btn_fix_save_file.setEnabled(self.configuration.game in SUPPORTED_GAMES)
-        self.btn_configure_patch_options.setEnabled(True)
-        self.terminal_display.setEnabled(True)
 
     def disable_ui_elements(self):
-        self.btn_patch_executable.setDisabled(True)
-        self.btn_fix_save_file.setDisabled(True)
-        self.btn_configure_patch_options.setDisabled(True)
-        self.terminal_display.setDisabled(True)
+        for widget in self.widgets_state_switches:
+            widget.setEnabled(False)
+
+    def _set_start_patching_state(self):
+        self.is_patching = True
+        self.disable_ui_elements()
+
+    def _set_stop_patching_state(self):
+        self.is_patching = False
+        self.enable_ui_elements()
 
     def remove_thread(self, thread_id_remove):
         # Iterates through active threads, checks for ID and stops then removes thread
@@ -492,8 +507,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         """
         Attemps to perform all necessary steps to patch the given game binary.
         """
-
-        self.is_patching = True
 
         log.info(f"Proceeding to patch executable: {game_binary_path}")
 
@@ -587,7 +600,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             return
 
         self.terminal_display.clear()
-        self.disable_ui_elements()
 
         self.active_threads.clear()
 
@@ -598,19 +610,20 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             msgbox.setWindowTitle("No Configuration")
             msgbox.setText("Please choose a configuration.")
             msgbox.exec()
-            self.enable_ui_elements()
             return False
         elif not self.configuration.game:
             log.error(f"Configuration does not provide a game.")
             msgbox.setWindowTitle("No Game Selected")
             msgbox.setText("Please select a game to patch.")
             msgbox.exec()
-            self.enable_ui_elements()
             return False
+
+        self._set_start_patching_state()
 
         # Attempt to find and establish paths
         self.path_finder_thread = Threader(target=self._find_game_path_worker_thread)
         self.path_finder_thread.signals.result.connect(self._path_found_or_failed)
+        self.path_finder_thread.signals.error.connect(self._set_stop_patching_state)
         self.active_threads.append(self.path_finder_thread)
         self.path_finder_thread.start()
 
@@ -632,7 +645,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             else:
                 # User cancelled
                 log.warning(f"User cancelled location picker. Aborting patch.")
-                self.enable_ui_elements()
+                self._set_stop_patching_state()
                 return
 
         game_binary_path_posix = game_binary_path.resolve().as_posix()
@@ -682,8 +695,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         """
 
         log.info("Patching process finished.")
-        self.is_patching = False
-        self.enable_ui_elements()
+        self._set_stop_patching_state()
         self.active_threads.clear()
 
     def fix_save_achievements_thread(self):
