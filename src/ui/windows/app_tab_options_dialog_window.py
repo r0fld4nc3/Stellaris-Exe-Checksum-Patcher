@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from app_services import services
 from patchers import MultiGamePatcher, PatchConfiguration
+from ui.utils import adapt_to_parent_size, centre_on_parent, size_from_parent
 
 from .options_tabs import GameUtilitiesTab, UtilitiesTab
 from .options_tabs.base import OptionsContext, OptionsTab
@@ -71,7 +72,13 @@ class TabOptionsDialog(QDialog):
     The dialog's height follows the current tab, so short tabs don't leave empty space.
     """
 
-    # Largest share of the screen the dialog grows to when fitting a tab
+    # (width, height) as percentages of the main window.
+    # Width is the starting width; height is the tallest the dialog grows to when fitting a tab.
+    SIZE_PCT = (80, 90)
+    # Smallest (width, height) as percentages of the main window
+    MIN_SIZE_PCT = (50, 50)
+
+    # Largest share of the screen the dialog grows to when fitting a tab, whatever SIZE_PCT allows
     MAX_SCREEN_FRACTION = 0.9
 
     def __init__(
@@ -101,7 +108,8 @@ class TabOptionsDialog(QDialog):
 
         self.setWindowTitle("Configure Patches")
         self.setWindowIcon(window_icon)
-        self.setMinimumSize(600, 400)
+        # Height is fitted to the current tab when shown; see _fit_to_current_tab
+        adapt_to_parent_size(self, parent, self.SIZE_PCT, self.MIN_SIZE_PCT)
 
         # Dialog Layout that contains the frame
         dialog_layout = QVBoxLayout(self)
@@ -198,12 +206,8 @@ class TabOptionsDialog(QDialog):
 
     # --- Sizing ---
 
-    def showEvent(self, event):
-        super().showEvent(event)
-        self._fit_to_current_tab()
-
     def _fit_to_current_tab(self, *_):
-        """Resize the dialog's height to the current tab, between the minimum size and a share of the screen."""
+        """Resize the dialog's height to the current tab, between the minimum size and the SIZE_PCT/screen limit."""
         # Layouts cache size hints: refresh each one from the tab widget up to the dialog
         widget = self.tab_widget
         while widget is not None and widget is not self:
@@ -213,10 +217,15 @@ class TabOptionsDialog(QDialog):
 
         hint = self.sizeHint()
         max_size = self.screen().availableGeometry().size() * self.MAX_SCREEN_FRACTION
+        max_height = min(size_from_parent(self.parentWidget(), self.SIZE_PCT).height(), max_size.height())
 
         width = min(max(self.width(), hint.width(), self.minimumWidth()), max_size.width())
-        height = min(max(hint.height(), self.minimumHeight()), max_size.height())
+        height = min(max(hint.height(), self.minimumHeight()), max_height)
         self.resize(width, height)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._fit_to_current_tab()
 
     def closeEvent(self, event):
         """Let every tab release its resources when the dialog closes."""

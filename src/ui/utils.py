@@ -2,7 +2,16 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import QCoreApplication, QEvent, QObject, QRect, Qt, QTimer, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QObject,
+    QRect,
+    QSize,
+    Qt,
+    QTimer,
+    QUrl,
+)
 from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -336,6 +345,66 @@ def _restore_window_focus(window):
 
 def restore_window_focus(window):
     QTimer.singleShot(500, lambda: _restore_window_focus(window))
+
+
+def adapt_to_parent_size(
+    window: QWidget,
+    parent: QWidget | None = None,
+    size_pct: tuple[int, int] = (80, 90),
+    min_size_pct: tuple[int, int] = (50, 50),
+):
+    """
+    Size a window as a percentage of its parent window and centre it there, or use the screen when there is no parent.
+
+    :param window: The window to resize.
+    :param parent: The widget whose window the size and position are based on.
+    :param size_pct: (width, height) as percentages of the parent.
+    :param min_size_pct: Minimum (width, height) as percentages of the parent.
+    """
+
+    window.setMinimumSize(size_from_parent(parent, min_size_pct))
+    window.resize(size_from_parent(parent, size_pct))
+
+    centre_on_parent(window, parent)
+
+
+def size_from_parent(parent: QWidget | None, size_pct: tuple[int, int]) -> QSize:
+    """
+    A size as percentages of the parent window, or of the screen when there is no parent.
+
+    :param parent: The widget whose window the size is based on.
+    :param size_pct: (width, height) as percentages of the parent.
+    """
+
+    if parent:
+        reference_size = parent.window().size()
+    else:
+        reference_size = QApplication.primaryScreen().availableGeometry().size()
+
+    width_pct = size_pct[0]
+    height_pct = size_pct[1]
+
+    width = int(reference_size.width() * (width_pct * 0.01))
+    height = int(reference_size.height() * (height_pct * 0.01))
+
+    return QSize(width, height)
+
+
+def centre_on_parent(window: QWidget, parent: QWidget | None = None):
+    """
+    Centre a window on its parent window, or on the screen when there is no parent.
+    Call after window has the its final size.
+
+    :param window: The window to move.
+    :param parent: The widget whose window to centre on.
+    """
+
+    if parent:
+        centre = parent.window().frameGeometry().center()
+    else:
+        centre = QApplication.primaryScreen().availableGeometry().center()
+
+    window.move(centre.x() - window.width() // 2, centre.y() - window.height() // 2)
 
 
 def get_qt_platform() -> str:

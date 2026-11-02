@@ -218,6 +218,7 @@ class UtilitiesTab(OptionsTab):
     def show_welcome_dialog(self):
         dialog = self.window()
         welcome_dialog = WelcomeDialog(self.ctx.font, window_icon=dialog.windowIcon(), parent=dialog)
+        welcome_dialog.SIZE_PCT = (180, 190)  # Override
         welcome_dialog.show()
 
     # --- Helpers ---

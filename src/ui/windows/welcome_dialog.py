@@ -15,11 +15,15 @@ from PySide6.QtWidgets import (
 )
 
 from app_services import services
+from ui.utils import EventFilterMoveResize, adapt_to_parent_size
 
 log = logging.getLogger("Welcome Dialog")
 
 
 class WelcomeDialog(QDialog):
+    SIZE_PCT = (80, 90)
+    MIN_SIZE_PCT = (50, 50)
+
     COLOUR_HEADER_H2 = "#179361"
     COLOUR_HEADER_H3 = "#EBBC3D"
     COLOUR_TEXT = "#FFFFFF"
@@ -36,6 +40,7 @@ class WelcomeDialog(QDialog):
     def __init__(self, font: QFont, window_icon: QIcon, parent=None):
         super().__init__(parent)
 
+        self.parent = parent
         self.font = font
 
         # --- Style & Appearance
@@ -45,9 +50,11 @@ class WelcomeDialog(QDialog):
 
         self.setWindowTitle("Welcome and Overview")
         self.setWindowIcon(window_icon)
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
 
-        # --- Set welcome dialog responsive to screen size
-        self.adapt_to_screen_size(parent, 30, 50)
+        # Frameless. Handle moving and resizing with same filter as main window.
+        self.resize_move_filter = EventFilterMoveResize(self)
+        self.installEventFilter(self.resize_move_filter)
 
         # --- Dialog layout with frame ---
         dialog_layout = QVBoxLayout(self)
@@ -219,26 +226,6 @@ class WelcomeDialog(QDialog):
         self.settings.settings.accepted_welcome_dialog = True
         self.accept()
 
-    def adapt_to_screen_size(self, parent=None, width_pct: int = 50, height_pct: int = 80):
-        if parent:
-            screen = parent.screen()
-        else:
-            screen = QApplication.primaryScreen()
-
-        screen_geometry = screen.availableGeometry()
-
-        width = int(screen_geometry.width() * (width_pct * 0.01))
-        height = int(screen_geometry.height() * (height_pct * 0.01))
-
-        # Set minimum size
-        self.setMinimumSize(700, 500)
-
-        # Set initial size
-        self.resize(width, height)
-
-        # Center the window on the screen
-        self.move(screen_geometry.center().x() - self.width() // 2, screen_geometry.center().y() - self.height() // 2)
-
     @staticmethod
     def _style_html(content: str) -> str:
         """Apply a consistent styling to  HTML content"""
@@ -280,3 +267,8 @@ class WelcomeDialog(QDialog):
         """
 
         return style + content
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        # --- Set welcome dialog responsive to screen size ---
+        adapt_to_parent_size(self, self.parent, self.SIZE_PCT, self.MIN_SIZE_PCT)
