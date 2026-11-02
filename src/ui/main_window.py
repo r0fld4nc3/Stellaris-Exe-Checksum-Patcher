@@ -577,7 +577,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # Unlock (colour) achievement icon to signify all patches were successful.
             # Leave uncoloured to signify some have failed.
             self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.UNLOCKED))
-            log.info("Finished. Close the patcher and go play!")
 
         if all_patches_success or applied:
             # Save applied patches
