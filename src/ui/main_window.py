@@ -54,6 +54,7 @@ from .utils import (
 from .windows import (
     ConfigureSavePatchDialog,
     DisclaimerFixCheatedSave,
+    FAQDialog,
     TabOptionsDialog,
     WelcomeDialog,
 )
@@ -352,6 +353,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             self.btn_fix_save_file,
             self.btn_configure_patch_options,
             self.terminal_display,
+            self.btn_themed_exit_app,
         )
 
         # --- Load Patterns Fetch ---
@@ -1005,35 +1007,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
     @Slot()
     def open_faq_window(self):
-        msgbox = QMessageBox(self)
-        msgbox.setStyleSheet("QLabel { font-size: 18px; }")
-        msgbox.setWindowTitle("Quick Tips & FAQs")
-        msgbox.setMaximumWidth(800)
-        msg = """Patch Failed?
-        * After a game update, that typically changes the checksum, it is
-            advised to delete both executables and validate Game Files with 
-            Steam in order for it to redownload the correct one.
-            Go to Utilities Tab and validate Integrity of Game Files.
-            After this, apply the patch and it should work.
-
-        * The overall patterns may have changed. If this is the case, open
-        an Issue over on GitHub (or look for an existing one) so we can
-        fix and update the patterns file as soon as possible.
-        
-        * It is possible that you're patching an already patched game,
-            but due to some pattern recognition changes, it could be that
-            the already patched pattern was not recognised as it is
-            looking for a different one. This makes it seem like the patch
-            failed when in reality the file is already patched.
-            Delete and validate files with Steam.
-
-        * After a game update, if you notice things acting up, ALWAYS delete
-        the existing executable and validate integrity of files on Steam before
-        patching again. This can be quickly accessed via the cogwheel and the
-        dedicated button in General Utilities tab to validate game files.
-        """
-        msgbox.setInformativeText(msg)
-        msgbox.exec()
+        faq_dialog = FAQDialog(QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self)
+        faq_dialog.exec()
 
     def fetch_patterns(self):
         can_fetch_remote = all(

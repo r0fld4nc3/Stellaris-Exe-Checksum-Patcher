@@ -1,9 +1,8 @@
 import logging
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
-    QApplication,
     QDialog,
     QDialogButtonBox,
     QFrame,
@@ -24,14 +23,13 @@ class WelcomeDialog(QDialog):
     SIZE_PCT = (80, 90)
     MIN_SIZE_PCT = (50, 50)
 
-    COLOUR_HEADER_H2 = "#179361"
-    COLOUR_HEADER_H3 = "#EBBC3D"
+    COLOUR_HEADER_1 = "#179361"
+    COLOUR_SUBHEADER_1 = "#EBBC3D"
     COLOUR_TEXT = "#FFFFFF"
     COLOUR_TEXT_MUTED = "#E0E0E0"
 
-    FONT_SIZE_H2 = "28px"
-    FONT_SIZE_H3 = "24px"
-    FONT_SIZE_H4 = "22px"
+    FONT_SIZE_HEADER_1 = "28px"
+    FONT_SIZE_SUBHEADER_1 = "24px"
     FONT_SIZE_TEXT = "18px"
 
     svc = services()
@@ -40,7 +38,6 @@ class WelcomeDialog(QDialog):
     def __init__(self, font: QFont, window_icon: QIcon, parent=None):
         super().__init__(parent)
 
-        self.parent = parent
         self.font = font
 
         # --- Style & Appearance
@@ -74,7 +71,7 @@ class WelcomeDialog(QDialog):
         content_layout.setContentsMargins(10, 10, 10, 10)
 
         # --- Title ---
-        title_label = QLabel("<h1>Welcome to Checksum Patcher 2.0!</h1>")
+        title_label = QLabel("<h1>Welcome to Checksum Patcher!</h1>")
         title_label.setFont(self.font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         content_layout.addWidget(title_label)
@@ -93,7 +90,7 @@ class WelcomeDialog(QDialog):
         # --- Welcome Statement ---
         welcome_text = QLabel(
             self._style_html("""
-            <h2>Introduction</h2>
+            <p class="header">Introduction</p>
             <p>This quick guide aims to help you get started with the basic main features and functionalities.</p>
             """),
             alignment=Qt.AlignmentFlag.AlignCenter,
@@ -107,10 +104,13 @@ class WelcomeDialog(QDialog):
         foreword_text.setWordWrap(True)
 
         content_widget_layout.addWidget(welcome_text)
+        content_widget_layout.addWidget(QLabel())  # Spacer
         content_widget_layout.addWidget(foreword_text)
 
         # --- How to Use Section ---
-        how_to_use_header = QLabel(self._style_html("<h2>Basic Overview</h2>"), alignment=Qt.AlignmentFlag.AlignCenter)
+        how_to_use_header = QLabel(
+            self._style_html("<p class='header'>Basic Overview</p>"), alignment=Qt.AlignmentFlag.AlignCenter
+        )
         how_to_use_header.setWordWrap(True)
 
         how_to_use_desc = QLabel(self._style_html("""
@@ -118,68 +118,78 @@ class WelcomeDialog(QDialog):
 
                 <p>Let's get started.</p>
 
-                <h3>The Information Screen</h3>
-                <p>A large information panel displays textual feedback as the Patcher operates. While primarily visual, it provides valuable information about progress, errors and warnings. Pay attention to these messages, especially when reporting issues.</p>
+                <p class="subheader">The Information Screen</p>
+                <p>An information panel displays textual feedback as the Patcher operates. While primarily visual, it provides valuable information about progress, errors and warnings. Pay attention to these messages, especially when reporting issues.</p>
 
-                <h3>Main Action Buttons</h3>
+                <p>While patching, a progress bar below it shows which step the Patcher is on, and whether it finished successfully.</p>
+
+                <p class="subheader">Main Action Buttons</p>
                 <p>Below the information screen are two main buttons:</p>
                 <ul>
-                    <li><b>The Left button</b> opens the save editor, allowing you to modify specific save properties such as restoring achievement eligibility and enabling or converting saves to Ironman mode.</li>
+                    <li><b>Fix Save</b> opens the save configurator and picker, allowing you to modify specific save properties such as restoring achievement eligibility and enabling or converting saves to and from Ironman mode.</li>
 
-                    <li><b>The Right button</b> is the star of the show. Once the application has initialised successfully, simply click this button to patch your game and prepare it for play.</li>
+                    <li><b>The Patch button</b>, with the achievement icon. Once the application has initialised successfully, just click this button to patch your game so achievements are earnable with mods.</li>
                 </ul>
 
-                <h3>Patching</h3>
-                <p>Patching requires the application to know where the game's executable is, and it attempts to determine this automatically once the patching process begins.</p>
+                <p>At the top right, the <b>cogwheel</b> opens the options window and the <b>?</b> button opens quick tips and answers to common problems.</p>
+
+                <p class="subheader">Patching</p>
+                <p>Patching requires the application to know where the game's executable is, and it attempts to determine this automatically once the patching process starts.</p>
 
                 <p>This, however, <i>can</i> fail, and in such cases it should prompt you to point to the file path manually.</p>
 
-                <p>To start the patch process, simply click the patch button indicated by the singular greyed-out image of an achievement.</p>
+                <p>To start the patch process, click the patch button indicated by the greyed-out image of an achievement.</p>
 
-                <p>If you pay attention to the information screen, you'll notice the Patcher looking through the game's executable for its <b>checksum checks</b>. These are the spots where the game compares its files against the official checksum to decide whether achievements are allowed. The Patcher finds every one of them by itself and makes them all report "unmodified".</p>
+                <p>Patching requires some base information to identify the correct sites to patch. The patcher should now be much more robust as it automatically tries to find the sites to patch based off of checksum information and some byte regex rules.</p>
 
-                <p>That single patch takes care of everything at once: achievements become earnable with mods, and the yellow version text and warning tooltip in the menus go away too.</p>
+                <p>These rules are found in a patterns file that comes bundled with the application, whoever, the default behaviour is to always check online and update this local file with one from the remote repository. In case something needs to change, the patterns and regex rules can be updated without requiring an update to the Patcher application itself.</p>
 
-                <p>Because the Patcher finds these spots on its own, it should keep working after most game updates without needing any changes. It still downloads a small remote patch configuration file with a few settings, so I can tweak things quickly if a game update ever does throw a curveball, without you needing a new version of the application.</p>
+                <p>Once patching is complete, the button turns into a <b>Launch</b> button, so <b>you can launch the game directly from the Patcher.</b> If every patch applied, its achievement icon also becomes coloured.</p>
 
-                <p>Once patching is complete, the icon of the button should become coloured and <b>you can launch the game directly from the Patcher!</b></p>
+                <p>Patching an already patched executable should be safe, as the Patcher should recognise it is already patched and leave it alone.</p>
 
-                <p><b>NOTE:</b> If patching ever fails after a game update, please check GitHub for any existing discussion about the current status before opening a new issue. A fix may already be on its way, and it can take some time depending on (my) availability.</p>
+                <p><b>NOTE:</b> If patching ever fails after a game update, please check GitHub for any existing discussions about the current status before opening a new issue. A fix may already be on its way, and it can take some time depending on (my) availability.</p>
 
-                <h3>Configuring The Patch</h3>
-                <p>The patch configuration screen can be accessed via the <b>cogwheel</b> at the top right of the main application screen. This will open a new window where you may access the Patch Configuration tab.</p>
+                <p class="subheader">The Options Window</p>
+                <p>The <b>cogwheel</b> at the top right of the main application screen opens the options window. It has two tabs: <b>General Utilities</b> and <b>Game Utilities</b>.</p>
 
-                <p>Here you can choose which game to patch, which version of the patch configuration to use and whether you're patching for a native system or "Proton", which is used to differentiate and adjust paths when a Linux environment runs a Windows game.</p>
+                <p>Changes are applied as you make them. Press <b>OK</b> to keep them, or <b>Cancel</b> to undo them.</p>
+
+                <p class="subheader">General Utilities</p>
+                <p>This tab gathers tools for the Patcher itself, so you don't need to dig through folders by hand: update the patch configuration, open the Patcher's own folder, <b>Manage Save Backups</b>, and show this welcome guide again.</p>
+
+                <p>It also has a few settings, such as including pre-releases when checking for updates.</p>
+                
+                <p class="subheader">Game Utilities</p>
+                <p>Everything that applies to a specific game lives here, and acts on the game selected at the top of the tab.</p>
+
+                <p>Under <b>Patch Configuration</b> you can choose which game to patch, which version of the patch configuration to use and, on Linux and macOS, whether you're patching the native game or the Windows version running through <b>Proton</b>.</p>
 
                 <p>Below that, you can see the patches that will be applied. The defaults are all you need, so you technically don't <i>need</i> to change anything here, but I would rather give you options than restrict them.</p>
 
-                <p>If you have made changes to the configuration, do not forget to press <b>OK</b> to save the changes.</p>
+                <p>This tab also has buttons to <b>Show Game Folder</b> and <b>Show Save Games Folder</b>, to <b>Validate Integrity of Game Files (Steam)</b>, and to <b>Delete Backups</b> of the game executable made when patching.</p>
 
-                <h3>General Utilities</h3>
-                <p>The General Utilities tab is a place to congregate useful tools to make it easier to perform certain actions without needing to, for example, manually go to a folder and delete a file, or manually go to Steam and navigate to the game options to launch a verification of file integrity.</p>
+                <p class="header" align="center">General Tips</p>
 
-                <p>As it stands, this section offers only a limited range of utilities, and it may be expanded in the future as we identify key functions that can be classified and added as utilities.</p>
-
-                <h2 style="text-align: center";>General Tips</h2>
-
-                <h3>Handling Game Updates</h3>
-                <p>A game update is usually followed by a requirement to reapply the patches.</p>
-                <p>If you believe you should be receiving achievements or notice that certain patches did not apply correctly, go to the <b>Game Utilities Tab</b> and click <b>Validate Integrity of Game Files (Steam)</b>.</p>
+                <p class="subheader">Handling Game Updates</p>
+                <p>A game update replaces the game executable, so you will need to patch again afterwards. Usually that's just one click on the Patch button.</p>
+                <p>If you believe you should be receiving achievements or notice that patching did not work correctly, go to the <b>Game Utilities</b> tab and click <b>Validate Integrity of Game Files (Steam)</b>.</p>
                 <p>This will start Steam's verification process. It should remove your executable file, which will be reacquired during verification. Once finished, apply the patches again, and you should be good to go.</p>
 
-                <h3>Restoring Achievements</h3>
+                <p class="subheader">Restoring Achievements</p>
                 <p>Patching the executable does <b>not</b> necessarily make an existing save eligible to receive achievements. These are two separate systems.</p>
                 <p>To restore the ability to gain achievements on an existing save game, use the <b>Fix Save</b> button next to the Patch button.</p>
                 <p>This prompts you to select a save game and, similarly to patching, asks which modifications to perform on the save.</p>
                 <p>If all goes well, the save will have achievements enabled again, and loading it in-game should restore the ability to receive them.</p>
 
-                <h3>Save Backups</h3>
+                <p class="subheader">Save Backups</p>
                 <p>When fixing a save, a backup is created in the application's configuration directory.</p>
-                <p>It would be good practice to delete old and unused save backups from time to time. To do so, click <b>Manage Save Backups</b> in the <b>General Utilities Tab</b>. It lists every backup by playthrough and lets you choose which ones to keep and which to delete.</p>
+                <p>It would be good practice to delete old and unused save backups from time to time. To do so, click <b>Manage Save Backups</b> in the <b>General Utilities</b> tab. It lists every backup by playthrough and lets you choose which ones to keep and which to delete.</p>
 
-                <h2 style="text-align: center";>Closing Remarks</h2>
+                <p class="header" align="center">Closing Remarks</p>
                 <p>Well, that should cover most of it for now. I hope this was informative without being too technical or tiring to read.</p>
                 <p>Once again, thank you for choosing this project and I hope it works well for you and makes you happier to play a wonderful game!</p>
+                <p>For quick answers to common problems, press the <b>?</b> button at the top right of the main window.</p>
                 <p>In case you are faced with any issues, don't hesitate to open an Issue on GitHub, but before you press "Create", please search for existing issues or fixes that may have already been addressed in the past!</p>
                 <p></p>
                 <p>Happy Hunting!</p>
@@ -231,26 +241,22 @@ class WelcomeDialog(QDialog):
         """Apply a consistent styling to  HTML content"""
         style = f"""
         <style>
-            h2 {{
-                color: {WelcomeDialog.COLOUR_HEADER_H2};
-                font-size: {WelcomeDialog.FONT_SIZE_H2};
+            p {{
+                color: {WelcomeDialog.COLOUR_TEXT};
+                font-size: {WelcomeDialog.FONT_SIZE_TEXT};
+            }}
+            /* Qt ignores font-size on h2/h3, so sized headers are paragraphs with the header or subheader class */
+            p.header {{
+                color: {WelcomeDialog.COLOUR_HEADER_1};
+                font-size: {WelcomeDialog.FONT_SIZE_HEADER_1};
                 font-weight: bold;
                 margin-top: 10px;
             }}
-            h3 {{
-                color: {WelcomeDialog.COLOUR_HEADER_H3};
-                font-size: {WelcomeDialog.FONT_SIZE_H3};
+            p.subheader {{
+                color: {WelcomeDialog.COLOUR_SUBHEADER_1};
+                font-size: {WelcomeDialog.FONT_SIZE_SUBHEADER_1};
                 font-weight: bold;
                 margin-top: 8px;
-            }}
-            h4 {{
-                font-size: {WelcomeDialog.FONT_SIZE_H4};
-                font-weight: bold;
-                margin-top: 20px;
-            }}
-            p {{ 
-                color: {WelcomeDialog.COLOUR_TEXT};
-                font-size: {WelcomeDialog.FONT_SIZE_TEXT};
             }}
             li {{
                 color: {WelcomeDialog.COLOUR_TEXT_MUTED};
@@ -271,4 +277,4 @@ class WelcomeDialog(QDialog):
     def showEvent(self, event):
         super().showEvent(event)
         # --- Set welcome dialog responsive to screen size ---
-        adapt_to_parent_size(self, self.parent, self.SIZE_PCT, self.MIN_SIZE_PCT)
+        adapt_to_parent_size(self, self.parentWidget().parentWidget(), self.SIZE_PCT, self.MIN_SIZE_PCT)

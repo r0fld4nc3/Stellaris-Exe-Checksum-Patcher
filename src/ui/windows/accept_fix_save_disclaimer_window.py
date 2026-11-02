@@ -15,20 +15,17 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-log = logging.getLogger("Welcome Dialog")
+log = logging.getLogger("Accept Fix Save Dialog")
 
 
 class DisclaimerFixCheatedSave(QDialog):
-    COLOUR_HEADER_H1 = "#EBBC3D"
-    COLOUR_HEADER_H2 = "#179361"
-    COLOUR_HEADER_H3 = "#EBBC3D"
+    COLOUR_HEADER_1 = "#EBBC3D"
+    COLOUR_SUBHEADER_1 = "#EBBC3D"
     COLOUR_TEXT = "#FFFFFF"
     COLOUR_TEXT_MUTED = "#E0E0E0"
 
-    FONT_SIZE_H1 = "32px"
-    FONT_SIZE_H2 = "28px"
-    FONT_SIZE_H3 = "24px"
-    FONT_SIZE_H4 = "22px"
+    FONT_SIZE_HEADER_1 = "32px"
+    FONT_SIZE_SUBHEADER_1 = "24px"
     FONT_SIZE_TEXT = "18px"
 
     def __init__(self, font: QFont, window_icon: QIcon, parent=None):
@@ -65,7 +62,7 @@ class DisclaimerFixCheatedSave(QDialog):
         content_layout.setContentsMargins(10, 10, 10, 10)
 
         # --- Title ---
-        title_label = QLabel(self._style_html("<h1>Personal Liability Disclaimer</h1>"))
+        title_label = QLabel(self._style_html("<p class='header'>Personal Liability Disclaimer</p>"))
         title_label.setFont(self.font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         content_layout.addWidget(title_label)
@@ -81,10 +78,8 @@ class DisclaimerFixCheatedSave(QDialog):
         content_widget_layout.setContentsMargins(10, 10, 10, 10)
         content_widget_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        disclaimer_text_desc = QLabel(
-            self._style_html(
-                """
-                <h3>This action will remove the cheated flag from your save file, re-enabling achievement eligibility.</h3>
+        disclaimer_text_desc = QLabel(self._style_html("""
+                <p class="subheader">This action will remove the cheated flag from your save file, re-enabling achievement eligibility.</p>
                 <p>You are taking responsibility for clearing this flag yourself. By proceeding, you acknowledge that:</p>
                 <ul>
                     <li><b>Legitimate use</b>: This feature is provided to recover save files from broken game states, stuck events, or unintended consequences — not to obscure intentional use of console commands for illegitimate advantages.</li>
@@ -92,10 +87,8 @@ class DisclaimerFixCheatedSave(QDialog):
                     <li><b>Your choice, your consequence</b>: Paradox Interactive and this tool's author cannot verify how you used console commands or mods. Clearing this flag is entirely your decision and responsibility.</li>
                 </ul>
 
-                <p>By declining this agreement, the the save repair process will continue without this option enabled.</p>
-            """
-            )
-        )
+                <p>By declining this agreement, the save repair process will continue without this option enabled.</p>
+            """))
         disclaimer_text_desc.setWordWrap(True)
         content_widget_layout.addWidget(disclaimer_text_desc)
 
@@ -158,32 +151,22 @@ class DisclaimerFixCheatedSave(QDialog):
         """Apply a consistent styling to  HTML content"""
         style = f"""
         <style>
-            h1 {{
-                color: {DisclaimerFixCheatedSave.COLOUR_HEADER_H1};
-                font-size: {DisclaimerFixCheatedSave.FONT_SIZE_H1};
-                font-weight: bold;
-                margin-top: 10px;
-            }}
-            h2 {{
-                color: {DisclaimerFixCheatedSave.COLOUR_HEADER_H2};
-                font-size: {DisclaimerFixCheatedSave.FONT_SIZE_H2};
-                font-weight: bold;
-                margin-top: 10px;
-            }}
-            h3 {{
-                color: {DisclaimerFixCheatedSave.COLOUR_HEADER_H3};
-                font-size: {DisclaimerFixCheatedSave.FONT_SIZE_H3};
-                font-weight: bold;
-                margin-top: 8px;
-            }}
-            h4 {{
-                font-size: {DisclaimerFixCheatedSave.FONT_SIZE_H4};
-                font-weight: bold;
-                margin-top: 20px;
-            }}
-            p {{ 
+            p {{
                 color: {DisclaimerFixCheatedSave.COLOUR_TEXT};
                 font-size: {DisclaimerFixCheatedSave.FONT_SIZE_TEXT};
+            }}
+            /* Qt ignores font-size on h1/h3, so sized headers are paragraphs with the header or subheader class */
+            p.header {{
+                color: {DisclaimerFixCheatedSave.COLOUR_HEADER_1};
+                font-size: {DisclaimerFixCheatedSave.FONT_SIZE_HEADER_1};
+                font-weight: bold;
+                margin-top: 10px;
+            }}
+            p.subheader {{
+                color: {DisclaimerFixCheatedSave.COLOUR_SUBHEADER_1};
+                font-size: {DisclaimerFixCheatedSave.FONT_SIZE_SUBHEADER_1};
+                font-weight: bold;
+                margin-top: 8px;
             }}
             li {{
                 color: {DisclaimerFixCheatedSave.COLOUR_TEXT_MUTED};
