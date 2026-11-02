@@ -267,7 +267,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- FAQ & Tips Button ---
         self.btn_faq_dialog = QPushButton()
         self.btn_faq_dialog.setObjectName("FAQButton")
+        self.btn_faq_dialog.setText("?")
         self.btn_faq_dialog.setToolTip("Frequently asked questions and workarounds.")
+        self.btn_faq_dialog.setFont(QFont(self.app_font_bold, 20))
+        self.btn_faq_dialog.setFixedSize(QSize(48, 48))
         self.btn_faq_dialog.clicked.connect(self.open_faq_window)
 
         # ---Add Widgets to Layouts ---
@@ -421,11 +424,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_themed_exit_app.setFont(self.app_font_bold)
         self.btn_themed_exit_app.setFont(QFont(self.app_font_bold, 20))
         self.btn_themed_exit_app.setFixedSize(QSize(48, 48))
-
-        # --- FAQ & Tips Button ---
-        self.btn_faq_dialog.setText("?")
-        self.btn_faq_dialog.setFont(QFont(self.app_font_bold, 20))
-        self.btn_faq_dialog.setFixedSize(QSize(48, 48))
 
         # --- Fix Save Button ---
         self.btn_fix_save_file.setIcon(self.save_patch_icon)
