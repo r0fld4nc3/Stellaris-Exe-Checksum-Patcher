@@ -249,10 +249,17 @@ class GamePatcher:
         return None
 
     def patch_file_multiple(
-        self, file_path: Path, patch_names: List[str], platform: Optional[Platform] = None, create_backup: bool = True
+        self,
+        file_path: Path,
+        patch_names: List[str],
+        platform: Optional[Platform] = None,
+        create_backup: bool = True,
+        progress: Optional[Callable[[int, str], None]] = None,
     ) -> dict[str, bool]:
         """
-        Apply multiple patches to a file in a single operation
+        Apply multiple patches to a file in a single operation.
+
+        `progress` is called with (percent, text) before each step, if provided.
 
         Returns:
             dict: where `key` is patch name and `value` is `bool` status whether it succeeded or failed to apply.
@@ -272,6 +279,9 @@ class GamePatcher:
         results = {}
 
         # Pre checks
+        if progress:
+            progress(20, "Checking existing patches")
+
         for patch_name in patch_names:
             patch = self.get_patch(patch_name, platform)
             if not patch:
@@ -311,6 +321,9 @@ class GamePatcher:
             return results
 
         if create_backup:
+            if progress:
+                progress(40, "Creating backup")
+
             if platform == Platform.DARWIN and not file_path.suffix.lower() == ".exe":
                 # Backup the .app folder, not the binary content inside
                 backup_success = self._create_backup(file_path.parent.parent.parent)
@@ -325,7 +338,7 @@ class GamePatcher:
                 return results
 
         # Apply all patches in a single operation
-        batch_results = self._apply_patches_batch(file_path, patches_to_apply, platform)
+        batch_results = self._apply_patches_batch(file_path, patches_to_apply, platform, progress)
 
         results.update(batch_results)
 
@@ -342,12 +355,27 @@ class GamePatcher:
         return file_path
 
     def _apply_patches_batch(
-        self, file_path: Path, patches: List[tuple[str, PatchPattern]], platform: Platform
+        self,
+        file_path: Path,
+        patches: List[tuple[str, PatchPattern]],
+        platform: Platform,
+        progress: Optional[Callable[[int, str], None]] = None,
     ) -> Dict[str, bool]:
         """Apply each patch to the file. Returns {patch name: success}."""
         binary = self._resolve_binary(file_path, platform)
         log.info(f"{binary=}", silent=True)
-        return {patch_name: self._apply_patch(binary, patch, patch_name) for patch_name, patch in patches}
+
+        results: dict = {}
+
+        for index, (patch_name, patch) in enumerate(patches):
+            if progress:
+                # Spread patches over 50-95%.
+                percent = 50 + 45 * index // len(patches)
+                progress(percent, f"Applying {patch_name}")
+
+            results[patch_name] = self._apply_patch(binary, patch, patch_name)
+
+        return results
 
     def _apply_patch(self, binary: Path, patch: PatchPattern, patch_name: str) -> bool:
         """Find every checksum comparison in `binary` and patch it. See patchers.auto_patch."""

@@ -161,3 +161,16 @@ QDialog#SaveBackupsDialog QTreeView,
 QDialog#SaveBackupsDialog QHeaderView::section {
     color: rgb(255, 255, 255);
 }
+
+/* Patch Progress Bar */
+QProgressBar#PatchProgressBar {
+    color: rgb(255, 255, 255); /* Text inside */
+    background-color: rgba(22, 59, 56, 100);
+    border: 1px solid rgb(67, 144, 134);
+    text-align: center;
+    min-height: 20px;
+}
+
+QProgressBar#PatchProgressBar::chunk {
+    background-color: rgba(255, 179, 25, 150);  /* Orange fill */
+}

@@ -5,6 +5,7 @@ class WorkerSignals(QObject):
     started = Signal()
     finished = Signal()
     progress = Signal(str)
+    patch_progress = Signal(int, str)
     terminal_progress = Signal(str)
     request_file_path = Signal()
     result = Signal(object)

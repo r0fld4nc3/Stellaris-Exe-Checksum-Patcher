@@ -1,12 +1,13 @@
 import copy
 import logging
+import os
 import re
 import sys
 import time
 from pathlib import Path
 from typing import Optional, Union
 
-from PySide6.QtCore import QSize, Qt, QThreadPool, Slot
+from PySide6.QtCore import QDeadlineTimer, QSize, Qt, QThreadPool, Slot
 from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
@@ -19,6 +20,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
+    QProgressBar,
     QPushButton,
     QSizePolicy,
     QTextBrowser,
@@ -28,7 +30,7 @@ from PySide6.QtWidgets import (
 
 from app_services import services
 from config.definitions import APP_VERSION_STR, SUPPORTED_GAMES, TRACKING_BRANCH
-from config.path_helpers import os_linux, os_windows
+from config.path_helpers import os_darwin, os_linux, os_windows
 
 # Patch Patterns
 from patch_patterns.patterns import (
@@ -71,6 +73,7 @@ log = logging.getLogger("UI")
 
 class StellarisChecksumPatcherGUI(QMainWindow):
     _APP_VERSION = APP_VERSION_STR
+    THREAD_STOP_TIMEOUT_MS = 5000  # How long closing the app waits for threads that aren't patching
 
     svc = services()
     app_config = svc.config
@@ -253,6 +256,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_configure_patch_options.setToolTip("Configure patch options and access general utilities.")
         self.btn_configure_patch_options.clicked.connect(self.open_configure_patch_options_window)
 
+        # --- Progress Bar ---
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setObjectName("PatchProgressBar")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.hide_progress_bar()
+
         # --- FAQ & Tips Button ---
         self.btn_faq_dialog = QPushButton()
         self.btn_faq_dialog.setObjectName("FAQButton")
@@ -283,7 +294,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.frame_layout.addWidget(self.window_functions_container_handle)
         self.frame_layout.addWidget(self.lbl_app_version)
         self.frame_layout.addWidget(self.terminal_display)
-        self.frame_layout.addLayout(self.hlayout_after_terminal_display)
+        self.frame_layout.addLayout(
+            self.hlayout_after_terminal_display, 1
+        )  # Stretch to fix layout issues. Take up space as needed.
+        self.frame_layout.addWidget(self.progress_bar)
         self.frame_layout.addLayout(self.hlayout_patch_buttons)
         self.frame_layout.addLayout(self.hlayout_misc_functions)
 
@@ -299,6 +313,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         steam_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
         registry_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
         self.signals.terminal_progress.connect(self.terminal_display_log, Qt.QueuedConnection)
+        self.signals.patch_progress.connect(self._set_progress, Qt.QueuedConnection)
 
         # --- Worker ---
         self.worker = None  # Currently unusued, possibly to deprecate
@@ -338,12 +353,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Load Patterns Fetch ---
         self.fetch_patterns_thread = Threader(self.fetch_patterns)
-        self.active_threads.append(self.fetch_patterns_thread)
         self.fetch_patterns_thread.signals.started.connect(self.disable_ui_elements)
         self.fetch_patterns_thread.signals.result.connect(self.enable_ui_elements)
         self.fetch_patterns_thread.signals.result.connect(self.apply_app_style)  # Also ensure style is updated
         self.fetch_patterns_thread.signals.result.connect(self.check_file_already_patched)
-        self.fetch_patterns_thread.start()
+        self.start_thread(self.fetch_patterns_thread)
 
         self.check_update()
 
@@ -473,6 +487,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Edge-case
         self.btn_fix_save_file.setEnabled(self.configuration.game in SUPPORTED_GAMES)
 
+    def show_progress_bar(self):
+        self.progress_bar.setVisible(True)
+
+    def hide_progress_bar(self):
+        self.progress_bar.setVisible(False)
+
     def disable_ui_elements(self):
         for widget in self.widgets_state_switches:
             widget.setEnabled(False)
@@ -480,28 +500,57 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     def _set_start_patching_state(self):
         self.is_patching = True
         self.disable_ui_elements()
+        self.show_progress_bar()
 
     def _set_stop_patching_state(self):
         self.is_patching = False
         self.enable_ui_elements()
 
-    def remove_thread(self, thread_id_remove):
-        # Iterates through active threads, checks for ID and stops then removes thread
-        log.debug(f"Thread Remove: {thread_id_remove}")
+    def start_thread(self, thread: Threader):
+        """
+        Start `thread` and keep a reference to it until it has ended.
+        Every thread must be started through here, or Qt aborts if it is garbage collected while running.
+        """
+        # QThread's own `finished` fires once run() has fully returned, unlike `thread.signals.finished`
+        thread.finished.connect(self.remove_stopped_threads)
+        self.active_threads.append(thread)
+        thread.start()
 
-        for iter_thread in self.active_threads:
-            iter_id = iter_thread.currentThread()
-            log.debug(f"Iter Thread: {iter_id}")
-            if iter_id == thread_id_remove:
-                log.debug(f"Attempting to remove {iter_thread} ({iter_id})")
-                try:
-                    iter_thread.stop()
-                    self.active_threads.remove(iter_thread)
-                except Exception as e:
-                    log.error(f"Error in attempting to stop and remove Thread: {e}")
-                break
+    def remove_stopped_threads(self):
+        """
+        Drop references to threads that have ended.
+        Running threads must stay referenced or Qt aborts causing a crash.
+        """
+        running = []
+        for thread in self.active_threads:
+            if thread.isRunning():
+                running.append(thread)
 
-        log.debug(f"Remove thread finished ( {thread_id_remove} )")
+        # Reassign the list with only running threads
+        self.active_threads = running
+
+    def stop_all_threads(self) -> bool:
+        """
+        Ask every thread to stop and wait for them to end.
+        Returns False if any thread is still running when the wait is over.
+        """
+        for thread in self.active_threads:
+            thread.requestInterruption()
+
+        if self.is_patching:
+            # Cutting a patch short could leave the game executable half written, so wait for it
+            deadline = QDeadlineTimer(QDeadlineTimer.ForeverConstant.Forever)
+        else:
+            # Shared deadline, so several stuck threads don't add up their timeouts
+            deadline = QDeadlineTimer(self.THREAD_STOP_TIMEOUT_MS)
+
+        all_stopped = True
+        for thread in self.active_threads:
+            if not thread.wait(deadline):
+                log.warning(f"Thread did not stop in time: {thread}")
+                all_stopped = False
+
+        return all_stopped
 
     def patch_game_executable(self, game_binary_path: Path) -> dict[str, bool]:
         """
@@ -571,7 +620,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         log.info(f"Patches to apply: {patches_to_apply}", silent=True)
 
-        results = patcher.patch_file_multiple(game_binary_path, patches_to_apply, platform=platform)
+        self.signals.patch_progress.emit(10, "Preparing patches")
+
+        results = patcher.patch_file_multiple(
+            game_binary_path, patches_to_apply, platform=platform, progress=self.signals.patch_progress.emit
+        )
 
         self.signals.terminal_progress.emit(" ")
 
@@ -601,8 +654,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.terminal_display.clear()
 
-        self.active_threads.clear()
-
         # Configuration
         msgbox = QMessageBox(self)
         if not self.configuration:
@@ -620,12 +671,13 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self._set_start_patching_state()
 
+        self.signals.patch_progress.emit(0, "")
+
         # Attempt to find and establish paths
         self.path_finder_thread = Threader(target=self._find_game_path_worker_thread)
         self.path_finder_thread.signals.result.connect(self._path_found_or_failed)
         self.path_finder_thread.signals.error.connect(self._set_stop_patching_state)
-        self.active_threads.append(self.path_finder_thread)
-        self.path_finder_thread.start()
+        self.start_thread(self.path_finder_thread)
 
     def _path_found_or_failed(self, found_path: Optional[Path]):
         """
@@ -646,6 +698,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 # User cancelled
                 log.warning(f"User cancelled location picker. Aborting patch.")
                 self._set_stop_patching_state()
+                self.hide_progress_bar()
                 return
 
         game_binary_path_posix = game_binary_path.resolve().as_posix()
@@ -665,8 +718,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         patch_thread = Threader(target=self.patch_game_executable, args=(game_binary_path,))
         patch_thread.signals.result.connect(self._on_patching_results)
         patch_thread.signals.finished.connect(self._on_patching_finished)
-        self.active_threads.append(patch_thread)
-        patch_thread.start()
+        self.start_thread(patch_thread)
 
     def _on_patching_results(self, results: dict[str, bool]):
         """
@@ -675,6 +727,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         """
 
         if not results:
+            self._set_progress(0, "Failed")
             return
 
         all_patches_success = all(results.values())
@@ -684,6 +737,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # Unlock (colour) achievement icon to signify all patches were successful.
             # Leave uncoloured to signify some have failed.
             self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.UNLOCKED))
+            self._set_progress(100, "Done")
+        elif any_patch_applied:
+            self._set_progress(100, "Partial success")
+        else:
+            self._set_progress(100, "Failed")
 
         if any_patch_applied:
             # Only launch the game when something was applied.
@@ -696,7 +754,15 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         log.info("Patching process finished.")
         self._set_stop_patching_state()
-        self.active_threads.clear()
+
+    @Slot(int, str)
+    def _set_progress(self, value: int, text: str):
+        """
+        SLOT: Runs on main thread.
+        """
+        self.progress_bar.setValue(value)
+
+        self.progress_bar.setFormat(f"%p% {text}")
 
     def fix_save_achievements_thread(self):
         if self.is_patching:
@@ -755,15 +821,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         saver.set_config(self.save_configuration)
 
         thread_repair_save = Threader(target=lambda save_file=save_file_path: saver.repair_save(save_file))
-        thread_id = thread_repair_save.currentThread()
-        thread_repair_save.setTerminationEnabled(True)
         # self.threader.signals.failed.connect() # TODO
         thread_repair_save.signals.started.connect(self.disable_ui_elements)
         thread_repair_save.signals.finished.connect(self.enable_ui_elements)
         thread_repair_save.signals.finished.connect(self.on_finished_save_repair)
-        thread_repair_save.signals.finished.connect(lambda: self.remove_thread(thread_id))  # Removes thead by ID
-        self.active_threads.append(thread_repair_save)
-        thread_repair_save.start()
+        self.start_thread(thread_repair_save)
 
     def on_finished_save_repair(self) -> None:
         if self.app_config.is_cheated_save:
@@ -901,10 +963,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             return
 
         thread_update = Threader(target=self.updater.check_for_update)
-        # thread_id = thread_update.currentThread()
-        self.active_threads.append(thread_update)
-        thread_update.start()
         thread_update.signals.finished.connect(self.check_update_finished)
+        self.start_thread(thread_update)
 
     def check_update_finished(self):
         updater_last_checked = self.updater.last_checked_timestamp
@@ -1021,9 +1081,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         log.info(f"Checking if {self.configuration.game} is already patched.")
 
         patched_check_thread = Threader(target=self._is_game_patched_worker)
-        self.active_threads.append(patched_check_thread)
         patched_check_thread.signals.result.connect(self._on_patched_check_finished)
-        patched_check_thread.start()
+        self.start_thread(patched_check_thread)
 
     def _is_game_patched_worker(self) -> Optional[bool]:
         """
@@ -1143,28 +1202,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         sys.exit(self.app.exec())
 
     def closeEvent(self, event):
-        log.info("Application is closing. Shutting down procedure")
-        log.info("Shutdown")
-        event.accept()
-        self.app_quit()
-
-    def app_quit(self):
         log.info("Quitting Application. Performing graceful shutdown procedure.")
 
-        try:
-            if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
-                log.info("Waiting for thread pool finish.")
-                self.thread_pool.waitForDone(msecs=2000)  # Wait for max 2 seconds.
-                log.debug("Done waiting.")
+        if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
+            log.info("Waiting for thread pool finish.")
+            self.thread_pool.waitForDone(msecs=self.THREAD_STOP_TIMEOUT_MS)
+            log.debug("Done waiting.")
 
-            if self.active_threads:
-                for thread in self.active_threads:
-                    try:
-                        thread.stop()
-                    except Exception as e:
-                        log.error(f"Error in stopping Thread. {e}")
-        except Exception as e:
-            log.error(e)
+        all_threads_stopped = self.stop_all_threads()
 
         # Save after the threads have stopped.
         # memory() settings, ensure save_if_dirty call to write them to disk.
@@ -1172,9 +1217,22 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.settings.settings.window_height = self.height()
         self.settings.save_if_dirty()
 
+        if not all_threads_stopped:
+            # Python destroys still-running threads on a normal exit, and Qt aborts on that.
+            # Exit immediately instead and the OS ends the threads with the process.
+            log.warning("Some threads did not stop. Forcing exit.")
+            logging.shutdown()
+            os._exit(0)
+
         log.info("Application shutdown.")
 
-        sys.exit(0)
+        event.accept()
+
+        self.app.exit(0)
+
+    def app_quit(self):
+        """Themed exit button. Closing the window runs the shutdown in closeEvent."""
+        self.close()
 
     def adapt_to_screen_size(self, parent=None, width_pct: int = 40, height_pct: int = 60):
         screen_info = get_screen_info(self.app)
