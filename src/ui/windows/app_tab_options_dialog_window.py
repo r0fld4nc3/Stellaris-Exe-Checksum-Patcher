@@ -94,7 +94,6 @@ class TabOptionsDialog(QDialog):
 
         self.setModal(True)
 
-        self._font = font
         self.context = OptionsContext(patcher, configuration, font, parent=self)
         self.context.reload_requested.connect(self.refresh)
 
@@ -108,8 +107,8 @@ class TabOptionsDialog(QDialog):
 
         self.setWindowTitle("Configure Patches")
         self.setWindowIcon(window_icon)
-        # Height is fitted to the current tab when shown; see _fit_to_current_tab
-        adapt_to_parent_size(self, parent, self.SIZE_PCT, self.MIN_SIZE_PCT)
+
+        adapt_to_parent_size(self, self.parentWidget(), self.SIZE_PCT, self.MIN_SIZE_PCT)
 
         # Dialog Layout that contains the frame
         dialog_layout = QVBoxLayout(self)
@@ -130,7 +129,7 @@ class TabOptionsDialog(QDialog):
 
         # --- Tab Widget ---
         self.tab_widget = CurrentTabSizedTabWidget()
-        self.tab_widget.setFont(self._font)
+        self.tab_widget.setFont(font)
         self.tab_widget.currentChanged.connect(self._fit_to_current_tab)
         content_layout.addWidget(self.tab_widget)
 
@@ -138,16 +137,16 @@ class TabOptionsDialog(QDialog):
         ok_cancel_layout = QHBoxLayout()
         content_layout.addLayout(ok_cancel_layout)
 
-        # --- Ok / Cancel Buttons
+        # --- Ok / Cancel Buttons ---
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
 
         # Write memory() changed settings when the dialog closes, regardless of how it closes (OK, Cancel or X)
-        self.finished.connect(lambda _result: services().settings.save_if_dirty())
+        self.finished.connect(lambda _: services().settings.save_if_dirty())
 
         for button in button_box.buttons():
-            button.setFont(self._font)
+            button.setFont(font)
         ok_cancel_layout.addWidget(button_box)
 
         # --- Tabs ---
@@ -226,6 +225,7 @@ class TabOptionsDialog(QDialog):
     def showEvent(self, event):
         super().showEvent(event)
         self._fit_to_current_tab()
+        centre_on_parent(self, self.parentWidget())
 
     def closeEvent(self, event):
         """Let every tab release its resources when the dialog closes."""
