@@ -387,6 +387,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Fonts ---
         self.app_font_bold = self.resources.load_font(AppFont.ORBITRON_BOLD)
 
+    @Slot()
     def apply_app_style(self):
         # --- Set App Constraints ---
         conf_game = self.configuration.game
@@ -480,6 +481,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         else:
             self.terminal_display.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
 
+    @Slot()
     def enable_ui_elements(self):
         for widget in self.widgets_state_switches:
             widget.setEnabled(True)
@@ -493,6 +495,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     def hide_progress_bar(self):
         self.progress_bar.setVisible(False)
 
+    @Slot()
     def disable_ui_elements(self):
         for widget in self.widgets_state_switches:
             widget.setEnabled(False)
@@ -502,6 +505,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.disable_ui_elements()
         self.show_progress_bar()
 
+    @Slot()
     def _set_stop_patching_state(self):
         self.is_patching = False
         self.enable_ui_elements()
@@ -516,6 +520,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.active_threads.append(thread)
         thread.start()
 
+    @Slot()
     def remove_stopped_threads(self):
         """
         Drop references to threads that have ended.
@@ -648,6 +653,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         return find_game_path(self.multi_game_patcher, self.configuration)
 
+    @Slot()
     def start_patch_game_executable_thread(self):
         if self.is_patching:
             return
@@ -679,6 +685,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.path_finder_thread.signals.error.connect(self._set_stop_patching_state)
         self.start_thread(self.path_finder_thread)
 
+    @Slot(object)
     def _path_found_or_failed(self, found_path: Optional[Path]):
         """
         SLOT FUNCTION: Runs on the main thread after _find_game_path_worker_thread
@@ -720,6 +727,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         patch_thread.signals.finished.connect(self._on_patching_finished)
         self.start_thread(patch_thread)
 
+    @Slot(object)
     def _on_patching_results(self, results: dict[str, bool]):
         """
         SLOT: Runs on the main thread when patch_game_executable returns.
@@ -747,6 +755,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # Only launch the game when something was applied.
             self.swap_btn_patch_to_launch_game()
 
+    @Slot()
     def _on_patching_finished(self):
         """
         SLOT: Runs on the main thread after the patch thread ends, even if it raised.
@@ -764,6 +773,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.progress_bar.setFormat(f"%p% {text}")
 
+    @Slot()
     def fix_save_achievements_thread(self):
         if self.is_patching:
             return
@@ -827,6 +837,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         thread_repair_save.signals.finished.connect(self.on_finished_save_repair)
         self.start_thread(thread_repair_save)
 
+    @Slot()
     def on_finished_save_repair(self) -> None:
         if self.app_config.is_cheated_save:
             msgbox = QMessageBox(self)
@@ -837,6 +848,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Reset the variable
         self.app_config.is_cheated_save = False
 
+    @Slot()
     def open_configure_patch_options_window(self):
         log.info("Opening patch configuration window", silent=True)
 
@@ -966,6 +978,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         thread_update.signals.finished.connect(self.check_update_finished)
         self.start_thread(thread_update)
 
+    @Slot()
     def check_update_finished(self):
         updater_last_checked = self.updater.last_checked_timestamp
 
@@ -992,6 +1005,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             self.txt_browser_project_link.setHtml(self.project_link_html)
             self.lbl_title.setText(self.window_title)
 
+    @Slot()
     def open_faq_window(self):
         msgbox = QMessageBox(self)
         msgbox.setStyleSheet("QLabel { font-size: 18px; }")
@@ -1076,6 +1090,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.configuration.version = selected_version
         self.last_conf_game = self.configuration.game
 
+    @Slot()
     def check_file_already_patched(self, *_):
         """Scan the saved game executable in the background and log whether it is already patched."""
         log.info(f"Checking if {self.configuration.game} is already patched.")
@@ -1115,6 +1130,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         return all(patcher.is_patched(Path(binary_path), name, platform) for name in patch_names)
 
+    @Slot(object)
     def _on_patched_check_finished(self, patched: Optional[bool]):
         game = self.configuration.game
 
@@ -1230,6 +1246,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.app.exit(0)
 
+    @Slot()
     def app_quit(self):
         """Themed exit button. Closing the window runs the shutdown in closeEvent."""
         self.close()
