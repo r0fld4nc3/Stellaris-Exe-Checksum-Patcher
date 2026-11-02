@@ -488,7 +488,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         log.debug(f"Remove thread finished ( {thread_id_remove} )")
 
-    def patch_game_executable(self, game_binary_path: Path) -> bool:
+    def patch_game_executable(self, game_binary_path: Path) -> dict[str, bool]:
         """
         Attemps to perform all necessary steps to patch the given game binary.
         """
@@ -500,14 +500,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Configuration
         if not self.configuration:
             log.error(f"No configuration available.")
-            return False
+            return {}
 
         log.info(f"Using configuration: {self.configuration}", silent=True)
 
         # Check for empty game
         if not self.configuration.game:
             log.error(f"Configuration game is empty")
-            return False
+            return {}
 
         # Get patcher
         patcher: pdx_patchers.GamePatcher = self.multi_game_patcher.get_game_patcher(
@@ -516,7 +516,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         if not patcher:
             log.error(f"Failed to initialise patcher for {self.configuration.game}")
-            return False
+            return {}
 
         # --- Determine platform ---
         # The Native/Proton choice, kept in settings to restore the UI next time
@@ -551,7 +551,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.error(
                 f"No patches available for {self.configuration.game} '{self.configuration.version}' on {platform}."
             )
-            return False
+            return {}
 
         self.settings.game(self.configuration.game).patched_platform = configured_platform
         self.settings.game(self.configuration.game).patched_version = self.configuration.version
@@ -562,30 +562,17 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.signals.terminal_progress.emit(" ")
 
-        all_patches_success = True
-
         applied: list = []
         for patch, success in results.items():
             if success:
                 applied.append(patch)
             else:
-                if all_patches_success:
-                    all_patches_success = False
                 log.warning(f"Failed patch: {patch}")
 
-        if all_patches_success:
-            # Unlock (colour) achievement icon to signify all patches were successful.
-            # Leave uncoloured to signify some have failed.
-            self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.UNLOCKED))
-
-        if all_patches_success or applied:
-            # Save applied patches
+        if applied:
             self.settings.game(self.configuration.game).patches = applied
 
-            # Only launch the game when something was applied.
-            self.swap_btn_patch_to_launch_game()
-
-        return all_patches_success
+        return results
 
     def _find_game_path_worker_thread(self) -> Optional[Path]:
         """
@@ -663,19 +650,40 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         """
 
         patch_thread = Threader(target=self.patch_game_executable, args=(game_binary_path,))
-        patch_thread.signals.finished.connect(self._patching_finished)
+        patch_thread.signals.result.connect(self._on_patching_results)
+        patch_thread.signals.finished.connect(self._on_patching_finished)
         self.active_threads.append(patch_thread)
         patch_thread.start()
 
-    def _patching_finished(self):
+    def _on_patching_results(self, results: dict[str, bool]):
         """
-        SLOT: Runs on the main thread
+        SLOT: Runs on the main thread when patch_game_executable returns.
+        Not emitted if the worker raised.
+        """
+
+        if not results:
+            return
+
+        all_patches_success = all(results.values())
+        any_patch_applied = any(results.values())
+
+        if all_patches_success:
+            # Unlock (colour) achievement icon to signify all patches were successful.
+            # Leave uncoloured to signify some have failed.
+            self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.UNLOCKED))
+
+        if any_patch_applied:
+            # Only launch the game when something was applied.
+            self.swap_btn_patch_to_launch_game()
+
+    def _on_patching_finished(self):
+        """
+        SLOT: Runs on the main thread after the patch thread ends, even if it raised.
         """
 
         log.info("Patching process finished.")
         self.is_patching = False
         self.enable_ui_elements()
-
         self.active_threads.clear()
 
     def fix_save_achievements_thread(self):
