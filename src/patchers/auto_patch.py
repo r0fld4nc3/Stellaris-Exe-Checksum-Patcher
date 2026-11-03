@@ -326,7 +326,9 @@ def scan(data: bytes, checksum_string: str = DEFAULT_CHECKSUM_STRING, replacemen
     result.compare_function = _pick_compare_function(call_targets, patched_count=len(result.sites))
 
     for reference_offset, call_offset, target in candidates:
-        if target == result.compare_function:
+        # A call whose target is unknown can't be shown to call the compare function.
+        # Without this check it would match when there is no compare function, as both are None.
+        if target is not None and target == result.compare_function:
             result.sites.append(ChecksumSite(reference_offset, call_offset, patched=False))
         else:
             result.skipped.append(reference_offset)
