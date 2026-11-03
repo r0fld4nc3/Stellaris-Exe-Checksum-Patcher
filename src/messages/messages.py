@@ -61,6 +61,16 @@ class Message:
             return ""
         return hashlib.sha256(self.text.encode("utf-8")).hexdigest()
 
+    def is_new(self, last_seen_fingerprint: str) -> bool:
+        """
+        True if there is a message and user has not closed this version if it.
+        """
+        is_new = self.status == MessageStatus.AVAILABLE and self.fingerprint != last_seen_fingerprint
+        log.info(
+            f"Current message fingerprint '{self.fingerprint}' {'differs from' if is_new else 'equals'} last seen '{last_seen_fingerprint}'."
+        )
+        return is_new
+
 
 def _normalise(text: str) -> str:
     """Same line endings and no surrounding blank spaces, so neither changes fingerprint."""
