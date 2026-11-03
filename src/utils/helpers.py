@@ -7,6 +7,8 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject
 
+from config.path_helpers import FILE_EXTENSION
+
 log = logging.getLogger("Helpers")
 
 
@@ -39,7 +41,7 @@ def find_binary_backups(binary_path: Path | str) -> list[Path]:
     targets = [binary_path]
     # .../Game.app/Contents/MacOS/binary -> Game.app
     app_bundle = binary_path.parent.parent.parent
-    if app_bundle.suffix.lower() == ".app":
+    if app_bundle.suffix.lower() == FILE_EXTENSION.APP:
         targets.append(app_bundle)
 
     backups: list[Path] = []

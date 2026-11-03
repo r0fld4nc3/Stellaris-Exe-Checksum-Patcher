@@ -6,24 +6,23 @@ Run from the `src` folder:
     uv run python -m patchers.report path/to/stellaris.exe
 """
 
-import re
-import struct
 import sys
 from pathlib import Path
 from typing import List
 
-from patchers.auto_patch import CALL_LENGTH, DEFAULT_CHECKSUM_STRING, Executable, scan
+from patchers.auto_patch import CALL_LENGTH, DEFAULT_CHECKSUM_STRING, LEA_RIP_PATTERN, Executable, scan
+
 
 def _nearby_strings(exe: Executable, offset: int, before: int = 0x200, after: int = 0x400) -> List[str]:
     """Readable strings referenced by LEA instructions around `offset`. Helps tell the sites apart."""
     found = []
     start = max(0, offset - before)
-    for match in re.finditer(rb"[\x48\x4c]\x8d[\x05\x0d\x15\x1d\x25\x2d\x35\x3d]", exe.data[start : offset + after]):
+    for match in LEA_RIP_PATTERN.finditer(exe.data[start : offset + after]):
         at = start + match.start()
         address = exe.address_of(at)
         if address is None:
             continue
-        target = exe.offset_of(address + 7 + struct.unpack_from("<i", exe.data, at + 3)[0])
+        target = exe.offset_of(exe.lea_target(at, address))
         if target is None:
             continue
         text = exe.data[target : target + 64].split(b"\x00")[0]

@@ -1,7 +1,3 @@
-import logging
-from dataclasses import dataclass
-from pathlib import Path
-
 APP_VERSION = [3, 0, 0]
 APP_IS_PRERELEASE: bool = True
 
@@ -28,34 +24,3 @@ SUPPORTED_GAMES = ("Stellaris",)
 REPO_OWNER = HOST
 REPO_NAME = "Stellaris-Exe-Checksum-Patcher"
 
-
-class OS_TYPE:
-    WINDOWS: str = "Windows"
-    LINUX: str = "Linux"
-    DARWIN: str = "Darwin"
-
-
-class FILE_FORMAT:
-    PE: str = "pe"
-    ELF: str = "elf"
-    MACHO: str = "macho"
-
-
-@dataclass
-class AppConfig:
-    config_dir: Path
-    saves_backup_dir: Path
-
-    # runtime
-    use_proton: bool = False
-    working_dir: Path = None
-    frozen: bool = False
-
-    is_cheated_save: bool = False
-
-    debug: bool = False
-    prevent_conn: bool = False
-    log_file: Path = Path.home() / HOST / APP_NAME / f"{APP_NAME}.log"
-    log_level: int = logging.INFO
-    update_check_cooldown: int = 60
-    use_local_patterns: bool = False  # Force use of only local patterns file. If True will override user choice.

@@ -37,9 +37,7 @@ import struct
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
-
-from config.definitions import FILE_FORMAT
+from typing import Dict, List, Optional, Tuple
 
 log = logging.getLogger("Auto Patch")
 
@@ -47,8 +45,26 @@ DEFAULT_CHECKSUM_STRING = "[0-9a-f]{32}"
 DEFAULT_REPLACEMENT = "31C00F1F00"  # XOR EAX,EAX + 3-byte NOP
 
 CALL_OPCODE = 0xE8  # CALL rel32, always 5 bytes long
-CALL_LENGTH = 5
+CALL_LENGTH = 5  # In bytes
 MAX_CALL_DISTANCE = 16  # How many bytes after the string reference we look for the CALL
+
+# LEA reg, [rip + displacement]: 48/4C 8D xx + 4-byte displacement
+LEA_RIP_PATTERN = re.compile(rb"[\x48\x4c]\x8d[\x05\x0d\x15\x1d\x25\x2d\x35\x3d]")
+LEA_LENGTH = 7  # In bytes
+
+# MOV reg32, address: B8..BF + 4-byte address
+MOV_IMMEDIATE_PATTERN = re.compile(rb"[\xb8-\xbf]")
+MOV_LENGTH = 5  # In bytes
+
+
+@dataclass
+class FILE_FORMAT:
+    """Executable formats `detect_format()` returns."""
+
+    PE: str = "pe"  # Windows
+    ELF: str = "elf"  # Linux
+    MACHO: str = "macho"  # macOS
+
 
 MACHO_MAGICS = (
     b"\xfe\xed\xfa\xce",  # 32-bit
@@ -150,6 +166,12 @@ class Executable:
             return None
         return address + CALL_LENGTH + struct.unpack_from("<i", self.data, call_offset + 1)[0]
 
+    def lea_target(self, lea_offset: int, lea_address: int) -> int:
+        """Address a `LEA reg, [rip + displacement]` at `lea_offset` (loaded at `lea_address`) points to."""
+        # The displacement is relative to the instruction after the LEA
+        displacement = struct.unpack_from("<i", self.data, lea_offset + 3)[0]
+        return lea_address + LEA_LENGTH + displacement
+
 
 def detect_format(path: Path) -> Optional[str]:
     """Executable format from the file's first bytes: "pe" (Windows), "elf" (Linux), "macho" (macOS) or None."""
@@ -181,6 +203,8 @@ class ChecksumSite:
 
 @dataclass
 class ScanResult:
+    """Everything `scan()` found. Check `error` first."""
+
     checksum: Optional[str] = None
     compare_function: Optional[int] = None
     sites: List[ChecksumSite] = field(default_factory=list)
@@ -196,7 +220,7 @@ class ScanResult:
         return bool(self.sites) and not self.unpatched
 
 
-def _find_checksum_strings(exe: Executable, checksum_string: str) -> dict:
+def _find_checksum_strings(exe: Executable, checksum_string: str) -> Dict[int, str]:
     """Return {address: text} for every standalone string fully matching `checksum_string`."""
     # Must be surrounded by NULL bytes, so the checksum inside a longer string (e.g. the version banner) is ignored
     pattern = re.compile(b"(?<=\x00)(?:" + checksum_string.encode() + b")(?=\x00)")
@@ -208,35 +232,60 @@ def _find_checksum_strings(exe: Executable, checksum_string: str) -> dict:
     return found
 
 
-def _find_references(exe: Executable, addresses: dict) -> List[tuple]:
+def _find_references(exe: Executable, addresses: Dict[int, str]) -> List[Tuple[int, int]]:
     """
     Find instructions that load one of `addresses`. Returns (instruction offset, offset right after it).
 
-    - Windows and modern Linux: LEA reg, [rip + displacement]  (48/4C 8D xx + 4-byte displacement)
-    - Older Linux (non-PIE):    MOV reg32, address             (B8..BF + 4-byte address)
+    - Windows and modern Linux: LEA reg, [rip + displacement]
+    - Older Linux (non-PIE):    MOV reg32, address
     """
     references = []
-    lea = re.compile(rb"[\x48\x4c]\x8d[\x05\x0d\x15\x1d\x25\x2d\x35\x3d]", re.DOTALL)
-    mov = re.compile(rb"[\xb8-\xbf]", re.DOTALL)
 
     for section in exe.sections:
         if not section.executable:
             continue
         start, end = section.file_offset, section.file_offset + section.size - 8
 
-        for match in lea.finditer(exe.data, start, end):
+        for match in LEA_RIP_PATTERN.finditer(exe.data, start, end):
             offset = match.start()
-            next_instruction = section.address + (offset - start) + 7
-            if next_instruction + struct.unpack_from("<i", exe.data, offset + 3)[0] in addresses:
-                references.append((offset, offset + 7))
+            lea_address = section.address + (offset - start)
+            if exe.lea_target(offset, lea_address) in addresses:
+                references.append((offset, offset + LEA_LENGTH))
 
         if exe.format == FILE_FORMAT.ELF:
-            for match in mov.finditer(exe.data, start, end):
+            for match in MOV_IMMEDIATE_PATTERN.finditer(exe.data, start, end):
                 offset = match.start()
                 if struct.unpack_from("<I", exe.data, offset + 1)[0] in addresses:
-                    references.append((offset, offset + 5))
+                    references.append((offset, offset + MOV_LENGTH))
 
     return sorted(references)
+
+
+def _find_call_after(data: bytes, start: int, replacement: bytes) -> Optional[int]:
+    """Offset of the first CALL, or already patched `replacement` bytes, within MAX_CALL_DISTANCE of `start`."""
+    for offset in range(start, start + MAX_CALL_DISTANCE):
+        if data[offset : offset + CALL_LENGTH] == replacement:
+            return offset
+        if data[offset] == CALL_OPCODE:
+            return offset
+    return None
+
+
+def _pick_compare_function(call_targets: List[Optional[int]], patched_count: int) -> Optional[int]:
+    """
+    The compare function (strcmp) is the one called after most references, if it is at least half of all sites.
+
+    Already patched sites count towards the total, so once the real sites are patched a leftover
+    call to some other function can't take over the vote.
+    """
+    if not call_targets:
+        return None
+
+    target, count = Counter(call_targets).most_common(1)[0]
+    total = len(call_targets) + patched_count
+    if count * 2 >= total:
+        return target
+    return None
 
 
 def scan(data: bytes, checksum_string: str = DEFAULT_CHECKSUM_STRING, replacement: bytes = None) -> ScanResult:
@@ -249,42 +298,38 @@ def scan(data: bytes, checksum_string: str = DEFAULT_CHECKSUM_STRING, replacemen
         result.error = "Unsupported executable format (only Windows PE and Linux ELF 64-bit are supported)."
         return result
 
-    # The official checksum string
+    # 1. The official checksum string
     strings = _find_checksum_strings(exe, checksum_string)
-    if not strings:
+    unique_strings = sorted(set(strings.values()))
+    if not unique_strings:
         result.error = f"No checksum string matching '{checksum_string}' found."
         return result
-    if len(set(strings.values())) > 1:
-        result.error = f"Found more than one possible checksum string: {sorted(set(strings.values()))}"
+    if len(unique_strings) > 1:
+        result.error = f"Found more than one possible checksum string: {unique_strings}"
         return result
-    result.checksum = next(iter(strings.values()))
+    result.checksum = unique_strings[0]
 
-    # + 3. Code referencing it, and the first CALL (or already patched bytes) after each reference
-    candidates = []
-    for reference_offset, after in _find_references(exe, strings):
-        for offset in range(after, after + MAX_CALL_DISTANCE):
-            if data[offset : offset + CALL_LENGTH] == replacement:
-                result.sites.append(ChecksumSite(reference_offset, offset, patched=True))
-                break
-            if data[offset] == CALL_OPCODE:
-                candidates.append((reference_offset, offset, exe.call_target(offset)))
-                break
+    # 2 + 3. Code referencing the string, and the first CALL (or already patched bytes) after each reference
+    candidates = []  # (reference offset, call offset, call target) of each unpatched CALL
+    for reference_offset, after_reference in _find_references(exe, strings):
+        call_offset = _find_call_after(data, after_reference, replacement)
+
+        if call_offset is None:
+            result.skipped.append(reference_offset)
+        elif data[call_offset : call_offset + CALL_LENGTH] == replacement:
+            result.sites.append(ChecksumSite(reference_offset, call_offset, patched=True))
+        else:
+            candidates.append((reference_offset, call_offset, exe.call_target(call_offset)))
+
+    # 4. Safety check: only patch calls to the compare function. At this point result.sites only holds patched sites.
+    call_targets = [target for _, _, target in candidates]
+    result.compare_function = _pick_compare_function(call_targets, patched_count=len(result.sites))
+
+    for reference_offset, call_offset, target in candidates:
+        if target == result.compare_function:
+            result.sites.append(ChecksumSite(reference_offset, call_offset, patched=False))
         else:
             result.skipped.append(reference_offset)
-
-    # Safety check: the compare function (strcmp) is the one called after most references.
-    # Already patched sites count towards the total, so once the real sites are patched a leftover
-    # call to some other function can't take over the vote.
-    if candidates:
-        target, count = Counter(target for _, _, target in candidates).most_common(1)[0]
-        total = len(candidates) + len(result.sites)  # result.sites only holds patched sites at this point
-        if count * 2 >= total:
-            result.compare_function = target
-        for reference_offset, call_offset, target in candidates:
-            if target == result.compare_function:
-                result.sites.append(ChecksumSite(reference_offset, call_offset, patched=False))
-            else:
-                result.skipped.append(reference_offset)
 
     result.sites.sort(key=lambda s: s.call_offset)
     if not result.sites:

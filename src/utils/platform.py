@@ -3,7 +3,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from config.path_helpers import os_darwin, os_linux, os_windows
+from config.path_helpers import FILE_EXTENSION, os_darwin, os_linux, os_windows
 
 log = logging.getLogger("utils.platform")
 
@@ -21,7 +21,7 @@ def open_in_file_manager(path: Path):
     # `-R` and `/select` is the command to reveal the files. Use this
     # on files, not on directories
 
-    reveal = path.is_file() or (os_darwin() and path.suffix.lower() == ".app")
+    reveal = path.is_file() or (os_darwin() and path.suffix.lower() == FILE_EXTENSION.APP)
 
     if os_windows():
         # The trailing comma is part of the flag: `/select,<path>`. Windows... :eyeroll:

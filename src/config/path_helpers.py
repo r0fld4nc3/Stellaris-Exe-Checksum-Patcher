@@ -2,12 +2,20 @@ from __future__ import annotations
 
 import os
 import platform
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-from .definitions import OS_TYPE
-
 # ---------- OS Detection ----------
+
+
+@dataclass
+class OS_TYPE:
+    """Values `system()` returns."""
+
+    WINDOWS: str = "Windows"
+    LINUX: str = "Linux"
+    DARWIN: str = "Darwin"
 
 
 @lru_cache(maxsize=1)
@@ -28,6 +36,12 @@ def os_darwin() -> bool:
 
 
 # ---------- Core Paths ----------
+
+
+@dataclass
+class FILE_EXTENSION:
+    APP: str = ".app"  # macOS app bundles are folders with this extension
+    EXE: str = ".exe"
 
 
 def get_home_folder() -> Path:

@@ -10,9 +10,9 @@ from config.definitions import (
     HOST,
     REPO_NAME,
     REPO_OWNER,
-    AppConfig,
 )
 from config.path_helpers import get_os_env_config_folder, system
+from config.runtime import AppConfig
 from logger import configure_logging, reset_log_file
 from settings import settings
 from utils import steam_helper

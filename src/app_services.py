@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Optional
 
 # TYPE_CHECKING used to restore IntelliSense auto-completion
 if TYPE_CHECKING:
-    from config.definitions import AppConfig
+    from config.runtime import AppConfig
     from settings.settings import SettingsManager
     from updater.updater import Updater
     from utils.steam_helper import SteamHelper

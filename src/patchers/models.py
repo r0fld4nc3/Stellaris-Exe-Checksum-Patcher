@@ -4,8 +4,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from config import definitions
-from config.path_helpers import os_windows, system
+from config.path_helpers import OS_TYPE, os_windows, system
 
 log = logging.getLogger("Patcher Models")
 
@@ -18,9 +17,9 @@ class TRANSLATION_LAYER_ENUM(str, Enum):
 
 
 class Platform(str, Enum):
-    WINDOWS = definitions.OS_TYPE.WINDOWS.lower()
-    LINUX = definitions.OS_TYPE.LINUX.lower()
-    DARWIN = definitions.OS_TYPE.DARWIN.lower()
+    WINDOWS = OS_TYPE.WINDOWS.lower()
+    LINUX = OS_TYPE.LINUX.lower()
+    DARWIN = OS_TYPE.DARWIN.lower()
 
     @classmethod
     def detect_current(cls) -> "Platform":
@@ -35,6 +34,35 @@ class Platform(str, Enum):
             return cls(str(value).lower()) if value else None
         except ValueError:
             return None
+
+
+@dataclass
+class PatchPatternProperties:
+    """
+    Represents properties that can be obtained from the `PatchPattern` class.
+
+    Usage example:
+
+    ```
+    patches[patch_name] = PatchPattern(
+        display_name=patch_data.get(PatchPatternProperties.display_name, "N/A"),
+        description=patch_data.get(PatchPatternProperties.description, "N/A"),
+        required=patch_data.get(PatchPatternProperties.required, False),
+        enabled=patch_data.get(PatchPatternProperties.enabled, False),
+        checksum_string=patch_data.get(
+            PatchPatternProperties.checksum_string, auto_patch.DEFAULT_CHECKSUM_STRING
+        ),
+        replace_call_with=patch_data[PatchPatternProperties.replace_call_with],
+    )
+    ```
+    """
+
+    display_name: str = "display_name"
+    description: str = "description"
+    required: str = "required"
+    enabled: str = "enabled"
+    checksum_string: str = "checksum_string"
+    replace_call_with: str = "replace_call_with"
 
 
 @dataclass
@@ -84,6 +112,32 @@ class PatchConfiguration:
             return None
 
         return cls(game=selected_game)
+
+
+@dataclass
+class PlatformConfigProperties:
+    """
+    Represents properties that can be obtained from the `PlatformConfig` class.
+
+    Usage example:
+
+    ```
+    for platform_key, platform_data in self.config.items():
+        platforms[platform_key] = PlatformConfig(
+            platform_name=platform_key,
+            description=platform_data.get(PlatformConfigProperties.description, "N/A"),
+            exe_filename=platform_data.get(PlatformConfigProperties.exe_filename, ""),
+            path_postfix=platform_data.get(PlatformConfigProperties.path_postfix, ""),
+            patches=self._parse_patches(platform_key, platform_data.get(PlatformConfigProperties.patches, {})),
+        )
+    ```
+    """
+
+    platform_name: str = "platform_name"
+    description: str = "description"
+    exe_filename: str = "exe_filename"
+    path_postfix: str = "path_postfix"
+    patches: str = "patches"
 
 
 @dataclass
