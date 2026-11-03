@@ -30,8 +30,8 @@ from PySide6.QtWidgets import (
 
 from app_services import services
 from config.definitions import APP_VERSION_STR, SUPPORTED_GAMES, TRACKING_BRANCH
-from config.path_helpers import os_darwin, os_linux, os_windows
-from messages.messages import Message, fetch_message
+from config.path_helpers import os_linux, os_windows
+from messages.messages import Message, fetch_message, save_message_as_seen
 
 # Patch Patterns
 from patch_patterns.patterns import (
@@ -45,7 +45,7 @@ from thread_utils import Threader, WorkerSignals
 from ui.utils import get_qt_platform
 from utils.platform import WAYLAND, X11
 
-from .resources import AppFont, AppIcon, AppStyle, IconAchievementState, ResourceManager
+from .resources import AppFont, AppIcon, IconAchievementState, ResourceManager
 from .utils import (
     EventFilterMoveResize,
     find_game_path,
@@ -1030,6 +1030,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         if message.is_new:
             log.info("Showing message dialog.", silent=True)
             # self.show_message() # TODO
+            # save_message_as_seen(message)
 
     @Slot()
     def open_faq_window(self):
