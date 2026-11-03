@@ -110,6 +110,7 @@ class AppSettings(AutoSaveHookedSettingsClass):
     selected_game: str = ""
     steam_install_path: str = ""
     games: dict[str, GameSettings] = field(default_factory=dict)
+    last_seen_message_hash: str = ""  # Fingerprint of the last remote message the user closed
 
     # --- Kept in memory ---
     window_width: int = memory(800)
@@ -117,4 +118,5 @@ class AppSettings(AutoSaveHookedSettingsClass):
     update_last_checked: int = memory(0)
     update_available: bool = memory(False)
     patch_patterns_update_last_checked: int = memory(0)
+    message_last_checked: int = memory(0)
     max_allowed_binary_backups: int = memory(1)

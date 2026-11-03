@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 from app_services import services
 from config.definitions import APP_VERSION_STR, SUPPORTED_GAMES, TRACKING_BRANCH
 from config.path_helpers import os_darwin, os_linux, os_windows
+from messages.messages import Message, fetch_message
 
 # Patch Patterns
 from patch_patterns.patterns import (
@@ -329,6 +330,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Track if Configure Patch Dialog Opened ---
         self.patch_config_dialog: TabOptionsDialog | None = None
 
+        # --- Remote message, from last fetch. None until the startup fetch finishes ---
+        self.message: Message | None = None
+
         # --- Cache Configuration ---
         self.multi_game_patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
 
@@ -365,6 +369,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.start_thread(self.fetch_patterns_thread)
 
         self.check_update()
+        self.check_message()
 
     def load_settings(self):
         if not self.configuration.game:
@@ -1004,6 +1009,22 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         else:
             self.txt_browser_project_link.setHtml(self.project_link_html)
             self.lbl_title.setText(self.window_title)
+
+    def check_message(self):
+        """
+        Fetch the remote message in the background.
+        `fetch_message()` already handles `--no-conn` and the cooldown.
+        """
+        log.debug("Checking for remote message.")
+
+        thread_message = Threader(target=fetch_message)
+        thread_message.signals.result.connect(self.check_message_finished)
+        self.start_thread(thread_message)
+
+    @Slot(object)
+    def check_message_finished(self, message: Message):
+        self.message = message
+        log.debug(f"Message check finished: {message.status.value} ({message.fingerprint or 'no fingerprint'})")
 
     @Slot()
     def open_faq_window(self):
