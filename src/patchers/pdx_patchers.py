@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from app_services import services
-from config.path_helpers import FILE_EXTENSION, os_darwin
+from config.path_helpers import FILE_EXTENSION
 from patchers import auto_patch
 from patchers.models import (
     KEY_VERSION_LATEST,
@@ -172,12 +172,22 @@ class GamePatcher:
     # Backups
     # ------------------------------------------------------------------------
 
-    @staticmethod
-    def _backup_target(file_path: Path, platform: Platform) -> Path:
-        """What to back up before patching `file_path`."""
-        if platform == Platform.DARWIN and not file_path.suffix.lower() == FILE_EXTENSION.EXE:
-            # Back up the whole .app folder: <name>.app/Contents/MacOS/<binary>
-            return file_path.parent.parent.parent
+    def _backup_target(self, file_path: Path, platform: Platform) -> Path:
+        """
+        What to back up before patching `file_path`.
+        The whole bundle (ex.: macOS .app) if it's inside one.
+        """
+
+        platform_config = self.get_platform_config(platform)
+        if not platform_config:
+            # Unknown platform
+            return file_path
+
+        bundle_root = platform_config.bundle_root(file_path)
+        if bundle_root:
+            # macOS bundle root path
+            return bundle_root
+
         return file_path
 
     def _create_backup(self, file_path: Path) -> bool:
@@ -189,12 +199,8 @@ class GamePatcher:
             log.info(f"Backup creation disabled (max_allowed_binary_backups = {max_allowed_backups})", silent=True)
             return True
 
-        if os_darwin() or file_path.is_file():
-            backup_directory = file_path.parent
-        else:
-            backup_directory = file_path
-
-        self._delete_old_backups(backup_directory, max_allowed_backups)
+        # Backups sit next to what is backed up
+        self._delete_old_backups(file_path.parent, max_allowed_backups)
 
         timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
         backup_path = Path(f"{file_path}-{timestamp_str}.orig")

@@ -172,6 +172,29 @@ class PlatformConfig:
     path_postfix: str
     patches: Dict[str, PatchPattern]
 
+    def bundle_root(self, binary_path: Path) -> Optional[Path]:
+        """
+        The app bundle folder holding `binary_path`, found by removing `path_postfix` from its end.
+
+        Ex.: `Stellaris.app/Contents/MacOS/stellaris` with postfix `Contents/MacOS/stellaris` -> `Stellaris.app`.
+        None if this platform has no `path_postfix` or `binary_path` doesn't end with it.
+        """
+        if not self.path_postfix:
+            return None
+
+        # Go up one folder for each part of the postfix: Contents/MacOS/stellaris -> 3 folders up
+        fp_parts = len(Path(self.path_postfix).parts)
+        if fp_parts > len(binary_path.parents):
+            return None
+
+        bundle_root = binary_path.parents[fp_parts - 1]
+
+        # Only a bundle if the binary is at `path_postfix` inside it
+        if bundle_root / self.path_postfix != binary_path:
+            return None
+
+        return bundle_root
+
 
 @dataclass
 class GameExecutable:
