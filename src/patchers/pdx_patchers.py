@@ -3,6 +3,7 @@
 import datetime
 import json
 import logging
+import re
 import shutil
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
@@ -199,8 +200,7 @@ class GamePatcher:
             log.info(f"Backup creation disabled (max_allowed_binary_backups = {max_allowed_backups})", silent=True)
             return True
 
-        # Backups sit next to what is backed up
-        self._delete_old_backups(file_path.parent, max_allowed_backups)
+        self._delete_old_backups(file_path, max_allowed_backups)
 
         timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
         backup_path = Path(f"{file_path}-{timestamp_str}.orig")
@@ -220,22 +220,52 @@ class GamePatcher:
             log.error(f"Failed to create backup: {e}")
             return False
 
-    @staticmethod
-    def _delete_old_backups(backup_directory: Path, max_allowed_backups: int) -> None:
-        """Delete the oldest backups so there is room for one more within `max_allowed_backups`."""
-        log.info(f"Deleting backups if reached or over max allowance: {max_allowed_backups}", silent=True)
-        log.info(f"Processing backup directory: {backup_directory}", silent=True)
+    def find_binary_backups(self, binary_path: Union[Path, str]) -> List[Path]:
+        """
+        Backups the Patcher made of the game binary at `binary_path`, oldest first.
+
+        Backups sit next to what was backed up and are named after it:
+        `<name>-<timestamp>.orig` now, `<name>_<timestamp>.orig` or `<name>.orig` in older versions.
+        If the binary is inside a bundle (ex.: macOS .app), the whole bundle is backed up, so its backups are included too.
+        """
+        binary_path = Path(binary_path)
+
+        targets = [binary_path]
+        for platform_config in self.platforms.values():
+            bundle_root = platform_config.bundle_root(binary_path)
+            if bundle_root:
+                targets.append(bundle_root)
 
         backups: List[Path] = []
-        for item in backup_directory.iterdir():
-            if ".orig" in item.name.lower():
-                backups.append(item)
+        for target in targets:
+            folder = target.parent
+            if not folder.is_dir():
+                continue
+
+            pattern = re.compile(rf"^{re.escape(target.name)}([-_].+)?\.orig$", re.IGNORECASE)
+            try:
+                for item in folder.iterdir():
+                    if pattern.match(item.name):
+                        backups.append(item)
+            except OSError as e:
+                log.warning(f"Unable to list backups in '{folder}': {e}")
+
+        backups = sorted(set(backups), key=lambda item: item.stat().st_mtime)
+        log.debug(f"Binary backups of '{binary_path}': {backups}")
+        return backups
+
+    def _delete_old_backups(self, backup_target: Path, max_allowed_backups: int) -> None:
+        """Delete the oldest backups of `backup_target` so there is room for one more within `max_allowed_backups`."""
+        log.info(f"Deleting backups if reached or over max allowance: {max_allowed_backups}", silent=True)
+        log.info(f"Processing backups of: {backup_target}", silent=True)
+
+        # Only backups of this target, so backups of other files in the folder keep their own limit
+        backups = self.find_binary_backups(backup_target)
 
         if len(backups) < max_allowed_backups:
             log.info(f"No backups to delete, found {len(backups)}/{max_allowed_backups}")
             return
 
-        backups.sort(key=lambda backup: backup.stat().st_mtime)
         log.info(f"Sorted backups: {backups}", silent=True)
 
         num_to_keep = max_allowed_backups - 1
