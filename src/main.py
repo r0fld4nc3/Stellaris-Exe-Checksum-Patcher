@@ -57,6 +57,10 @@ def main():
         config.prevent_conn = True
         log.info("Network blocking is ENABLED (--no-conn flag)")
 
+    if args.prevent_save_write:
+        config.prevent_settings_save = True
+        log.info("Prevent settings write is ENABLED (--prevent-settings-write)")
+
     # Importing here so the no-conn monkey patch works
     from updater import updater
 

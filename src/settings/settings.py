@@ -179,6 +179,13 @@ class SettingsManager:
 
     def save_settings(self) -> bool:
         """Write the current settings to disk. Thread-safe call."""
+
+        prevent_write: bool = get_config().prevent_settings_save
+
+        if prevent_write:
+            log.info("Prevent write is active. Skipping writing changes.", silent=True)
+            return False
+
         with self.lock:
             if not self.can_save:
                 log.warning("Saving is disabled this session (settings file was unreadable).", silent=True)

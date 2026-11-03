@@ -22,6 +22,7 @@ class AppConfig:
 
     debug: bool = False
     prevent_conn: bool = False
+    prevent_settings_save: bool = False
     log_file: Path = Path.home() / HOST / APP_NAME / f"{APP_NAME}.log"
     log_level: int = logging.INFO
     update_check_cooldown: int = 60
