@@ -66,7 +66,6 @@ class Message:
         True if there is a message and user has not closed this version of it.
         """
         is_new = self.status == MessageStatus.AVAILABLE and not self.seen
-        log.info(f"Message '{self.fingerprint}' is new: {is_new}")
         return is_new
 
     def mark_seen(self) -> None:
@@ -122,7 +121,9 @@ def fetch_message() -> Message:
     settings.message_last_checked = int(time.time())
 
     message = _update_cache(text)
-    log.info(f"Message:\nFingerprint: {message.fingerprint}\n{message.text}")
+    log.info(
+        f"Message details:\n{'-'*16}\nFingerprint: {message.fingerprint}\nNew: {message.is_new}\n{'-'*16}\n{message.text}\n{'-'*16}"
+    )
     return message
 
 
