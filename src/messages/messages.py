@@ -8,9 +8,10 @@ What a fetch does with the cache:
 
 - Remote file has text: save to cache.
 - Remote file empty or removed: delete cache, no message.
+- Download fails: keep cache as it is.
 - `--no-conn` or within cooldown: don't download. use cache as it is.
 
-A message counts as new when its fingerprint mismatches from the last one.
+A message counts as new when its fingerprint mismatches from the last one the user closed.
 """
 
 import hashlib
@@ -18,6 +19,7 @@ import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
+from http import HTTPStatus
 
 import certifi
 import requests
@@ -34,21 +36,18 @@ MESSAGE_URL = (
 MESSAGE_CACHE = services().config.config_dir / "messages" / MESSAGE_FILE_NAME
 
 
-class RemoteErrorIds(str, Enum):
-    HTTP_NOT_FOUND = 404
-
-
 class MessageStatus(str, Enum):
     AVAILABLE = "available"  # There is a message to show
     NO_MESSAGE = "no_message"  # Remote file is empty or removed
     DOWNLOAD_FAILED = "download_failed"  # Unable to download and nothing cached
-    NETWORK_BLOCKED = "network_blocked"  # `--no-conn` or nothing is cached
+    NETWORK_BLOCKED = "network_blocked"  # `--no-conn` and nothing is cached
 
 
 @dataclass
 class Message:
     status: MessageStatus
     text: str = ""
+    seen: bool = False  # User closed this version of the message. Set from settings when the message is created
 
     @property
     def fingerprint(self) -> str:
@@ -61,15 +60,15 @@ class Message:
             return ""
         return hashlib.sha256(self.text.encode("utf-8")).hexdigest()
 
-    def is_new(self, last_seen_fingerprint: str) -> bool:
+    @property
+    def is_new(self) -> bool:
         """
-        True if there is a message and user has not closed this version if it.
+        True if there is a message and user has not closed this version of it.
         """
-        is_new = self.status == MessageStatus.AVAILABLE and self.fingerprint != last_seen_fingerprint
-        log.info(
-            f"Current message fingerprint '{self.fingerprint}' {'differs from' if is_new else 'equals'} last seen '{last_seen_fingerprint}'."
-        )
-        return is_new
+        return self.status == MessageStatus.AVAILABLE and not self.seen
+
+    def mark_seen(self) -> None:
+        self.seen = True
 
 
 def _normalise(text: str) -> str:
@@ -105,7 +104,7 @@ def fetch_message() -> Message:
         log.warning(f"Unable to download the message: {e}")
         return read_cached_message(status_if_missing=MessageStatus.DOWNLOAD_FAILED)
 
-    if response.status_code == RemoteErrorIds.HTTP_NOT_FOUND:
+    if response.status_code == HTTPStatus.NOT_FOUND:
         # Message file was removed
         text = ""
     elif response.ok:
@@ -117,6 +116,8 @@ def fetch_message() -> Message:
 
     # Cooldown only starts after a definitive answer.
     # Failed attempts don't count so it can be retried.
+    settings.message_last_checked = int(time.time())
+
     message = _update_cache(text)
     log.info(f"Message:\nFingerprint: {message.fingerprint}\n{message.text}", silent=True)
     return message
@@ -137,11 +138,11 @@ def _update_cache(text: str) -> Message:
     try:
         MESSAGE_CACHE.parent.mkdir(parents=True, exist_ok=True)
         MESSAGE_CACHE.write_text(text, encoding="utf-8")
-        log.debug(f"Saved message to: {MESSAGE_CACHE}")
+        log.info(f"Saved message to: {MESSAGE_CACHE}", silent=True)
     except OSError as e:
         log.warning(f"Unable to save the message to '{MESSAGE_CACHE}': {e}")
 
-    return Message(MessageStatus.AVAILABLE, text)
+    return _available_message(text)
 
 
 def read_cached_message(status_if_missing: MessageStatus = MessageStatus.NO_MESSAGE) -> Message:
@@ -161,4 +162,29 @@ def read_cached_message(status_if_missing: MessageStatus = MessageStatus.NO_MESS
     if not text:
         return Message(status_if_missing)
 
-    return Message(MessageStatus.AVAILABLE, text)
+    return _available_message(text)
+
+
+def _available_message(text: str) -> Message:
+    """A message to show, marked seen if the user already closed this exact version."""
+    message = Message(MessageStatus.AVAILABLE, text)
+    if message.fingerprint == services().settings.settings.last_seen_message_hash:
+        message.mark_seen()
+    return message
+
+
+def save_message_as_seen(message: Message) -> None:
+    """
+    Mark `message` seen and remember it in settings.
+
+    Requires services.
+    """
+    if not message.fingerprint:
+        # Nothing was shown
+        return
+    message.mark_seen()
+
+    settings = services().settings.settings
+    if settings.last_seen_message_hash != message.fingerprint:
+        settings.last_seen_message_hash = message.fingerprint
+        log.info(f"Marked message as seen: {message.fingerprint}", silent=True)

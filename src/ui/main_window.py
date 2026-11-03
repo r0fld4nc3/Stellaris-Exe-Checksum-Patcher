@@ -1027,7 +1027,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         log.info(
             f"Message check finished: {message.status.value} ({message.fingerprint or 'no fingerprint'})", silent=True
         )
-        if message.is_new(self.settings.settings.last_seen_message_hash):
+        if message.is_new:
             log.info("Showing message dialog.", silent=True)
             # self.show_message() # TODO
 
