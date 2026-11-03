@@ -220,6 +220,14 @@ class GamePatcher:
             log.error(f"Failed to create backup: {e}")
             return False
 
+    def find_bundle_root(self, binary_path: Path) -> Optional[Path]:
+        """The bundle (ex.: macOS .app) holding `binary_path`, using each platform's `path_postfix`. None if not in one."""
+        for platform_config in self.platforms.values():
+            bundle_root = platform_config.bundle_root(binary_path)
+            if bundle_root:
+                return bundle_root
+        return None
+
     def find_binary_backups(self, binary_path: Union[Path, str]) -> List[Path]:
         """
         Backups the Patcher made of the game binary at `binary_path`, oldest first.
@@ -231,10 +239,9 @@ class GamePatcher:
         binary_path = Path(binary_path)
 
         targets = [binary_path]
-        for platform_config in self.platforms.values():
-            bundle_root = platform_config.bundle_root(binary_path)
-            if bundle_root:
-                targets.append(bundle_root)
+        bundle_root = self.find_bundle_root(binary_path)
+        if bundle_root:
+            targets.append(bundle_root)
 
         backups: List[Path] = []
         for target in targets:
