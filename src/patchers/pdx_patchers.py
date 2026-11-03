@@ -10,7 +10,6 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 from app_services import services
 from config.path_helpers import FILE_EXTENSION, os_darwin
 from patchers import auto_patch
-from patchers.auto_patch import FILE_FORMAT
 from patchers.models import (
     KEY_VERSION_LATEST,
     GameExecutable,
@@ -22,13 +21,6 @@ from patchers.models import (
 )
 
 log = logging.getLogger("PDX Patchers")
-
-# Platform each executable file format is built for
-PLATFORM_BY_FILE_FORMAT = {
-    FILE_FORMAT.PE: Platform.WINDOWS,
-    FILE_FORMAT.ELF: Platform.LINUX,
-    FILE_FORMAT.MACHO: Platform.DARWIN,
-}
 
 
 class GamePatcher:
@@ -93,10 +85,8 @@ class GamePatcher:
         return self.platforms.get(platform)
 
     def get_available_patches(self, platform: Optional[Union[Platform, str]] = None) -> Dict[str, PatchPattern]:
-        platform = self._platform_or_current(platform)
-        if isinstance(platform, str):
-            # Platform keys in the patterns file are lowercase
-            platform = platform.lower()
+        # Unknown platforms give None, so no patches, rather than another platform's patches
+        platform = Platform.parse(self._platform_or_current(platform))
 
         platform_config = self.get_platform_config(platform)
         if platform_config:
@@ -136,7 +126,7 @@ class GamePatcher:
             log.error(f"Unable to read executable format of '{file_path}': {e}")
             return None
 
-        return PLATFORM_BY_FILE_FORMAT.get(file_format)
+        return Platform.from_file_format(file_format)
 
     def locate_game_install(self) -> Optional[Path]:
         """
