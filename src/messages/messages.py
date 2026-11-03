@@ -65,10 +65,13 @@ class Message:
         """
         True if there is a message and user has not closed this version of it.
         """
-        return self.status == MessageStatus.AVAILABLE and not self.seen
+        is_new = self.status == MessageStatus.AVAILABLE and not self.seen
+        log.info(f"Message '{self.fingerprint}' is new: {is_new}")
+        return is_new
 
     def mark_seen(self) -> None:
         self.seen = True
+        log.info(f"Marked message '{self.fingerprint}' as seen.")
 
 
 def _normalise(text: str) -> str:
@@ -88,12 +91,12 @@ def fetch_message() -> Message:
     settings = services().settings.settings
 
     if config.prevent_conn:
-        log.info("Network access is blocked. using cached message.", silent=True)
+        log.info("Network access is blocked. using cached message.")
         return read_cached_message(status_if_missing=MessageStatus.NETWORK_BLOCKED)
 
     seconds_since_check = int(time.time()) - settings.message_last_checked
     if seconds_since_check < config.update_check_cooldown:
-        log.debug(f"Message check cooldown still in effect ({seconds_since_check})s since. Using cached message.")
+        log.info(f"Message check cooldown still in effect ({seconds_since_check})s since. Using cached message.")
         return read_cached_message()
 
     log.info(f"Fetching message from remote: {MESSAGE_URL}")
@@ -119,7 +122,7 @@ def fetch_message() -> Message:
     settings.message_last_checked = int(time.time())
 
     message = _update_cache(text)
-    log.info(f"Message:\nFingerprint: {message.fingerprint}\n{message.text}", silent=True)
+    log.info(f"Message:\nFingerprint: {message.fingerprint}\n{message.text}")
     return message
 
 
@@ -128,7 +131,7 @@ def _update_cache(text: str) -> Message:
     text = _normalise(text)
 
     if not text:
-        log.debug("No remote message. Removing cached message.")
+        log.info("No remote message. Removing cached message.")
         try:
             MESSAGE_CACHE.unlink(missing_ok=True)
         except OSError as e:
@@ -138,7 +141,7 @@ def _update_cache(text: str) -> Message:
     try:
         MESSAGE_CACHE.parent.mkdir(parents=True, exist_ok=True)
         MESSAGE_CACHE.write_text(text, encoding="utf-8")
-        log.info(f"Saved message to: {MESSAGE_CACHE}", silent=True)
+        log.info(f"Saved message to: {MESSAGE_CACHE}")
     except OSError as e:
         log.warning(f"Unable to save the message to '{MESSAGE_CACHE}': {e}")
 
@@ -187,4 +190,4 @@ def save_message_as_seen(message: Message) -> None:
     settings = services().settings.settings
     if settings.last_seen_message_hash != message.fingerprint:
         settings.last_seen_message_hash = message.fingerprint
-        log.info(f"Marked message as seen: {message.fingerprint}", silent=True)
+        log.info(f"Saved message as seen: {message.fingerprint}")
