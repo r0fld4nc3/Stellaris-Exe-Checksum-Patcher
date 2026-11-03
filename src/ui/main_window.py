@@ -1024,7 +1024,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     @Slot(object)
     def check_message_finished(self, message: Message):
         self.message = message
-        log.debug(f"Message check finished: {message.status.value} ({message.fingerprint or 'no fingerprint'})")
+        log.info(
+            f"Message check finished: {message.status.value} ({message.fingerprint or 'no fingerprint'})", silent=True
+        )
 
     @Slot()
     def open_faq_window(self):

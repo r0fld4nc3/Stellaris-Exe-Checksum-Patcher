@@ -100,13 +100,16 @@ def fetch_message() -> Message:
         text = ""
     elif response.ok:
         text = response.content.decode("utf-8", errors="replace")
+        log.info(f"Successfully fetched and decoded message.")
     else:
         log.warning(f"Unable to download the message: HTTP {response.status_code}")
         return read_cached_message(status_if_missing=MessageStatus.DOWNLOAD_FAILED)
 
     # Cooldown only starts after a definitive answer.
     # Failed attempts don't count so it can be retried.
-    return _update_cache(text)
+    message = _update_cache(text)
+    log.info(f"Message:\nFingerprint: {message.fingerprint}\n{message.text}", silent=True)
+    return message
 
 
 def _update_cache(text: str) -> Message:
