@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 from config.path_helpers import OS_TYPE, os_windows, system
+from patchers.auto_patch import FILE_FORMAT
 
 log = logging.getLogger("Patcher Models")
 
@@ -17,22 +18,43 @@ class TRANSLATION_LAYER_ENUM(str, Enum):
 
 
 class Platform(str, Enum):
-    WINDOWS = OS_TYPE.WINDOWS.lower()
-    LINUX = OS_TYPE.LINUX.lower()
-    DARWIN = OS_TYPE.DARWIN.lower()
+    """
+    Platform values for the application's own data. These values can be
+    similar to `OS_TYPE` but their similarity is coincidental.
+
+    These values are mapped against `OS_TYPE` returns to correctly
+    pull required data from the patters file.
+    """
+
+    WINDOWS = "windows"
+    LINUX = "linux"
+    DARWIN = "darwin"
 
     @classmethod
     def detect_current(cls) -> "Platform":
-        return cls.parse(system()) or cls.WINDOWS
+        platfrom_by_os = {OS_TYPE.WINDOWS: cls.WINDOWS, OS_TYPE.LINUX: cls.LINUX, OS_TYPE.DARWIN: cls.DARWIN}
+        return platfrom_by_os.get(system(), cls.WINDOWS)
+
+    @classmethod
+    def from_file_format(cls, file_format: Optional[str]) -> Optional["Platform"]:
+        """Platform an executable of `file_format` (from `auto_patch.detect_format()`) is built for. None if unknown."""
+        platforms_by_file_format = {
+            FILE_FORMAT.PE: cls.WINDOWS,
+            FILE_FORMAT.ELF: cls.LINUX,
+            FILE_FORMAT.MACHO: cls.DARWIN,
+        }
+        return platforms_by_file_format.get(file_format)
 
     @classmethod
     def parse(cls, value) -> Optional["Platform"]:
-        """Platform from an enum or a string such as "windows" or "Linux". None if empty or unknown."""
+        """Platform from an enum or a string such as "windows" or "linux". None if empty or unknown."""
         if isinstance(value, cls):
             return value
         try:
-            return cls(str(value).lower()) if value else None
-        except ValueError:
+            return cls(str(value)) if value else None
+        except ValueError as e:
+            log.error("Error parsing Platform from Enum.")
+            log.error(f"{e}", silent=True)
             return None
 
 
