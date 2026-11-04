@@ -1,0 +1,57 @@
+import os
+import subprocess
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Optional
+
+from config.path_helpers import os_darwin, os_linux, os_windows
+
+# Windows process creation flags: the started process keeps running after the app closes
+DETACHED_PROCESS = 0x00000008
+CREATE_NEW_PROCESS_GROUP = 0x00000200
+
+
+class StoreHelper(ABC):
+    """
+    Base for a game store helper (Steam, GOG...): find, launch and validate a game.
+
+    Each store implements the abstract methods. Code any store can use lives here.
+    """
+
+    @abstractmethod
+    def get_game_install_path(self, game_name: str) -> Optional[Path]:
+        """Folder `game_name` is installed in. None if not found."""
+
+    @abstractmethod
+    def launch_game(self, game_name: str) -> None:
+        """Start `game_name` through the store."""
+
+    @abstractmethod
+    def validate_game_files(self, game_name: str, binary_path: Optional[Path]) -> bool:
+        """
+        Ask the store to restore unmodified game files.
+        `binary_path` is the saved game executable, if any. False if validation couldn't start.
+        """
+
+    def run_detached(self, args: list[str]) -> None:
+        """Start `args` as its own process, so it keeps running after the app closes."""
+        if os_windows():
+            subprocess.Popen(args, creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, close_fds=True)
+            return
+
+        subprocess.Popen(
+            args,
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+        )
+
+    def open_url(self, url: str) -> None:
+        """Open a store URL (ex.: steam://...) with the app the OS has registered for it."""
+        if os_windows():
+            os.startfile(url)
+        elif os_linux():
+            self.run_detached(["xdg-open", url])
+        elif os_darwin():
+            self.run_detached(["open", url])

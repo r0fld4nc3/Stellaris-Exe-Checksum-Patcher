@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from config.runtime import AppConfig
     from settings.settings import SettingsManager
     from updater.updater import Updater
-    from utils.steam_helper import SteamHelper
 
 
 @dataclass(slots=True)
@@ -21,7 +20,6 @@ class AppServices:
     config: "AppConfig"
     settings: "SettingsManager"
     updater: "Updater"
-    steam_helper: Optional["SteamHelper"] = None
 
 
 _current: Optional[AppServices] = None

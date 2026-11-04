@@ -91,6 +91,7 @@ class GameSettings(AutoSaveHookedSettingsClass):
     patches: list[str] = field(default_factory=list)
     patched_version: str = ""
     patched_platform: str = ""
+    store: str = ""  # GameStore value. Empty = not picked yet
 
 
 @dataclass
@@ -109,6 +110,8 @@ class AppSettings(AutoSaveHookedSettingsClass):
     include_prerelease_updates: bool = False
     selected_game: str = ""
     steam_install_path: str = ""
+    gog_install_path: str = ""
+    generic_runner_path: str = ""
     games: dict[str, GameSettings] = field(default_factory=dict)
     last_seen_message_hash: str = ""  # Fingerprint of the last remote message the user closed
 

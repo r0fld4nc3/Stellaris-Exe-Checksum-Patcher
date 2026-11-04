@@ -1,10 +1,13 @@
 import logging
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import (
     QCheckBox,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QScrollArea,
     QSlider,
@@ -32,13 +35,18 @@ class UtilitiesTab(OptionsTab):
 
         font = self.ctx.font
 
+        font_section = QFont(font)
+        font_section.setPointSize(18)
+
         utilities_tab_layout = QVBoxLayout(self)
         utilities_tab_layout.setContentsMargins(10, 10, 10, 10)
         utilities_tab_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # --- Title ---
         title_label = QLabel("<b>General Utilities</b>")
-        title_label.setFont(font)
+        title_label.setObjectName("SectionTitle")
+        title_label.setFont(font_section)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         utilities_tab_layout.addWidget(title_label)
 
         # --- Description Label
@@ -136,7 +144,48 @@ class UtilitiesTab(OptionsTab):
         utilities_layout.addWidget(self.chkbox_include_prerelease_updates)
 
         # --- Spacer ---
-        utilities_layout.addStretch()
+        utilities_layout.addWidget(QLabel())
+
+        # --- Launchers ---
+        # What starts the game after patching.
+        launchers_label = QLabel("<b>Launchers</b>")
+        launchers_label.setObjectName("SectionTitle")
+        launchers_label.setFont(font_section)
+        launchers_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        utilities_layout.addWidget(launchers_label)
+
+        self.system_font = QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont)
+
+        launchers_layout = QGridLayout()
+        launchers_layout.setColumnStretch(1, 1)
+        self.steam_launcher_path = self._add_launcher_row(
+            launchers_layout, 0, "Steam:", "Steam executable, used to launch and validate Steam games."
+        )
+        self.gog_launcher_path = self._add_launcher_row(
+            launchers_layout, 1, "GOG Galaxy:", "GOG Galaxy executable, used to launch GOG games."
+        )
+        self.generic_runner_path = self._add_launcher_row(
+            launchers_layout,
+            2,
+            "Generic Runner:",
+            "Anything that can run the game executable (Wine, Bottles, Lutris, Heroic...).\n"
+            "Used when no store launcher can run the patched executable.",
+        )
+
+        generic_runner_args_label = QLabel("Runner Arguments:")
+        generic_runner_args_label.setFont(font)
+        self.generic_runner_args = QLineEdit()
+        self.generic_runner_args.setFont(self.system_font)
+        self.generic_runner_args.setPlaceholderText("{binary}")
+        self.generic_runner_args.setToolTip(
+            "Arguments passed to the Generic Runner.\n" "{binary}: the game executable. {folder}: the folder it's in."
+        )
+        launchers_layout.addWidget(generic_runner_args_label, 3, 0)
+        launchers_layout.addWidget(self.generic_runner_args, 3, 1, 1, 2)
+        utilities_layout.addLayout(launchers_layout)
+
+        # --- Spacer ---
+        utilities_layout.addWidget(QLabel())
 
         # --- Set scrollable widget ---
         utilities_scroll_area.setWidget(utilities_content_widget)
@@ -221,6 +270,28 @@ class UtilitiesTab(OptionsTab):
         welcome_dialog.show()
 
     # --- Helpers ---
+
+    def _add_launcher_row(self, layout: QGridLayout, row: int, label_text: str, tooltip: str) -> QLineEdit:
+        """Label, read-only path field and Browse button on `row` of `layout`. Returns the path field."""
+        font = self.ctx.font
+
+        label = QLabel(label_text)
+        label.setFont(font)
+        label.setToolTip(tooltip)
+
+        path_field = QLineEdit()
+        path_field.setFont(self.system_font)
+        path_field.setReadOnly(True)
+        path_field.setPlaceholderText("Not set")
+        path_field.setToolTip(tooltip)
+
+        btn_browse = QPushButton("Browse...")
+        btn_browse.setFont(font)
+
+        layout.addWidget(label, row, 0)
+        layout.addWidget(path_field, row, 1)
+        layout.addWidget(btn_browse, row, 2)
+        return path_field
 
     def _update_max_backups_label(self, value: int):
         self.max_backup_value_label.setText("Off" if value <= 0 else str(value))

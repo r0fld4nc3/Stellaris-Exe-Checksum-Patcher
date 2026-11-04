@@ -41,6 +41,13 @@ QComboBox:hover {
     border-color: rgba(255, 151, 33, 175);
 }
 
+QLineEdit {
+    color: rgb(255, 255, 255);
+    background-color: rgba(59, 22, 22, 100);
+    border: 4px solid rgb(75, 35, 35);
+    padding: 3px;
+}
+
 QCheckBox {
     color: rgb(255, 255, 255);
     spacing: 10px;
@@ -56,6 +63,13 @@ QCheckBox::indicator {
 QLabel#TitleLabel,
 QWdiget#WindowFunctionsContainer {
     color: rgb(255, 255, 255);
+    background-color: rgb(35, 75, 70);
+    border-radius: 5px;
+}
+
+/* SectionTitle */
+QLabel#SectionTitle {
+    color: rgb(255, 179, 25);
     background-color: rgb(35, 75, 70);
     border-radius: 5px;
 }

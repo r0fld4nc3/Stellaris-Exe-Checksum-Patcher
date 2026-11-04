@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -15,10 +16,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app_ids import APP_IDS
 from config.path_helpers import os_darwin, os_linux
 from patchers import GamePatcher, PatchConfiguration
 from patchers import models as patcher_models
+from stores import GameStore, game_store, get_store_helper
 from thread_utils import Threader
 from utils.helpers import (
     block_signals,
@@ -47,12 +48,17 @@ class GameUtilitiesTab(OptionsTab):
 
         font = self.ctx.font
 
+        font_section = QFont(font)
+        font_section.setPointSize(18)
+
         patch_layout = QVBoxLayout(self)
         patch_layout.setContentsMargins(10, 10, 10, 10)
 
         # --- Game Info Section ---
         info_label = QLabel("<b>Patch Configuration</b>")
-        info_label.setFont(font)
+        info_label.setObjectName("SectionTitle")
+        info_label.setFont(font_section)
+        info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         patch_layout.addWidget(info_label)
 
         desc_label = QLabel("Select what game to patch and with that options.")
@@ -79,7 +85,7 @@ class GameUtilitiesTab(OptionsTab):
         self.platform_picker = QComboBox()
         if os_linux() or os_darwin():
             self.platform_picker.addItem(
-                patcher_models.TRANSLATION_LAYER_ENUM.NATIVE, patcher_models.Platform.detect_current().value
+                patcher_models.TRANSLATION_LAYER_ENUM.NATIVE, patcher_models.Platform.detect_current()
             )
             self.platform_picker.addItem(
                 patcher_models.TRANSLATION_LAYER_ENUM.PROTON, patcher_models.Platform.WINDOWS.value
@@ -87,6 +93,15 @@ class GameUtilitiesTab(OptionsTab):
             self.platform_picker.setFont(font)
             self.platform_picker.setMinimumWidth(100)
             selection_layout.addWidget(self.platform_picker)
+
+        # --- Game Store Dropdown ---
+        # Each item carries the GameStore value saved for the game
+        self.store_picker = QComboBox()
+        for store in GameStore:
+            self.store_picker.addItem(store.display_name, store)
+        self.store_picker.setFont(font)
+        self.store_picker.setToolTip("Where the selected game was installed from.")
+        selection_layout.addWidget(self.store_picker)
 
         # --- Patches Area (Scrollable) ---
         self.patches_scroll_area = QScrollArea()
@@ -129,7 +144,7 @@ class GameUtilitiesTab(OptionsTab):
         btn_validate_game_files = QPushButton("Validate Integrity of Game Files (Steam)")
         btn_validate_game_files.setFont(font)
         btn_validate_game_files.setToolTip("Trigger the validation of game files through Steam.")
-        btn_validate_game_files.clicked.connect(self.validate_steam_game_files)
+        btn_validate_game_files.clicked.connect(self.validate_game_files)
         utilities_layout.addWidget(btn_validate_game_files)
 
         # --- Delete Binary Backups Button ---
@@ -145,6 +160,7 @@ class GameUtilitiesTab(OptionsTab):
         self.ctx.game_changed.connect(self._on_game_changed)
         self.version_combobox.currentIndexChanged.connect(self._on_version_changed)
         self.platform_picker.currentIndexChanged.connect(self._on_platform_changed)
+        self.store_picker.currentIndexChanged.connect(self._on_store_changed)
 
     # --- OptionsTab hooks ---
 
@@ -183,6 +199,7 @@ class GameUtilitiesTab(OptionsTab):
         if saved_platform:
             self.config.platform = saved_platform
         self._show_platform()
+        self._show_store(game)
 
         # Keep the configured version if it still applies, otherwise let the patcher choose.
         # (Changing game resets the configured version, see OptionsContext.select_game.)
@@ -211,6 +228,13 @@ class GameUtilitiesTab(OptionsTab):
         self.config.platform = platform
         self._rebuild_patches()
 
+    def _on_store_changed(self, index: int):
+        if index < 0 or not self.selected_game:
+            return
+        store = GameStore(self.store_picker.itemData(index))
+        log.info(f"{self.selected_game} store changed to: {store.display_name}", silent=True)
+        self.svc.settings.game(self.selected_game).store = store
+
     def _on_patch_toggled(self, patch_name: str, checked: bool):
         selected = self.config.selected_patches
         if checked and patch_name not in selected:
@@ -218,31 +242,22 @@ class GameUtilitiesTab(OptionsTab):
         elif not checked and patch_name in selected:
             selected.remove(patch_name)
 
-    def validate_steam_game_files(self):
+    def validate_game_files(self):
         game = self.selected_game
         if not game:
             log.warning("No game selected. Unable to validate game files.")
             return
 
-        install_path = self._saved_install_path(game)
-        app_id = self._steam_app_id(game, install_path)
-
-        # Don't touch any files unless Steam can actually restore them
-        if not app_id:
-            log.error(f"Unable to determine Steam App ID for '{game}'. Validation aborted.")
+        store_helper = get_store_helper(game)
+        if not store_helper:
+            log.error(f"Unable to validate game files for '{game}'.")
             return
 
-        # Remove the binary file before verifying, so Steam restores an unmodified copy
-        if install_path:
-            game_binary = Path(install_path)
-            if game_binary.is_file():
-                log.info(f"Removing game binary before verifying: {game_binary}")
-                try:
-                    game_binary.unlink()
-                except Exception as e:
-                    log.error(f"Failed to unlink game binary: {e}")
+        install_path = self._saved_install_path(game)
+        binary_path = Path(install_path) if install_path else None
 
-        self.svc.steam_helper.validate_game_files_app_id(app_id)
+        if not store_helper.validate_game_files(game, binary_path):
+            return
 
         try:
             dialog = self.window()
@@ -449,10 +464,19 @@ class GameUtilitiesTab(OptionsTab):
 
     def _show_platform(self):
         """Select the configured platform in the Native/Proton picker (Linux/macOS only)."""
-        index = self.platform_picker.findData(self.config.platform.value)
+        index = self.platform_picker.findData(self.config.platform)
         if index >= 0:
             with block_signals(self.platform_picker):
                 self.platform_picker.setCurrentIndex(index)
+
+    def _show_store(self, game: str):
+        """Select the store `game` uses: the one picked for it, or the default when none was picked yet."""
+        store = game_store(game)
+
+        index = self.store_picker.findData(store)
+        if index >= 0:
+            with block_signals(self.store_picker):
+                self.store_picker.setCurrentIndex(index)
 
     def _show_versions(self, game: str):
         """Fill the version dropdown for `game` and select the configured version."""
@@ -506,16 +530,6 @@ class GameUtilitiesTab(OptionsTab):
         """Saved game binary path for the selected binary type (native or Proton)."""
         game_settings = self.svc.settings.game(game)
         return game_settings.proton_install_path if self.config.is_proton else game_settings.install_path
-
-    def _steam_app_id(self, game: str, install_path: Optional[str]) -> Optional[str]:
-        """Steam App ID from the game's install folder, falling back to the known App IDs."""
-        app_id = self.svc.steam_helper.get_app_id_from_install_path(install_path) if install_path else None
-
-        if not app_id or app_id == "-1":
-            known_id = APP_IDS.get(game.lower())
-            app_id = str(known_id) if known_id else None
-
-        return app_id
 
     def _find_game_path_worker_thread(self) -> Optional[Path]:
         """

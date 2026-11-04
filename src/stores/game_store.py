@@ -1,0 +1,49 @@
+import logging
+from typing import Optional
+
+from app_services import services
+
+from .base import StoreHelper
+from .models import GameStore
+from .steam import SteamHelper
+
+log = logging.getLogger("Game Stores")
+
+
+# Store for games without one picked yet. Steam was the only store before stores could be picked.
+DEFAULT_GAME_STORE = GameStore.STEAM
+
+# One helper per store. Generic has none: the user picks the executable themselves.
+_STORE_HELPERS: dict[GameStore, StoreHelper] = {GameStore.STEAM: SteamHelper()}
+
+
+def game_store(game_name: str) -> GameStore:
+    """
+    Store to locate, launch and validate `game_name` with: the one picked for it in Game Utilities.
+
+    `DEFAULT_GAME_STORE` when none was picked yet, or the saved value is unknown.
+    Only reads settings: never creates an entry for `game_name`.
+    """
+    settings = services().settings
+    if not settings.has_game(game_name):
+        return DEFAULT_GAME_STORE
+
+    saved_store = settings.game(game_name).store
+    if not saved_store:
+        return DEFAULT_GAME_STORE
+
+    store = GameStore.parse(saved_store)
+    if not store:
+        log.warning(f"Invalid saved store '{saved_store}' for {game_name}. Using {DEFAULT_GAME_STORE.display_name}.")
+        return DEFAULT_GAME_STORE
+
+    return store
+
+
+def get_store_helper(game_name: str) -> Optional[StoreHelper]:
+    """Helper for the store `game_name` is installed from. None if that store has no helper."""
+    store = game_store(game_name)
+    helper = _STORE_HELPERS.get(store)
+    if not helper:
+        log.warning(f"No store helper for {store.display_name}.")
+    return helper

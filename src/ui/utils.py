@@ -29,6 +29,7 @@ from app_services import services
 from config.path_helpers import os_darwin, os_linux
 from patchers import MultiGamePatcher
 from patchers import models as patcher_models
+from stores import get_store_helper
 from utils.platform import WAYLAND, X11
 
 log = logging.getLogger("UI UTILS")
@@ -438,7 +439,7 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
 
     Attemps to find the game executable by:
     1. Checking saved path in settings
-    2. Auto-locating via Steam detection
+    2. Auto-locating through the game's store
 
     Args:
         patcher: The multi-game patcher instance
@@ -480,8 +481,14 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
             log.warning(f"Saved game path found, but executable is invalid.")
 
     # Auto-locate
+    store_helper = get_store_helper(configuration.game)
+    if not store_helper:
+        log.error(f"Failed to locate {configuration.game} installation.")
+        return None
+
     log.info(f"Attempting to auto-locate game installation.")
-    auto_located_path = game_patcher.locate_game_install()
+    game_install_path = store_helper.get_game_install_path(configuration.game)
+    auto_located_path = game_patcher.locate_game_install(game_install_path)
 
     # macOS: point inside the .app bundle at the actual binary
     if auto_located_path and os_darwin() and not configuration.is_proton and path_postfix:

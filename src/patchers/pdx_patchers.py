@@ -129,15 +129,13 @@ class GamePatcher:
 
         return Platform.from_file_format(file_format)
 
-    def locate_game_install(self) -> Optional[Path]:
+    def locate_game_install(self, game_install_path: Optional[Path]) -> Optional[Path]:
         """
-        Returns path to game executable.
+        Returns path to game executable inside `game_install_path`, the game's install folder.
 
         Call `get_executable_info()` first, as it sets which executable to look for.
         """
         log.info("Locating game install...")
-
-        game_install_path = services().steam_helper.get_game_install_path(self.game_name)
         log.debug(f"{game_install_path=}")
 
         if not game_install_path or not game_install_path.exists():

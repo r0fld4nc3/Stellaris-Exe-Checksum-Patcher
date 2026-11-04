@@ -1,22 +1,20 @@
 # built-ins
 import json
 import logging
-import os
-import subprocess
 from pathlib import Path
 from typing import Optional, Union
 
 import vdf
 
-from app_ids import APP_IDS
 from app_services import services
 from config.path_helpers import os_darwin, os_linux, os_windows
 from utils import registry_helper
 from utils.encodings import safe_read_file_encode
 
-log = logging.getLogger("Steam Helper")
+from .base import StoreHelper
+from .models import GameStore
 
-_current: Optional["SteamHelper"] = None
+log = logging.getLogger("Steam Helper")
 
 # KEY_LOCAL_MACHINE
 STEAM_REGISTRY_PATH_32 = r"SOFTWARE\Valve\Steam"
@@ -26,6 +24,7 @@ STEAM_REGISTRY_PATH_64 = r"SOFTWARE\WOW6432Node\Valve\Steam"
 STEAM_INSTALL_LOCATION_KEY = "InstallPath"
 STEAM_STEAMAPPS_FOLDER = "steamapps"
 STEAM_APP_ID_FILE_NAME = "steam_appid.txt"
+STEAM_EXECUTABLE_WINDOWS = "steam.exe"
 
 # Constants for common folder names
 STEAM_CONFIG_FOLDER = "config"
@@ -42,7 +41,6 @@ VDF_PATH_KEY = "path"
 STEAM_CLIENT_INVOKE_URL = "steam://"
 STEAM_CLIENT_INVOKE_VALIDATE = "validate"
 STEAM_CLIENT_INVOKE_RUN = "rungameid"
-STEAM_CLIENT_INVOKE_RUN_DIALOG = "launch"
 
 LINUX_DISTRO_PATHS = [
     # Standard location
@@ -57,7 +55,7 @@ LINUX_DISTRO_PATHS = [
 MACOS_DISTRO_PATHS = [Path.home() / "Library" / "Application Support" / "Steam"]
 
 
-class SteamHelper:
+class SteamHelper(StoreHelper):
     def __init__(self):
         self.steam_install: Optional[Path] = None
         self.steam_library_paths: list[Path] = []
@@ -77,14 +75,8 @@ class SteamHelper:
 
         if not self.steam_library_paths:
             self.steam_library_paths = self.get_steam_libraries()
-            if not self.steam_library_paths or self.steam_library_paths == []:
-                log.error("No Steam Libraries found.")
-                return {}
-
-        if not self.steam_library_paths:
-            self.steam_library_paths = self.get_steam_libraries()
             if not self.steam_library_paths:
-                log.error(f"No Steam Libraries found.")
+                log.error("No Steam Libraries found.")
                 return {}
 
         log.info(f"Steam Library paths: {self.steam_library_paths}", silent=True)
@@ -267,14 +259,14 @@ class SteamHelper:
             # Try 32-bit if 64 failed.
             if not steam_path_str:
                 steam_path_str = registry_helper.read_key(STEAM_REGISTRY_PATH_32, STEAM_INSTALL_LOCATION_KEY)
-        elif os_linux():
-            search_paths = LINUX_DISTRO_PATHS
-            for distro_path in search_paths:
-                if Path(distro_path).exists():
-                    steam_path_str = str(distro_path)
-                    break
-        elif os_darwin():
-            search_paths = MACOS_DISTRO_PATHS
+        else:
+            if os_linux():
+                search_paths = LINUX_DISTRO_PATHS
+            elif os_darwin():
+                search_paths = MACOS_DISTRO_PATHS
+            else:
+                search_paths = []
+
             for distro_path in search_paths:
                 if Path(distro_path).exists():
                     steam_path_str = str(distro_path)
@@ -335,151 +327,98 @@ class SteamHelper:
 
         return app_id
 
-    def validate_game_files_app_name(self, app_name: str) -> None:
-        # Wrapper
-        verify_game_files_app_name(app_name)
+    def get_app_id(self, game_name: str, binary_path: Optional[Path]) -> Optional[str]:
+        """Steam App ID from the game's install folder, falling back to the known App IDs."""
+        app_id = self.get_app_id_from_install_path(binary_path) if binary_path else None
 
-    def validate_game_files_app_id(self, app_id: int | str) -> None:
-        # Wrapper
-        validate_game_files_app_id(app_id)
+        if not app_id or app_id == "-1":
+            app_id = self.get_known_app_id(game_name)
 
-    def launch_game_app_name(self, app_name: str) -> None:
-        # Wrapper
-        launch_game_app_name(app_name)
+        return app_id
 
-    def launch_game_app_id(self, app_id: int | str) -> None:
-        # Wrapper
-        launch_game_app_id(app_id)
+    def get_known_app_id(self, game_name: str) -> Optional[str]:
+        """Steam App ID for `game_name` from the known game IDs. None if unknown."""
+        steam_info = GameStore.STEAM.game_info(game_name)
+        if not steam_info:
+            return None
 
+        return str(steam_info.id)
 
-def validate_game_files_app_id(app_id: int | str) -> None:
-    steam_bin_win = services().settings.settings.steam_install_path + "/steam.exe"
+    def launch_game(self, game_name: str) -> None:
+        app_id = self.get_known_app_id(game_name)
 
-    steam_cmd_url = f"{STEAM_CLIENT_INVOKE_URL}{STEAM_CLIENT_INVOKE_VALIDATE}/{app_id}"
+        if not app_id:
+            log.error(f"Unable to find Steam App ID for: {game_name}")
+            return
 
-    log.info(f"Calling Verify Game Files for App ID: {app_id}")
-    log.info(f"Steam Validate Integrity Command: {steam_cmd_url}", silent=True)
+        self.launch_app_id(app_id)
 
-    try:
-        if os_windows():
-            # Windows specific flags for process detachment
-            DETACHED_PROCESS = 0x00000008
-            CREATE_NEW_PROCESS_GROUP = 0x00000200
+    def validate_game_files(self, game_name: str, binary_path: Optional[Path]) -> bool:
+        app_id = self.get_app_id(game_name, binary_path)
 
-            if Path(steam_bin_win).exists():
-                log.info(f"Attempting with Steam binary: {steam_bin_win} {steam_cmd_url}", silent=True)
-                subprocess.Popen(
-                    [steam_bin_win, steam_cmd_url],
-                    creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP,
-                    close_fds=True,
-                )
-            else:
-                log.info(f"Attempting with os.startfile({steam_cmd_url})", silent=True)
-                # Fallback: Let OS handle the protocol
-                os.startfile(steam_cmd_url)
-        elif os_linux():
-            subprocess.Popen(
-                ["xdg-open", steam_cmd_url],
-                start_new_session=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-            )
-        elif os_darwin():
-            subprocess.Popen(
-                ["open", steam_cmd_url],
-                start_new_session=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-            )
+        # Don't touch any files unless Steam can actually restore them
+        if not app_id:
+            log.error(f"Unable to determine Steam App ID for '{game_name}'. Validation aborted.")
+            return False
 
-    except Exception as e:
-        log.error(f"Error calling game files verification: {e}")
+        # Remove the binary file before verifying, so Steam restores an unmodified copy
+        if binary_path and binary_path.is_file():
+            log.info(f"Removing game binary before verifying: {binary_path}")
+            try:
+                binary_path.unlink()
+            except Exception as e:
+                log.error(f"Failed to unlink game binary: {e}")
 
+        self.validate_app_id(app_id)
+        return True
 
-def verify_game_files_app_name(app_name: str) -> None:
-    app_id = APP_IDS.get(app_name, -1)
+    def validate_app_id(self, app_id: int | str) -> None:
+        steam_cmd_url = f"{STEAM_CLIENT_INVOKE_URL}{STEAM_CLIENT_INVOKE_VALIDATE}/{app_id}"
 
-    if app_id == -1:
-        log.error(f"Unable to find App ID for app name: {app_name} -> {app_id}")
-        return
+        log.info(f"Calling Verify Game Files for App ID: {app_id}")
+        log.info(f"Steam Validate Integrity Command: {steam_cmd_url}", silent=True)
 
-    validate_game_files_app_id(app_id)
+        try:
+            self.open_steam_url(steam_cmd_url)
+        except Exception as e:
+            log.error(f"Error calling game files verification: {e}")
 
+    def launch_app_id(self, app_id: int | str) -> None:
+        steam_cmd_url = f"{STEAM_CLIENT_INVOKE_URL}{STEAM_CLIENT_INVOKE_RUN}/{app_id}"
 
-def launch_game_app_id(app_id: int | str) -> None:
-    steam_bin = services().settings.settings.steam_install_path
-    steam_cmd_url = f"{STEAM_CLIENT_INVOKE_URL}{STEAM_CLIENT_INVOKE_RUN}/{app_id}"
+        log.info(f"Launching game with App ID: {app_id}")
+        log.info(f"Steam Launch Command: {steam_cmd_url}", silent=True)
 
-    log.info(f"Launching game with App ID: {app_id}")
-    log.info(f"Steam Launch Command: {steam_cmd_url}", silent=True)
+        try:
+            self.open_steam_url(steam_cmd_url)
+        except Exception as e:
+            log.error(f"Error launching game: {e}")
 
-    try:
-        if os_windows():
-            DETACHED_PROCESS = 0x00000008
-            CREATE_NEW_PROCESS_GROUP = 0x00000200
+    def open_steam_url(self, steam_cmd_url: str) -> None:
+        """Open a steam:// URL: through steam.exe on Windows when it's found, otherwise with the system URL handler."""
+        steam_exe = self.get_windows_steam_executable()
 
-            if steam_bin:
-                subprocess.Popen(
-                    [steam_bin, steam_cmd_url],
-                    creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP,
-                    close_fds=True,
-                )
-            else:
-                os.startfile(steam_cmd_url)
-        elif os_linux():
-            subprocess.Popen(
-                ["xdg-open", steam_cmd_url],
-                start_new_session=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-            )
-        elif os_darwin():
-            subprocess.Popen(
-                ["open", steam_cmd_url],
-                start_new_session=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-            )
+        if steam_exe:
+            log.info(f"Attempting with Steam binary: {steam_exe} {steam_cmd_url}", silent=True)
+            self.run_detached([str(steam_exe), steam_cmd_url])
+            return
 
-    except Exception as e:
-        log.error(f"Error launching game: {e}")
+        # Let the OS handle the steam:// protocol
+        log.info(f"Attempting with the system URL handler: {steam_cmd_url}", silent=True)
+        self.open_url(steam_cmd_url)
 
+    def get_windows_steam_executable(self) -> Optional[Path]:
+        """steam.exe in the saved Steam folder. None when not on Windows, or when it can't be found."""
+        if not os_windows():
+            return None
 
-def launch_game_app_name(app_name: str) -> None:
-    app_id = APP_IDS.get(app_name, -1)
+        steam_install_path = services().settings.settings.steam_install_path
+        if not steam_install_path:
+            return None
 
-    if app_id == -1:
-        log.error(f"Unable to find App ID for app name: {app_name} -> {app_id}")
-        return
+        steam_exe = Path(steam_install_path) / STEAM_EXECUTABLE_WINDOWS
+        if not steam_exe.is_file():
+            log.warning(f"Steam executable not found: {steam_exe}")
+            return None
 
-    launch_game_app_id(app_id)
-
-
-def init() -> SteamHelper:
-    global _current
-
-    if _current:
-        if isinstance(_current, SteamHelper):
-            return _current
-        else:
-            raise RuntimeError(f"Current SteamHelper Instance is invalid: {_current}")
-
-    _current = SteamHelper()
-
-    return _current
-
-
-def get() -> SteamHelper:
-    global _current
-
-    if not isinstance(_current, SteamHelper):
-        raise RuntimeError(f"Current SteamHelper Instance is invalid: {_current}")
-
-    if not _current or _current is None:
-        raise RuntimeError(f"SteamHelper is not valid or uninitialised: {_current}")
-
-    return _current
+        return steam_exe

@@ -15,7 +15,6 @@ from config.path_helpers import get_os_env_config_folder, system
 from config.runtime import AppConfig
 from logger import configure_logging, reset_log_file
 from settings import settings
-from utils import steam_helper
 
 log = logging.getLogger("Entry_Point")
 
@@ -71,10 +70,9 @@ def main():
 
     stgs = settings.init()
     upd = updater.init(REPO_OWNER, REPO_NAME)
-    steam = steam_helper.init()
 
     # Bootstrap services
-    init_services(AppServices(config=config, settings=stgs, updater=upd, steam_helper=steam))
+    init_services(AppServices(config=config, settings=stgs, updater=upd))
 
     log.info(f"[INIT] Running Application.")
 

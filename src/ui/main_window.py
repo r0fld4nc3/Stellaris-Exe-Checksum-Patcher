@@ -41,6 +41,7 @@ from patch_patterns.patterns import (
 )
 from patchers import models as patcher_models
 from patchers import pdx_patchers, save_patcher
+from stores import game_store, get_store_helper
 from thread_utils import Threader, WorkerSignals
 from ui.utils import get_qt_platform
 from utils.platform import WAYLAND, X11
@@ -68,7 +69,7 @@ APP_OPTIONS_TABS = []
 from updater.updater import log as updater_log  # isort: skip
 from patchers.pdx_patchers import log as patcher_log  # isort: skip
 from patchers.save_patcher import log as patcher_save_log  # isort: skip
-from utils.steam_helper import log as steam_log  # isort: skip
+from stores.steam import log as steam_log  # isort: skip
 from utils.registry_helper import log as registry_log  # isort: skip
 
 log = logging.getLogger("UI")
@@ -1178,7 +1179,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
     def swap_btn_patch_to_launch_game(self):
         log.info(
-            f"Want to connect new signal to Patch Executable Button: lambda: STEAM.launch_game_app_name({self.configuration.game.lower()})",
+            f"Want to connect new signal to Patch Executable Button: self.launch_game",
             silent=True,
         )
 
@@ -1189,17 +1190,25 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # No signals exist
             pass
 
-        self.btn_patch_executable.clicked.connect(
-            lambda: self.svc.steam_helper.launch_game_app_name(self.configuration.game.lower())
-        )
+        self.btn_patch_executable.clicked.connect(self.launch_game)
 
+        store = game_store(self.configuration.game)
         self.btn_patch_executable.setText(f"Launch {self.configuration.game}")
-        self.btn_patch_executable.setToolTip("Launch the game through Steam.")
+        self.btn_patch_executable.setToolTip(f"Launch the game through {store.display_name}.")
 
         log.info(
-            f"Connected new signal to Patch Game Executable Button: lambda: STEAM.launch_game_app_name({self.configuration.game.lower()})",
+            f"Connected new signal to Patch Game Executable Button: self.launch_game",
             silent=True,
         )
+
+    def launch_game(self):
+        game = self.configuration.game
+        store_helper = get_store_helper(game)
+        if not store_helper:
+            log.error(f"Unable to launch {game}.")
+            return
+
+        store_helper.launch_game(game)
 
     def show_welcome_dialog(self):
         has_accepted_dialog = self.settings.settings.accepted_welcome_dialog
