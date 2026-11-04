@@ -111,7 +111,7 @@ class MarkdownTextBrowser(QTextBrowser):
 
 
 class MessageDialog(QDialog):
-    SIZE_PCT = (60, 70)
+    SIZE_PCT = (70, 80)
     MIN_SIZE_PCT = (40, 40)
 
     def __init__(self, message: Message, font: QFont, window_icon: QIcon, parent=None):
