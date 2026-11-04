@@ -17,7 +17,8 @@ from PySide6.QtWidgets import (
 )
 
 from app_services import services
-from patchers.save_patcher import SaveBackup, find_save_backups
+from patchers.models import SaveBackup
+from patchers.save_patcher import find_save_backups
 from utils.helpers import block_signals, delete_fpaths, format_size
 from utils.platform import open_in_file_manager
 

@@ -18,8 +18,6 @@ class AppConfig:
     working_dir: Path = None
     frozen: bool = False
 
-    is_cheated_save: bool = False
-
     debug: bool = False
     prevent_conn: bool = False
     prevent_settings_save: bool = False

@@ -344,7 +344,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 else patcher_models.Platform.detect_current()
             ),
         )
-        self.save_configuration: patcher_models.GameSavePatchConfig = None
+        self.save_configuration: patcher_models.SaveGamePatchesToApply = None
         self.last_conf_game = ""
 
         self.load_settings()
@@ -839,19 +839,19 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # self.threader.signals.failed.connect() # TODO
         thread_repair_save.signals.started.connect(self.disable_ui_elements)
         thread_repair_save.signals.finished.connect(self.enable_ui_elements)
-        thread_repair_save.signals.finished.connect(self.on_finished_save_repair)
+        thread_repair_save.signals.result.connect(self.on_finished_save_repair)
         self.start_thread(thread_repair_save)
 
-    @Slot()
-    def on_finished_save_repair(self) -> None:
-        if self.app_config.is_cheated_save:
+    @Slot(object)
+    def on_finished_save_repair(self, result: Optional[patcher_models.SavePatchResult]) -> None:
+        if result is None:
+            return
+
+        if result.is_cheated_save:
             msgbox = QMessageBox(self)
             msgbox.setWindowTitle("Cheated Save")
             msgbox.setText("WARNING: Save is flagged as cheated. Fixes might not work without resetting this flag.")
             msgbox.exec()
-
-        # Reset the variable
-        self.app_config.is_cheated_save = False
 
     @Slot()
     def open_configure_patch_options_window(self):

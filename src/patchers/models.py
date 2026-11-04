@@ -1,3 +1,4 @@
+import datetime
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
@@ -211,6 +212,45 @@ class GameExecutable:
         return base_path / self.filename
 
 
+class IronmanMode(int, Enum):
+    NONE = 0  # Don't address ironman flag
+    SET_ENABLE = 1  # Convert existing ironman=no to ironman=yes
+    SET_DISABLE = 2  # Convert existing ironman=yes to ironman=no
+    FORCE_ADD = 3  # Always add, even if not present
+
+
+class CheatedMode(int, Enum):
+    SET_NO = 0
+    SET_YES = 1
+    KEEP = 2
+
+
+@dataclass
+class SaveBackup:
+    """One save backup: a timestamped folder holding the save file(s) as they were before a fix."""
+
+    playthrough: str
+    folder: Path
+    created: datetime.datetime
+    files: list[Path] = field(default_factory=list)
+    size: int = 0
+
+
+@dataclass
+class SavePatchResult:
+    # Resolved once at the start of the run, from SaveGamePatchesToApply
+    update_achievements: bool = False
+    ironman_mode: IronmanMode = IronmanMode.NONE
+    cheated_mode: CheatedMode = CheatedMode.KEEP
+
+    # Found/changed while patching
+    is_cheated_save: bool = False
+    achievements_updated: bool = False
+    ironman_changed: bool = False
+    backup_file: Path | None = None
+    achievement_source: str = "remote"
+
+
 # ============================================================================
 # Save Patch Option Models
 # ============================================================================
@@ -247,7 +287,7 @@ class SavePatchOption:
 
 
 @dataclass
-class GameSavePatchConfig:
+class SaveGamePatchesToApply:
     """Configuration for game-specific patching"""
 
     game_name: str
@@ -285,8 +325,8 @@ class GameSavePatchConfig:
 # ============================================================================
 
 
-def create_stellaris_config() -> GameSavePatchConfig:
-    return GameSavePatchConfig(
+def create_stellaris_config() -> SaveGamePatchesToApply:
+    return SaveGamePatchesToApply(
         game_name="Stellaris",
         display_name="Stellaris Save Patch",
         description="Repair Stellaris save files",
@@ -343,13 +383,13 @@ def create_stellaris_config() -> GameSavePatchConfig:
 class SavePatchConfigRegistry:
     """Centralised registry from games save patches configuration"""
 
-    _configs: Dict[str, Callable[[], GameSavePatchConfig]] = {
+    _configs: Dict[str, Callable[[], SaveGamePatchesToApply]] = {
         "Stellaris": create_stellaris_config,
         # Add more game names as required. Also don't forget a dedicated method to create their config
     }
 
     @classmethod
-    def get_config(cls, game_name: str) -> Optional[GameSavePatchConfig]:
+    def get_config(cls, game_name: str) -> Optional[SaveGamePatchesToApply]:
         config_factory = cls._configs.get(game_name)
         if config_factory:
             return config_factory()
@@ -360,7 +400,7 @@ class SavePatchConfigRegistry:
         return list(cls._configs.keys())
 
     @classmethod
-    def register_game(cls, game_name: str, config_factory: Callable[[], GameSavePatchConfig]):
+    def register_game(cls, game_name: str, config_factory: Callable[[], SaveGamePatchesToApply]):
         cls._configs[game_name] = config_factory
 
     @classmethod

@@ -143,7 +143,7 @@ class ConfigureSavePatchDialog(QDialog):
             f"Displaying patch options for {self.game_name}: {len(available_options)} option(s) available.", silent=True
         )
 
-    def get_configuration(self) -> patcher_models.GameSavePatchConfig:
+    def get_configuration(self) -> patcher_models.SaveGamePatchesToApply:
         for patch_id, checkbox_widget_ref in self.option_checkboxes.items():
             self.current_config.set_enabled(patch_id, checkbox_widget_ref.isChecked())
             log.info(f"{patch_id}: {self.current_config.get_option(patch_id).enabled}", silent=True)

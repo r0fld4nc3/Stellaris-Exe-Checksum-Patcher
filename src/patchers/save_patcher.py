@@ -5,8 +5,6 @@ import shutil
 import ssl
 import tempfile
 import zipfile
-from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 from typing import Optional, Union
 
@@ -21,7 +19,13 @@ from config.path_helpers import os_darwin, os_linux, os_windows
 from utils.encodings import detect_file_encoding
 from utils.helpers import get_fpath_size
 
-from .models import GameSavePatchConfig
+from .models import (
+    CheatedMode,
+    IronmanMode,
+    SaveBackup,
+    SaveGamePatchesToApply,
+    SavePatchResult,
+)
 
 log = logging.getLogger("Save Patcher")
 
@@ -60,30 +64,6 @@ CHEATED_ON_SAVE_NO = "no"
 
 # Name of each save backup folder: saves_backup/<playthrough>/<timestamp>/<save file>
 SAVE_BACKUP_TIMESTAMP_FORMAT = "%Y-%m-%d %H-%M-%S"
-
-
-class IronmanMode(int, Enum):
-    NONE = 0  # Don't address ironman flag
-    SET_ENABLE = 1  # Convert existing ironman=no to ironman=yes
-    SET_DISABLE = 2  # Convert existing ironman=yes to ironman=no
-    FORCE_ADD = 3  # Always add, even if not present
-
-
-class CheatedMode(Enum):
-    SET_NO = 0
-    SET_YES = 1
-    KEEP = 2
-
-
-@dataclass
-class SaveBackup:
-    """One save backup: a timestamped folder holding the save file(s) as they were before a fix."""
-
-    playthrough: str
-    folder: Path
-    created: datetime.datetime
-    files: list[Path] = field(default_factory=list)
-    size: int = 0
 
 
 def find_save_backups(backup_base_dir: Path | str | None = None) -> dict[str, list[SaveBackup]]:
@@ -156,7 +136,8 @@ class SavePatcher:
 
     Attributes:
         game_name (str): Name of the game (e.g., "Stellaris") used to locate save folders.
-        config (GameSavePatchConfig): Configuration object defining patch operations.
+        save_game_patches_to_apply (SaveGamePatchesToApply): Configuration object defining patch operations.
+        save_patch_result (SavePatchResult): Save flags and values.
         save_extension (str | None): File extension for save files (e.g., ".sav").
             Must be set by subclasses.
         save_games_folders (list[Path]): List of discovered "save games" directories.
@@ -174,9 +155,10 @@ class SavePatcher:
         2. Implement game-specific patching logic
     """
 
-    def __init__(self, game_name: str, config: GameSavePatchConfig = None):
+    def __init__(self, game_name: str, config: SaveGamePatchesToApply = None):
         self.game_name = game_name
-        self.config: GameSavePatchConfig = config
+        self.save_game_patches_to_apply: SaveGamePatchesToApply = config
+        self.save_patch_result: SavePatchResult | None = None
         self.save_extension = None
         self.save_games_folders: list[Path] = []
         self.saves: dict[str, list[Path]] = {}
@@ -388,17 +370,16 @@ class StellarisSavePatcher(SavePatcher):
 
     Attributes:
         game_name (str): Always "Stellaris" for this patcher.
-        config (GameSavePatchConfig): Configuration defining which patches to apply.
+        save_game_patches_to_apply (SaveGamePatchesToApply): Configuration defining which patches to apply.
+        save_patch_result (SavePatchResult): Fixes chosen for the current run and what the run changed.
         achievements (str): Content of the achievements definition file.
         save_extension (str): Format of the targetted save file extension. .sav for Stellaris.
         save_games_folders (list[Path]): Discovered Stellaris save game directories.
         saves (dict[str, list[Path]]): Collected save files organized by playthrough.
     """
 
-    def __init__(self, game_name: str, config: GameSavePatchConfig = None):
-        super().__init__(game_name)
-
-        self.config = config
+    def __init__(self, game_name: str, config: SaveGamePatchesToApply = None):
+        super().__init__(game_name, config)
 
         self.achievements = ""
         self.save_extension = ".sav"
@@ -406,26 +387,30 @@ class StellarisSavePatcher(SavePatcher):
         log.info(f"Game Name: {self.game_name}")
         log.info(f"Save Games Folder: {self.save_games_folders}")
 
-    def set_config(self, config: GameSavePatchConfig) -> bool:
-        if not isinstance(config, GameSavePatchConfig):
+    def set_config(self, config: SaveGamePatchesToApply) -> bool:
+        if not isinstance(config, SaveGamePatchesToApply):
             return False
 
-        self.config = config
+        self.save_game_patches_to_apply = config
 
-        log.info(f"Set Stellaris Save Patcher GameSavePatchConfig: {config}", silent=True)
+        log.info(f"Set Stellaris Save Patcher SaveGamePatchesToApply: {config}", silent=True)
 
         return True
 
-    def get_update_achievements(self) -> bool:
-        update_achievements = self.config.is_enabled("update_achievements") if self.config else False
+    def _is_patch_enabled(self, option_id: str) -> bool:
+        if not self.save_game_patches_to_apply:
+            return False
 
-        return update_achievements
+        return self.save_game_patches_to_apply.is_enabled(option_id)
+
+    def get_update_achievements(self) -> bool:
+        return self._is_patch_enabled("update_achievements")
 
     def get_ironman_fix(self) -> IronmanMode:
         # Determine ironman behavior based on enabled patches
-        set_ironman_enabled = self.config.is_enabled("set_ironman_yes") if self.config else False
-        set_ironman_disabled = self.config.is_enabled("set_ironman_no") if self.config else False
-        convert_ironman_enabled = self.config.is_enabled("convert_ironman") if self.config else False
+        set_ironman_enabled = self._is_patch_enabled("set_ironman_yes")
+        set_ironman_disabled = self._is_patch_enabled("set_ironman_no")
+        convert_ironman_enabled = self._is_patch_enabled("convert_ironman")
 
         ironman_mode = IronmanMode.NONE
         if convert_ironman_enabled:
@@ -447,7 +432,7 @@ class StellarisSavePatcher(SavePatcher):
         return ironman_mode
 
     def get_cheated_on_save_mode_to_set(self) -> CheatedMode:
-        fix_cheated_mode = self.config.is_enabled("fix_cheated_save") if self.config else False
+        fix_cheated_mode = self._is_patch_enabled("fix_cheated_save")
 
         if fix_cheated_mode:
             cheated_mode = CheatedMode.SET_NO
@@ -456,7 +441,7 @@ class StellarisSavePatcher(SavePatcher):
 
         return cheated_mode
 
-    def repair_save(self, save_file):
+    def repair_save(self, save_file) -> Optional[SavePatchResult]:
         save_dir = Path(save_file).parent
         save_file_name = Path(save_file).name
 
@@ -466,12 +451,19 @@ class StellarisSavePatcher(SavePatcher):
         log.info(f"Save Directory: {save_dir}")
         log.info(f"Save Name: {save_file_name}")
 
+        self.save_patch_result = SavePatchResult(
+            update_achievements=self.get_update_achievements(),
+            ironman_mode=self.get_ironman_fix(),
+            cheated_mode=self.get_cheated_on_save_mode_to_set(),
+        )
+
         # --- Backup with timestamp ---
         backup_file = self.create_timestamped_backup(save_file)
         if backup_file is None:
             log.error(f"Backup creation failed, aborting repair.")
-            return False
+            return None
         log.info(f"Backup created at: {backup_file}")
+        self.save_patch_result.backup_file = backup_file
 
         with tempfile.TemporaryDirectory(prefix="save_repair_") as temp_dir:
             # --- Setup directory ---
@@ -482,52 +474,55 @@ class StellarisSavePatcher(SavePatcher):
             # --- Extract save archive ---
             if not self.extract_save_archive(save_file, repair_dir):
                 log.error(f"Failed to extract the save file, aborting repair!")
-                return False
+                return None
 
             # --- Define file paths ---
             gamestate_file = Path(repair_dir) / "gamestate"
             meta_file = Path(repair_dir) / "meta"
 
             # --- Pull latest achievements file ---
-            self.achievements = self.pull_latest_achievements_file()
-            if not self.achievements:
-                log.error(f"Unable to fix save: Could not retrieve achievements.")
-                shutil.rmtree(repair_dir)
-                return False
+            self.achievements = ""
+            if self.save_patch_result.update_achievements:
+                achievements, achievement_source = self.pull_latest_achievements_file()
+                self.achievements = achievements
+                self.save_patch_result.achievement_source = achievement_source
+
+                if not self.achievements:
+                    log.error(f"Unable to fix save: Could not retrieve achievements.")
+                    shutil.rmtree(repair_dir)
+                    return None
 
             # --- Process gamestate ---
             if not self._process_gamestate(gamestate_file):
                 log.error(f"Failed to process gamestate for {save_file_name}")
                 shutil.rmtree(repair_dir)
-                return False
+                return None
 
             # --- Process meta ---
             if not self._process_meta(meta_file):
                 log.error(f"Failed to process meta for {save_file_name}")
                 shutil.rmtree(repair_dir)
-                return False
+                return None
 
             # --- Repackage save archive ---
             if not self.repackage_save_archive(repair_dir, save_file, preserve_timestamps=True):
                 log.error(f"Failed to rebuild save file!")
                 shutil.rmtree(repair_dir)
-                return False
+                return None
 
             # --- Restore original timestamps ---
             os.utime(save_file, save_file_times)
 
         log.info(f"Finished repairing save.")
-        return True
+        return self.save_patch_result
 
     def _process_gamestate(self, gamestate_file: str | Path) -> bool:
         log.info(f"Process gamestate: '{gamestate_file}'")
         _encoding = detect_file_encoding(gamestate_file)
 
-        ironman_mode = self.get_ironman_fix()
-        update_achievements = self.get_update_achievements()
-
-        # Cheated save
-        cheated_mode = self.get_cheated_on_save_mode_to_set()
+        ironman_mode = self.save_patch_result.ironman_mode
+        update_achievements = self.save_patch_result.update_achievements
+        cheated_mode = self.save_patch_result.cheated_mode
 
         log.info(f"Achievement fix: {update_achievements}", silent=True)
         log.info(f"Ironman fix: {ironman_mode}", silent=True)
@@ -649,15 +644,20 @@ class StellarisSavePatcher(SavePatcher):
 
                             if IRONMAN_EQ_LINE in next_line:
                                 # Ironman flag exists - handle it depending on option
-                                if ironman_mode == IronmanMode.SET_ENABLE:
-                                    indent = len(lines[i]) - len(lines[i].lstrip())
-                                    new_lines.append("\t" * indent + f"{IRONMAN_YES}\n")
+                                if ironman_mode in (IronmanMode.SET_ENABLE, IronmanMode.FORCE_ADD):
+                                    ironman_line = IRONMAN_YES
                                 elif ironman_mode == IronmanMode.SET_DISABLE:
-                                    indent = len(lines[i]) - len(lines[i].lstrip())
-                                    new_lines.append("\t" * indent + f"{IRONMAN_NO}\n")
+                                    ironman_line = IRONMAN_NO
                                 else:
+                                    ironman_line = None
+
+                                if ironman_line is None:
                                     # For other modes, keep the original line
                                     new_lines.append(lines[i])
+                                else:
+                                    indent = len(lines[i]) - len(lines[i].lstrip())
+                                    new_lines.append("\t" * indent + f"{ironman_line}\n")
+                                    self.save_patch_result.ironman_changed = True
                                 i += 1
                                 ironman_handled = True
                                 continue
@@ -665,6 +665,7 @@ class StellarisSavePatcher(SavePatcher):
                                 # Insert ironman=yes
                                 indent = len(line) - len(line.lstrip())
                                 new_lines.append("\t" * indent + f"{IRONMAN_YES}\n")
+                                self.save_patch_result.ironman_changed = True
                                 ironman_handled = True
                                 continue
 
@@ -680,10 +681,10 @@ class StellarisSavePatcher(SavePatcher):
                     if cheated_mode == CheatedMode.SET_NO:
                         # Set flag to 'no'
                         new_lines.append(f"{CHEATED_ON_SAVE_LINE}{CHEATED_ON_SAVE_NO}\n")
-                        services().config.is_cheated_save = False
+                        self.save_patch_result.is_cheated_save = False
                     else:
                         new_lines.append(f"{CHEATED_ON_SAVE_LINE}{flag}\n")
-                        services().config.is_cheated_save = True
+                        self.save_patch_result.is_cheated_save = flag == YES
 
                     cheated_on_save_handled = True
 
@@ -695,6 +696,7 @@ class StellarisSavePatcher(SavePatcher):
 
         if update_achievements and achievements_inserted:
             log.info(f"Repaired achievements line.")
+            self.save_patch_result.achievements_updated = True
         else:
             log.warning(f"Did not fix achievements line. Already present or not configured.")
 
@@ -723,10 +725,29 @@ class StellarisSavePatcher(SavePatcher):
             log.error(f"Failed to read meta: {e}")
             return False
 
-        modified = False  # Track if changes where made to the file
+        meta_file_modified = self._process_ironman_meta_fix(lines)
 
-        # --- IRONMAN PROCESSING ---
-        ironman_mode = self.get_ironman_fix()
+        if meta_file_modified:
+            # The meta file only changes for ironman fixes
+            self.save_patch_result.ironman_changed = True
+
+            # Write modified data
+            try:
+                with meta_file.open("w", encoding=_encoding) as f:
+                    f.writelines(lines)
+                log.info(f"Meta file updated.")
+            except Exception as e:
+                log.error(f"Failed to write meta: {e}")
+                return False
+        else:
+            log.info(f"No changes needed for meta file.")
+
+        return True
+
+    def _process_ironman_meta_fix(self, lines: list[str]) -> bool:
+        """Apply the ironman fix to the meta file `lines` in place. Returns True if any line changed."""
+        ironman_mode = self.save_patch_result.ironman_mode
+        modified: bool = False
 
         if ironman_mode != IronmanMode.NONE:
             # Check if ironman flag exists and its value
@@ -769,19 +790,7 @@ class StellarisSavePatcher(SavePatcher):
                     lines.append(f"{IRONMAN_YES}\n")
                     modified = True
 
-        if modified:
-            # Write modified data
-            try:
-                with meta_file.open("w", encoding=_encoding) as f:
-                    f.writelines(lines)
-                log.info(f"Meta file updated.")
-            except Exception as e:
-                log.error(f"Failed to write meta: {e}")
-                return False
-        else:
-            log.info(f"No changes needed for meta file.")
-
-        return True
+        return modified
 
     def _cleanup_malformed_achievements(self, lines: list[str]) -> list[str]:
         """
@@ -972,14 +981,15 @@ class StellarisSavePatcher(SavePatcher):
 
         return contents
 
-    def pull_latest_achievements_file(self) -> str:
+    def pull_latest_achievements_file(self) -> tuple[str, str]:
+        """Achievements file contents, and where they came from: "remote" or "local"."""
         log.info("Pulling latest Achievements file from GitHub repository.")
 
         config = services().config
 
         if config.prevent_conn:
             log.info(f"Will not fetch achievements file from remote as prevent connections is active.")
-            return self.load_local_achievements_file()
+            return self.load_local_achievements_file(), "local"
 
         # Force SSL context to fix Thread issues
         try:
@@ -995,15 +1005,15 @@ class StellarisSavePatcher(SavePatcher):
         except requests.ConnectionError as con_err:
             log.error(f"Unable to establish connection to update repo.")
             log.error(con_err)
-            return self.load_local_achievements_file()
+            return self.load_local_achievements_file(), "local"
         except requests.RequestException as req_err:
             log.error(f"Request failed: {req_err}")
-            return self.load_local_achievements_file()
+            return self.load_local_achievements_file(), "local"
 
         if response.status_code != 200:
             log.warning(f"{response.status_code=}")
             log.error("Not a valid repository or file not found.")
-            return self.load_local_achievements_file()
+            return self.load_local_achievements_file(), "local"
 
         log.info(f"Achievements file: {ACHIEVEMENTS_FILE_LOCAL}", silent=True)
 
@@ -1020,11 +1030,11 @@ class StellarisSavePatcher(SavePatcher):
             except Exception as e:
                 log.error(f"Error writing to achievements file.\nError: {e}")
 
-            return achievements
+            return achievements, "remote"
 
         except Exception as e:
             log.info(f"Error in pulling achievements from repo. Falling back to physical file.\nError: {e}")
             log.debug(response)
             # Fallback to physical file
             log.debug(f"Achievements file: {ACHIEVEMENTS_FILE_LOCAL}")
-            return self.load_local_achievements_file()
+            return self.load_local_achievements_file(), "local"
