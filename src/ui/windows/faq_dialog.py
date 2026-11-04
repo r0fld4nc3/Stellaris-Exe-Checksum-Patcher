@@ -119,7 +119,7 @@ class FAQDialog(QDialog):
         button_box.rejected.connect(self.reject)
         font_updated = QFont(self.font)
         font_updated.setPointSize(12)
-        _min_size_w: int = 128
+        _min_size_w: int = 64
 
         for button in button_box.buttons():
             button.setFont(self.font)

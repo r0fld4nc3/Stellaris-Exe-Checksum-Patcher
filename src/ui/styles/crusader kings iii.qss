@@ -121,3 +121,11 @@ QProgressBar#PatchProgressBar {
 QProgressBar#PatchProgressBar::chunk {
     background-color: rgba(255, 179, 25, 150);  /* Orange fill */
 }
+
+QTextBrowser#MessageText {
+    border: 1px solid rgb(67, 144, 134);
+    background-color: rgba(22, 59, 56, 100);
+    color: white;
+    qproperty-headerColor: #F5A030;
+    qproperty-linkColor: rgb(25, 255, 236);
+}

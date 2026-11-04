@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (
 from app_services import services
 from config.definitions import APP_VERSION_STR, SUPPORTED_GAMES, TRACKING_BRANCH
 from config.path_helpers import os_linux, os_windows
-from messages.messages import Message, fetch_message, save_message_as_seen
+from messages.messages import Message, fetch_message
 
 # Patch Patterns
 from patch_patterns.patterns import (
@@ -56,6 +56,7 @@ from .windows import (
     ConfigureSavePatchDialog,
     DisclaimerFixCheatedSave,
     FAQDialog,
+    MessageDialog,
     TabOptionsDialog,
     WelcomeDialog,
 )
@@ -331,6 +332,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.patch_config_dialog: TabOptionsDialog | None = None
 
         # --- Remote message, from last fetch. None until the startup fetch finishes ---
+        self.welcome_dialog: WelcomeDialog | None = None
         self.message: Message | None = None
 
         # --- Cache Configuration ---
@@ -1027,15 +1029,27 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         log.info(
             f"Message check finished: {message.status.value} ({message.fingerprint or 'no fingerprint'})", silent=True
         )
-        if message.is_new:
-            log.info("Showing message dialog.", silent=True)
-            # self.show_message() # TODO
-            # save_message_as_seen(message)
+        self.show_message(message)
 
     @Slot()
     def open_faq_window(self):
         faq_dialog = FAQDialog(QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self)
         faq_dialog.exec()
+
+    @Slot(object)
+    def show_message(self, message: Message):
+        if message.is_new:
+            welcome_open = self.welcome_dialog is not None and self.welcome_dialog.isVisible()
+
+            if welcome_open:
+                # Connect closing the welcome dialog to firing the show message immediately after.
+                self.welcome_dialog.finished.connect(lambda: self.show_message(message))
+            else:
+                message_dialog = MessageDialog(
+                    message, QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self
+                )
+                log.info("Showing message dialog.", silent=True)
+                message_dialog.show()
 
     def fetch_patterns(self):
         can_fetch_remote = all(
@@ -1191,8 +1205,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         has_accepted_dialog = self.settings.settings.accepted_welcome_dialog
         if not has_accepted_dialog:
             # --- Show welcome dialog ---
-            welcome_dialog = WelcomeDialog(QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self)
-            welcome_dialog.show()
+            self.welcome_dialog = WelcomeDialog(
+                QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self
+            )
+            self.welcome_dialog.show()
 
     def show_settings_if_load_problem(self):
         """Notify once if settings file couldn't be loaded at startup."""
