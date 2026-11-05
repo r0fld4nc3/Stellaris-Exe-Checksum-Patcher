@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QComboBox
 
 from utils.helpers import block_signals
 
-from ..base import OptionsContext
+from ..windows.options_tabs.base import OptionsContext
 
 log = logging.getLogger("GameComboBox")
 

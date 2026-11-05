@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from patch_patterns.patterns import get_patterns_config_remote
+from ui.shared_widgets import QSquarePushButton
 from ui.utils import prompt_path
 from utils.helpers import block_signals
 from utils.platform import open_in_file_manager
@@ -168,6 +169,7 @@ class UtilitiesTab(OptionsTab):
             "Steam:",
             "Steam executable, used to launch and validate Steam games.",
             on_browse=self._browse_steam_folder,
+            on_clear=self._clear_steam_path,
         )
 
         self.gog_launcher_path_field = self._add_launcher_row(
@@ -176,6 +178,7 @@ class UtilitiesTab(OptionsTab):
             "GOG Galaxy:",
             "GOG Galaxy executable, used to launch GOG games.",
             on_browse=self._browse_gog_folder,
+            on_clear=self._clear_gog_path,
         )
 
         self.generic_runner_path_field = self._add_launcher_row(
@@ -185,6 +188,7 @@ class UtilitiesTab(OptionsTab):
             "Anything that can run the game executable (Wine, Bottles, Lutris, Heroic...).\n"
             "Used when no store launcher can run the patched executable.",
             on_browse=self._browse_generic_runner,
+            on_clear=self._clear_generic_runner_path,
         )
 
         generic_runner_args_label = QLabel("Runner Arguments:")
@@ -283,7 +287,7 @@ class UtilitiesTab(OptionsTab):
         self.ctx.reload_requested.emit()
 
     def show_save_backups_dialog(self):
-        from ..save_backups_dialog import SaveBackupsDialog
+        from ui.windows import SaveBackupsDialog
 
         dialog = SaveBackupsDialog(self.ctx.font, parent=self.window())
         dialog.exec()
@@ -296,7 +300,13 @@ class UtilitiesTab(OptionsTab):
     # --- Helpers ---
 
     def _add_launcher_row(
-        self, layout: QGridLayout, row: int, label_text: str, tooltip: str, on_browse: Callable[[], None]
+        self,
+        layout: QGridLayout,
+        row: int,
+        label_text: str,
+        tooltip: str,
+        on_browse: Callable[[], None],
+        on_clear: Callable[[], None],
     ) -> QLineEdit:
         """Label, read-only path field and Browse button on `row` of `layout`. Returns the path field."""
         font = self.ctx.font
@@ -316,9 +326,15 @@ class UtilitiesTab(OptionsTab):
         btn_browse.setFont(font)
         btn_browse.clicked.connect(on_browse)
 
+        btn_clear = QSquarePushButton("X")
+        btn_clear.setFont(font)
+        btn_clear.setToolTip("Forget this path")
+        btn_clear.clicked.connect(on_clear)
+
         layout.addWidget(label, row, 0)
         layout.addWidget(path_field, row, 1)
         layout.addWidget(btn_browse, row, 2)
+        layout.addWidget(btn_clear, row, 3)
         return path_field
 
     def _update_max_backups_label(self, value: int):
@@ -369,6 +385,18 @@ class UtilitiesTab(OptionsTab):
 
         self.svc.settings.settings.generic_runner_path = picked.as_posix()
 
+        self._update_launchers_paths()
+
+    def _clear_steam_path(self):
+        self.svc.settings.settings.steam_install_path = ""
+        self._update_launchers_paths()
+
+    def _clear_gog_path(self):
+        self.svc.settings.settings.gog_install_path = ""
+        self._update_launchers_paths()
+
+    def _clear_generic_runner_path(self):
+        self.svc.settings.settings.generic_runner_path = ""
         self._update_launchers_paths()
 
     def _update_launchers_paths(self):

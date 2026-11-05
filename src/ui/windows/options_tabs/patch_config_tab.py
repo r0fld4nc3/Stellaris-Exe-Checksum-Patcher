@@ -20,6 +20,8 @@ from patchers import GamePatcher, PatchConfiguration
 from patchers import models as patcher_models
 from stores import GameStore, game_store, get_store_helper
 from thread_utils import Threader
+from ui.shared_widgets import AutoWidthComboBox, GameComboBox
+from ui.utils import find_game_path, prompt_path, restore_window_focus
 from utils.helpers import (
     block_signals,
     delete_fpaths,
@@ -28,9 +30,7 @@ from utils.helpers import (
 )
 from utils.platform import open_in_file_manager
 
-from ...utils import find_game_path, prompt_path, restore_window_focus
 from .base import OptionsContext, OptionsTab
-from .shared_widgets.comboboxes_shared import AutoWidthComboBox, GameComboBox
 
 log = logging.getLogger("Patch Config")
 
