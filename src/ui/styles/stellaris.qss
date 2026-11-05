@@ -63,6 +63,16 @@ QCheckBox::indicator {
     height: 20px;
 }
 
+QRadioButton {
+    color: rgb(255, 255, 255);
+    spacing: 10px;
+}
+
+QRadioButton::indicator {
+    width: 20px;
+    height: 20px;
+}
+
 QScrollArea {
     border: 1px solid rgb(67, 144, 134);
 }
@@ -179,6 +189,15 @@ QDialog#SaveBackupsDialog QLabel,
 QDialog#SaveBackupsDialog QTreeView,
 QDialog#SaveBackupsDialog QHeaderView::section {
     color: rgb(255, 255, 255);
+}
+
+/* Store picker dialog */
+QLabel#StorePickerText {
+    color: rgb(255, 255, 255);
+}
+
+QLabel#StoreDescription {
+    color: rgb(224, 224, 224);
 }
 
 /* Patch Progress Bar */

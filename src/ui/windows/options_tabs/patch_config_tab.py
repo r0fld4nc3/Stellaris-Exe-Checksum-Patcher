@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 from config.path_helpers import os_darwin, os_linux
 from patchers import GamePatcher, PatchConfiguration
 from patchers import models as patcher_models
-from stores import GameStore, game_store, get_store_helper
+from stores import GameStore, game_store, get_store_helper, set_game_store
 from thread_utils import Threader
 from ui.shared_widgets import AutoWidthComboBox, GameComboBox
 from ui.utils import find_game_path, prompt_path, restore_window_focus
@@ -241,10 +241,8 @@ class GameUtilitiesTab(OptionsTab):
         game = self.selected_game
         old_store = game_store(game)
         new_store = GameStore(self.store_picker.itemData(index))
-        log.info(f"{game} store changed to: {new_store.display_name}", silent=True)
-
         self._swap_store_paths(game, old_store, new_store)
-        self.svc.settings.game(game).store = new_store
+        set_game_store(game, new_store)
 
         self._show_validate_button(new_store)
 
@@ -291,11 +289,6 @@ class GameUtilitiesTab(OptionsTab):
             log.warning("No game selected. Unable to locate game folder.")
             return
 
-        paths = [
-            self.svc.settings.game(game).install_path,
-            self.svc.settings.game(game).proton_install_path,
-        ]
-
         saved_path = None
 
         # Prioritise auto_located_path
@@ -314,12 +307,7 @@ class GameUtilitiesTab(OptionsTab):
 
         else:
             # Use the first saved path (or its folder) that exists
-            for path_str in paths:
-                if not path_str:
-                    continue
-
-                path = Path(path_str)
-
+            for path in self.svc.settings.game(game).saved_binary_paths():
                 if path.exists():
                     saved_path = path
                     log.info(f"Saved path: '{saved_path}'", silent=True)
@@ -397,8 +385,7 @@ class GameUtilitiesTab(OptionsTab):
             return
 
         # Backups of both the native and Proton executables
-        game_settings = self.svc.settings.game(game)
-        binary_paths = [Path(p) for p in (game_settings.install_path, game_settings.proton_install_path) if p]
+        binary_paths = self.svc.settings.game(game).saved_binary_paths()
 
         if not binary_paths:
             log.warning(f"No saved executable location for {game}. Unable to look for backups.")

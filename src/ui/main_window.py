@@ -5,7 +5,7 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from PySide6.QtCore import QDeadlineTimer, QSize, Qt, QThreadPool, Slot
 from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
@@ -41,7 +41,12 @@ from patch_patterns.patterns import (
 )
 from patchers import models as patcher_models
 from patchers import pdx_patchers, save_patcher
-from stores import game_store, get_store_helper
+from stores import (
+    game_store,
+    get_store_helper,
+    has_picked_store,
+    set_game_store,
+)
 from thread_utils import Threader, WorkerSignals
 from ui.utils import get_qt_platform
 from utils.platform import WAYLAND, X11
@@ -58,6 +63,7 @@ from .windows import (
     DisclaimerFixCheatedSave,
     FAQDialog,
     MessageDialog,
+    StorePickerDialog,
     TabOptionsDialog,
     WelcomeDialog,
 )
@@ -683,6 +689,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             msgbox.exec()
             return False
 
+        # First time game is patched ask to select store it is from.
+        if not self._confirm_game_store(self.configuration.game):
+            log.warning("Store picker cancelled. Aborting patch.")
+            return False
+
         self._set_start_patching_state()
 
         self.signals.patch_progress.emit(0, "")
@@ -692,6 +703,24 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.path_finder_thread.signals.result.connect(self._path_found_or_failed)
         self.path_finder_thread.signals.error.connect(self._set_stop_patching_state)
         self.start_thread(self.path_finder_thread)
+
+    def _confirm_game_store(self, game: str) -> bool:
+        """Ask where `game` is from the first time it's patched, and save the pick. False when the user cancels."""
+        if has_picked_store(game):
+            return True
+
+        store = StorePickerDialog.ask(
+            game,
+            preselected_store=game_store(game),
+            font=QFont(self.app_font_bold, 10),
+            window_icon=self.windowIcon(),
+            parent=self,
+        )
+        if not store:
+            return False
+
+        set_game_store(game, store)
+        return True
 
     @Slot(object)
     def _path_found_or_failed(self, found_path: Optional[Path]):

@@ -4,7 +4,7 @@ Defintions for `GameStore`. The stores, the default store, and every supported g
 Edit this file to:
 - Add a game. Its entry in `GAME_STORE_INFOS`.
 
-- Add a game store. A `GameStore` member, its `STORE_DISPLAY_NAMES` entry and a line in `GAME_STORE_INFOS` for each game it sells. Then its helper in `game_stores.py`.
+- Add a game store. A `GameStore` member, its `STORE_DISPLAY_NAMES` and `STORE_DESCRIPTIONS` entries and a line in `GAME_STORE_INFOS` for each game it sells. Then its helper in `game_stores.py`.
 
 - Limit a store to some systems. Its entry in `STORE_SUPPORTED_SYSTEMS`.
 - Change the default store.
@@ -35,6 +35,11 @@ class GameStore(str, Enum):
     @property
     def display_name(self) -> str:
         return STORE_DISPLAY_NAMES[self]
+
+    @property
+    def description(self) -> str:
+        """One line on what picking this store does, shown in the store picker."""
+        return STORE_DESCRIPTIONS[self]
 
     @property
     def is_supported(self) -> bool:
@@ -74,6 +79,13 @@ STORE_DISPLAY_NAMES: dict[GameStore, str] = {
     GameStore.STEAM: "Steam",
     GameStore.GOG: "GOG",
     GameStore.GENERIC: "Generic",
+}
+
+# What picking each store does, shown under it in the store picker
+STORE_DESCRIPTIONS: dict[GameStore, str] = {
+    GameStore.STEAM: "Bought on Steam. The game is found in Steam libraries, and launched and validated through Steam.",
+    GameStore.GOG: "Bought on GOG. The game is found through GOG Galaxy, and launched and verified there.",
+    GameStore.GENERIC: "Anywhere else, or launched with another app (Heroic, Lutris, Bottles...). Pick the runner yourself.",
 }
 
 STORE_SUPPORTED_SYSTEMS: dict[GameStore, list[str]] = {

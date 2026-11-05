@@ -4,6 +4,7 @@ from .configure_save_patch_window import ConfigureSavePatchDialog
 from .faq_dialog import FAQDialog
 from .message_dialog import MessageDialog
 from .save_backups_dialog import SaveBackupsDialog
+from .store_picker_dialog import StorePickerDialog
 from .welcome_dialog import WelcomeDialog
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "WelcomeDialog",
     "MessageDialog",
     "SaveBackupsDialog",
+    "StorePickerDialog",
 ]

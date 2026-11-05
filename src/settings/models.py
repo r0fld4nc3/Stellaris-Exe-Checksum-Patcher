@@ -22,6 +22,7 @@ Only assignments are noticed and saved.
 """
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from config.definitions import APP_IS_PRERELEASE, APP_VERSION_STR
@@ -92,6 +93,16 @@ class GameSettings(AutoSaveHookedSettingsClass):
     patched_version: str = ""
     patched_platform: str = ""
     store: str = ""  # GameStore value. Empty = not picked yet
+
+    def saved_binary_paths(self) -> list[Path]:
+        """The saved game executables that are set.
+        Native first, then Proton. They may no longer exist."""
+        binary_paths = []
+        for path_str in (self.install_path, self.proton_install_path):
+            if path_str:
+                binary_paths.append(Path(path_str))
+
+        return binary_paths
 
 
 @dataclass

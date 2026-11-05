@@ -5,6 +5,7 @@ Which store a game uses, and that store's helper.
 """
 
 import logging
+from pathlib import Path
 from typing import Optional
 
 from app_services import services
@@ -47,6 +48,21 @@ def game_store(game_name: str) -> GameStore:
         return GameStore.GENERIC
 
     return store
+
+
+def has_picked_store(game_name: str) -> bool:
+    """True if a store was picked for `game_name` (first-time store picker or Game Utilities). Only reads settings."""
+    settings = services().settings
+    if not settings.has_game(game_name):
+        return False
+
+    return bool(settings.game(game_name).store)
+
+
+def set_game_store(game_name: str, store: GameStore) -> None:
+    """Save `store` as the store `game_name` is from."""
+    log.info(f"{game_name} store set to: {store.display_name}")
+    services().settings.game(game_name).store = store
 
 
 def get_store_helper(game_name: str) -> Optional[StoreHelperBase]:
