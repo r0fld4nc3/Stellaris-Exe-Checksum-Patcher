@@ -27,6 +27,9 @@ class StoreHelperBase(ABC):
     Each store implements the abstract methods. Code any store can use lives here.
     """
 
+    # Shown after validate_game_files() when the store can't validate on its own. None: nothing to show.
+    validate_instructions: Optional[str] = None
+
     @abstractmethod
     def get_game_install_path(self, game_name: str) -> Optional[Path]:
         """Folder `game_name` is installed in. None if not found."""

@@ -97,6 +97,8 @@ class GameUtilitiesTab(OptionsTab):
         # Each item carries the GameStore value saved for the game
         self.store_picker = AutoWidthComboBox(font=font)
         for store in GameStore:
+            if not store.is_supported:
+                continue
             self.store_picker.addItem(store.display_name, store)
         self.store_picker.setFont(font)
         self.store_picker.setToolTip("Where the selected game was installed from.")
@@ -140,11 +142,11 @@ class GameUtilitiesTab(OptionsTab):
         # ===========================================
 
         # --- Steam Validate Game Files Button ---
-        btn_validate_game_files = QPushButton("Validate Integrity of Game Files (Steam)")
-        btn_validate_game_files.setFont(font)
-        btn_validate_game_files.setToolTip("Trigger the validation of game files through Steam.")
-        btn_validate_game_files.clicked.connect(self.validate_game_files)
-        utilities_layout.addWidget(btn_validate_game_files)
+        self.btn_validate_game_files = QPushButton("Validate Integrity of Game Files")
+        self.btn_validate_game_files.setFont(font)
+        self.btn_validate_game_files.setToolTip("Trigger the validation of game files through Steam.")
+        self.btn_validate_game_files.clicked.connect(self.validate_game_files)
+        utilities_layout.addWidget(self.btn_validate_game_files)
 
         # --- Delete Binary Backups Button ---
         btn_delete_binary_backups = QPushButton("Delete Backups")
@@ -234,6 +236,8 @@ class GameUtilitiesTab(OptionsTab):
         log.info(f"{self.selected_game} store changed to: {store.display_name}", silent=True)
         self.svc.settings.game(self.selected_game).store = store
 
+        self._show_validate_button(store)
+
     def _on_patch_toggled(self, patch_name: str, checked: bool):
         selected = self.config.selected_patches
         if checked and patch_name not in selected:
@@ -256,6 +260,12 @@ class GameUtilitiesTab(OptionsTab):
         binary_path = Path(install_path) if install_path else None
 
         if not store_helper.validate_game_files(game, binary_path):
+            return
+
+        # The store can't validate on its own.
+        # Inform the user what to click there, and leave its window in front
+        if store_helper.validate_instructions:
+            QMessageBox.information(self, "Validate Game Files", store_helper.validate_instructions)
             return
 
         try:
@@ -436,6 +446,11 @@ class GameUtilitiesTab(OptionsTab):
 
     # --- Helpers ---
 
+    def _show_validate_button(self, store: GameStore):
+        """Name of the store on the button. Disabled when the store can't validate."""
+        self.btn_validate_game_files.setToolTip(f"Trigger validation of game files through {store.display_name}.")
+        self.btn_validate_game_files.setEnabled(store not in (GameStore.GENERIC))
+
     def _show_message(self, title: str, text: str, icon: QMessageBox.Icon = QMessageBox.Icon.Information):
         msgbox = QMessageBox(self)
         msgbox.setIcon(icon)
@@ -476,6 +491,8 @@ class GameUtilitiesTab(OptionsTab):
         if index >= 0:
             with block_signals(self.store_picker):
                 self.store_picker.setCurrentIndex(index)
+
+        self._show_validate_button(store)
 
     def _show_versions(self, game: str):
         """Fill the version dropdown for `game` and select the configured version."""

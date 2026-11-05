@@ -2,16 +2,19 @@
 Defintions for `GameStore`. The stores, the default store, and every supported game's name and ID in each store.
 
 Edit this file to:
-- Add a game store. One entry in `GAME_STORE_INFOS`.
+- Add a game. Its entry in `GAME_STORE_INFOS`.
 
 - Add a game store. A `GameStore` member, its `STORE_DISPLAY_NAMES` entry and a line in `GAME_STORE_INFOS` for each game it sells. Then its helper in `game_stores.py`.
 
+- Limit a store to some systems. Its entry in `STORE_SUPPORTED_SYSTEMS`.
 - Change the default store.
 """
 
 import logging
 from enum import Enum
 from typing import Optional
+
+from config.path_helpers import OS_TYPE, system
 
 from .base import StoreGameInfo
 
@@ -32,6 +35,18 @@ class GameStore(str, Enum):
     @property
     def display_name(self) -> str:
         return STORE_DISPLAY_NAMES[self]
+
+    @property
+    def is_supported(self) -> bool:
+        """
+        True if store works on OS.
+        Stores without `STORE_SUPPORTED_SYSTEMS` work everywhere.
+        """
+        supported_systems = STORE_SUPPORTED_SYSTEMS.get(self)
+        if supported_systems is None:
+            return True
+
+        return system() in supported_systems
 
     @classmethod
     def parse(cls, value: Optional[str]) -> Optional["GameStore"]:
@@ -59,6 +74,11 @@ STORE_DISPLAY_NAMES: dict[GameStore, str] = {
     GameStore.STEAM: "Steam",
     GameStore.GOG: "GOG",
     GameStore.GENERIC: "Generic",
+}
+
+STORE_SUPPORTED_SYSTEMS: dict[GameStore, list[str]] = {
+    GameStore.GOG: [OS_TYPE.WINDOWS, OS_TYPE.DARWIN],  # No GoG on Linux
+    # GameStore.STEAM and GameStore.GENERIC are supported everywhere, so no need to filter.
 }
 
 # Every supported game (lowercased), and its name and ID in each store it is available in

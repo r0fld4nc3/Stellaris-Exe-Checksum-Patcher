@@ -11,12 +11,13 @@ from app_services import services
 
 from .base import StoreHelperBase
 from .definitions import DEFAULT_GAME_STORE, GameStore
+from .gog import GogHelper
 from .steam import SteamHelper
 
 log = logging.getLogger("Game Stores")
 
 # One helper per store. Generic has none: the user picks the executable themselves.
-_STORE_HELPERS: dict[GameStore, StoreHelperBase] = {GameStore.STEAM: SteamHelper()}
+_STORE_HELPERS: dict[GameStore, StoreHelperBase] = {GameStore.STEAM: SteamHelper(), GameStore.GOG: GogHelper()}
 
 
 def game_store(game_name: str) -> GameStore:
@@ -38,6 +39,12 @@ def game_store(game_name: str) -> GameStore:
     if not store:
         log.warning(f"Invalid saved store '{saved_store}' for {game_name}. Using {DEFAULT_GAME_STORE.display_name}.")
         return DEFAULT_GAME_STORE
+
+    if not store.is_supported:
+        log.warning(
+            f"{store.display_name} is not supported on this system. Using {GameStore.GENERIC.display_name} for {game_name}."
+        )
+        return GameStore.GENERIC
 
     return store
 
