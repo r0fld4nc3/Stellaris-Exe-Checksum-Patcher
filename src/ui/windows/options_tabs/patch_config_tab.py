@@ -449,7 +449,7 @@ class GameUtilitiesTab(OptionsTab):
     def _show_validate_button(self, store: GameStore):
         """Name of the store on the button. Disabled when the store can't validate."""
         self.btn_validate_game_files.setToolTip(f"Trigger validation of game files through {store.display_name}.")
-        self.btn_validate_game_files.setEnabled(store not in (GameStore.GENERIC))
+        self.btn_validate_game_files.setEnabled(store not in (GameStore.GENERIC,))
 
     def _show_message(self, title: str, text: str, icon: QMessageBox.Icon = QMessageBox.Icon.Information):
         msgbox = QMessageBox(self)

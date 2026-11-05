@@ -145,6 +145,11 @@ class GamePatcher:
             log.error(f"No executable info: {self.exe_info=}")
             return None
 
+        # The install folder is the executable itself (ex.: a macOS .app bundle from GOG)
+        if game_install_path.name.lower() == self.exe_info.filename.lower():
+            log.info(f"Auto-located path: '{game_install_path}'")
+            return game_install_path
+
         expected_exe_path = game_install_path / self.exe_info.filename
         if expected_exe_path.is_file():
             log.info(f"Auto-located path: '{expected_exe_path}'")
