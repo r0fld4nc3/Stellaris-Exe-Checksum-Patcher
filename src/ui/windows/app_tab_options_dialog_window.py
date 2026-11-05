@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 
 from app_services import services
 from patchers import MultiGamePatcher, PatchConfiguration
-from ui.utils import adapt_to_parent_size, centre_on_parent, size_from_parent
+from ui.utils import adapt_to_parent_size, centre_on_parent
 
 from .options_tabs import GameUtilitiesTab, UtilitiesTab
 from .options_tabs.base import OptionsContext, OptionsTab
@@ -69,12 +69,14 @@ class TabOptionsDialog(QDialog):
 
     Knows nothing about what the tabs contain.
     Pass tab classes in `tabs` (order is the display order) or call `add_tab()`.
-    The dialog's height follows the current tab, so short tabs don't leave empty space.
+
+    The dialog grows to fit the current tab, up to the screen size.
     """
 
     # (width, height) as percentages of the main window.
-    # Width is the starting width; height is the tallest the dialog grows to when fitting a tab.
-    SIZE_PCT = (80, 90)
+    # Width is the starting width. height is the starting size.
+    SIZE_PCT = (80, 83)
+
     # Smallest (width, height) as percentages of the main window
     MIN_SIZE_PCT = (50, 50)
 
@@ -221,10 +223,11 @@ class TabOptionsDialog(QDialog):
 
         hint = self.sizeHint()
         max_size = self.screen().availableGeometry().size() * self.MAX_SCREEN_FRACTION
-        max_height = min(size_from_parent(self.parentWidget(), self.SIZE_PCT).height(), max_size.height())
 
+        # Keep the current size (SIZE_PCT on first show), grow to fit the tab, but stay on screen
         width = min(max(self.width(), hint.width(), self.minimumWidth()), max_size.width())
-        height = min(max(hint.height(), self.minimumHeight()), max_height)
+        height = min(max(self.height(), hint.height(), self.minimumHeight()), max_size.height())
+
         self.resize(width, height)
 
     def showEvent(self, event):

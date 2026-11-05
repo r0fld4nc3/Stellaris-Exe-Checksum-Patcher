@@ -1,4 +1,6 @@
 import logging
+from pathlib import Path
+from typing import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QFontDatabase
@@ -16,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from patch_patterns.patterns import get_patterns_config_remote
+from ui.utils import prompt_path
 from utils.helpers import block_signals
 from utils.platform import open_in_file_manager
 
@@ -50,7 +53,7 @@ class UtilitiesTab(OptionsTab):
         utilities_tab_layout.addWidget(title_label)
 
         # --- Description Label
-        desc_label = QLabel("Additional tools and utilities for game management.")
+        desc_label = QLabel("Additional tools and utilities.")
         desc_label.setWordWrap(True)
         utilities_tab_layout.addWidget(desc_label)
 
@@ -158,30 +161,46 @@ class UtilitiesTab(OptionsTab):
 
         launchers_layout = QGridLayout()
         launchers_layout.setColumnStretch(1, 1)
-        self.steam_launcher_path = self._add_launcher_row(
-            launchers_layout, 0, "Steam:", "Steam executable, used to launch and validate Steam games."
+
+        self.steam_launcher_path_field = self._add_launcher_row(
+            launchers_layout,
+            0,
+            "Steam:",
+            "Steam executable, used to launch and validate Steam games.",
+            on_browse=self._browse_steam_folder,
         )
-        self.gog_launcher_path = self._add_launcher_row(
-            launchers_layout, 1, "GOG Galaxy:", "GOG Galaxy executable, used to launch GOG games."
+
+        self.gog_launcher_path_field = self._add_launcher_row(
+            launchers_layout,
+            1,
+            "GOG Galaxy:",
+            "GOG Galaxy executable, used to launch GOG games.",
+            on_browse=self._browse_gog_folder,
         )
-        self.generic_runner_path = self._add_launcher_row(
+
+        self.generic_runner_path_field = self._add_launcher_row(
             launchers_layout,
             2,
             "Generic Runner:",
             "Anything that can run the game executable (Wine, Bottles, Lutris, Heroic...).\n"
             "Used when no store launcher can run the patched executable.",
+            on_browse=self._browse_generic_runner,
         )
 
         generic_runner_args_label = QLabel("Runner Arguments:")
         generic_runner_args_label.setFont(font)
-        self.generic_runner_args = QLineEdit()
-        self.generic_runner_args.setFont(self.system_font)
-        self.generic_runner_args.setPlaceholderText("{binary}")
-        self.generic_runner_args.setToolTip(
+        generic_runner_args_label.setObjectName("FieldNameLabel")
+
+        self.generic_runner_args_field = QLineEdit()
+        self.generic_runner_args_field.setFont(self.system_font)
+        self.generic_runner_args_field.setPlaceholderText("{binary}")
+        self.generic_runner_args_field.setToolTip(
             "Arguments passed to the Generic Runner.\n" "{binary}: the game executable. {folder}: the folder it's in."
         )
+        self.generic_runner_args_field.editingFinished.connect(self._on_generic_runner_args_edited)
+
         launchers_layout.addWidget(generic_runner_args_label, 3, 0)
-        launchers_layout.addWidget(self.generic_runner_args, 3, 1, 1, 2)
+        launchers_layout.addWidget(self.generic_runner_args_field, 3, 1, 1, 2)
         utilities_layout.addLayout(launchers_layout)
 
         # --- Spacer ---
@@ -217,6 +236,8 @@ class UtilitiesTab(OptionsTab):
         with block_signals(self.chkbox_include_prerelease_updates):
             self.chkbox_include_prerelease_updates.setChecked(self.svc.settings.settings.include_prerelease_updates)
 
+        self._update_launchers_paths()
+
     # --- Slots ---
 
     def _on_max_backups_slider_changed(self, value: int):
@@ -239,6 +260,9 @@ class UtilitiesTab(OptionsTab):
         self.svc.settings.settings.include_prerelease_updates = checked
 
         log.info(f"Include pre-releases in update check: {checked}")
+
+    def _on_generic_runner_args_edited(self):
+        self.svc.settings.settings.generic_runner_args = self.generic_runner_args_field.text().strip()
 
     def show_app_config_folder(self):
         config_dir = self.svc.config.config_dir
@@ -271,13 +295,16 @@ class UtilitiesTab(OptionsTab):
 
     # --- Helpers ---
 
-    def _add_launcher_row(self, layout: QGridLayout, row: int, label_text: str, tooltip: str) -> QLineEdit:
+    def _add_launcher_row(
+        self, layout: QGridLayout, row: int, label_text: str, tooltip: str, on_browse: Callable[[], None]
+    ) -> QLineEdit:
         """Label, read-only path field and Browse button on `row` of `layout`. Returns the path field."""
         font = self.ctx.font
 
         label = QLabel(label_text)
         label.setFont(font)
         label.setToolTip(tooltip)
+        label.setObjectName("FieldNameLabel")
 
         path_field = QLineEdit()
         path_field.setFont(self.system_font)
@@ -287,6 +314,7 @@ class UtilitiesTab(OptionsTab):
 
         btn_browse = QPushButton("Browse...")
         btn_browse.setFont(font)
+        btn_browse.clicked.connect(on_browse)
 
         layout.addWidget(label, row, 0)
         layout.addWidget(path_field, row, 1)
@@ -295,3 +323,62 @@ class UtilitiesTab(OptionsTab):
 
     def _update_max_backups_label(self, value: int):
         self.max_backup_value_label.setText("Off" if value <= 0 else str(value))
+
+    def _browse_steam_folder(self):
+        saved_path = self.svc.settings.settings.steam_install_path
+
+        picked = prompt_path(
+            self,
+            "Choose the Steam folder",
+            pick_folder=True,
+            start_path=Path(saved_path) if saved_path else None,
+        )
+        if not picked:
+            return
+
+        self.svc.settings.settings.steam_install_path = picked.as_posix()
+
+        self._update_launchers_paths()
+
+    def _browse_gog_folder(self):
+        saved_path = self.svc.settings.settings.gog_install_path
+
+        picked = prompt_path(
+            self,
+            "Choose the GoG Galaxy folder",
+            pick_folder=True,
+            start_path=Path(saved_path) if saved_path else None,
+        )
+        if not picked:
+            return
+
+        self.svc.settings.settings.gog_install_path = picked.as_posix()
+
+        self._update_launchers_paths()
+
+    def _browse_generic_runner(self):
+        saved_path = self.svc.settings.settings.generic_runner_path
+
+        picked = prompt_path(
+            self,
+            "Choose preferred generic runner binary",
+            start_path=Path(saved_path) if saved_path else None,
+        )
+        if not picked:
+            return
+
+        self.svc.settings.settings.generic_runner_path = picked.as_posix()
+
+        self._update_launchers_paths()
+
+    def _update_launchers_paths(self):
+        """
+        Fill the launcher fields from settings.
+        Empty fields show the placeholder.
+        """
+
+        app_settings = self.svc.settings.settings
+        self.steam_launcher_path_field.setText(app_settings.steam_install_path)
+        self.gog_launcher_path_field.setText(app_settings.gog_install_path)
+        self.generic_runner_path_field.setText(app_settings.generic_runner_path)
+        self.generic_runner_args_field.setText(app_settings.generic_runner_args)

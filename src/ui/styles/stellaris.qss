@@ -83,6 +83,11 @@ QLabel#SectionTitle {
     border-radius: 5px;
 }
 
+/* FieldNameLabel */
+QLabel#FieldNameLabel {
+    color: rgb(255, 255, 255);
+}
+
 /* Configure Button */
 QPushButton#ConfigureButton {
     background-color: transparent;
