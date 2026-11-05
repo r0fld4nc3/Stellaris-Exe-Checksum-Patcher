@@ -49,6 +49,7 @@ class SaveBackupsDialog(QDialog):
         self._rows: list[tuple[QTreeWidgetItem, SaveBackup]] = []
 
         self.setObjectName("SaveBackupsDialog")
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
         self.setWindowTitle("Manage Save Backups")
         self.setFont(font)
         self._fit_to_screen(parent)
