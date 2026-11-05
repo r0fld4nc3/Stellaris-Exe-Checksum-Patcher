@@ -28,7 +28,7 @@ from utils.helpers import (
 )
 from utils.platform import open_in_file_manager
 
-from ...utils import find_game_path, prompt_install_dir, restore_window_focus
+from ...utils import find_game_path, prompt_path, restore_window_focus
 from .base import OptionsContext, OptionsTab
 from .shared_widgets.comboboxes_shared import AutoWidthComboBox, GameComboBox
 
@@ -337,7 +337,7 @@ class GameUtilitiesTab(OptionsTab):
             return
 
         log.info("Auto-location already attempted and failed.", silent=True)
-        picked_path = prompt_install_dir(game)
+        picked_path = prompt_path(self, caption=f"Choose {game} executable binary...")
 
         if picked_path:
             self.show_game_folder(auto_located_path=picked_path, _retry_attempted=_retry_attempted)

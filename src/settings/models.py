@@ -109,9 +109,10 @@ class AppSettings(AutoSaveHookedSettingsClass):
     force_local_patterns: bool = False
     include_prerelease_updates: bool = False
     selected_game: str = ""
-    steam_install_path: str = ""
-    gog_install_path: str = ""
-    generic_runner_path: str = ""
+    steam_install_path: str = ""  # Steam folder
+    gog_install_path: str = ""  # GoG Folder
+    generic_runner_path: str = ""  # Executable that runs when no game store set
+    generic_runner_args: str = ""  # Arguments for generic runner.
     games: dict[str, GameSettings] = field(default_factory=dict)
     last_seen_message_hash: str = ""  # Fingerprint of the last remote message the user closed
 

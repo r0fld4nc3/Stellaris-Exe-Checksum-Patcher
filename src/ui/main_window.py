@@ -51,7 +51,7 @@ from .utils import (
     EventFilterMoveResize,
     find_game_path,
     get_screen_info,
-    prompt_install_dir,
+    prompt_path,
 )
 from .windows import (
     ConfigureSavePatchDialog,
@@ -705,7 +705,17 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # Automatic search failed
             log.info("Asking for user-provided game executable path.")
 
-            user_selected_path = prompt_install_dir(game_name=self.configuration.game)
+            game_settings = self.settings.game(self.configuration.game)
+            if self.configuration.is_proton:
+                saved_path = game_settings.proton_install_path
+            else:
+                saved_path = game_settings.install_path
+
+            user_selected_path = prompt_path(
+                self,
+                caption=f"Choose {self.configuration.game} executable binary...",
+                start_path=Path(saved_path) if saved_path else None,
+            )
 
             if user_selected_path:
                 game_binary_path = user_selected_path

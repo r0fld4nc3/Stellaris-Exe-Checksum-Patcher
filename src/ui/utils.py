@@ -502,24 +502,31 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
     return None
 
 
-def prompt_install_dir(game_name: str = "Game") -> Optional[Path]:
-    qurl_install_dir: tuple[QUrl, str] = QFileDialog().getOpenFileUrl(
-        caption=f"Please choose {game_name} executable binary..."
-    )
+def prompt_path(
+    parent: QWidget, caption: str, pick_folder: bool = False, start_path: Optional[Path] = None
+) -> Optional[Path]:
+    """
+    Ask the user for a file or folder. None if they cancel or the path doesn't exist.
 
-    picked_path_str = qurl_install_dir[0].path()
-    log.info(f"User picked path: {picked_path_str}", silent=True)
+    :param start_path: Where the dialog opens. Its folder is used when it's a file.
+    """
 
-    # Handle potentially empty strings
-    if picked_path_str and picked_path_str.strip():
-        picked_path = Path(picked_path_str).absolute().resolve()
+    start_dir = ""
+    if start_path:
+        start_dir = str(start_path if start_path.is_dir() else start_path.parent)
 
-        # Verify path does exist
-        if picked_path.exists():
-            return picked_path
-        else:
-            log.warning(f"Selected path does not exist: {picked_path}")
-            return None
+    if pick_folder:
+        picked = QFileDialog.getExistingDirectory(parent, caption, start_dir)
+    else:
+        picked, _ = QFileDialog.getOpenFileName(parent, caption, start_dir)
 
-    log.info(f"User cancelled file selection.", silent=True)
-    return None
+    if not picked:
+        log.info("User cancelled path selection", silent=True)
+        return None
+
+    picked_path = Path(picked).resolve()
+    if not picked_path.exists():
+        log.warning(f"Selected path does not exist: {picked_path}")
+        return None
+
+    return picked_path
