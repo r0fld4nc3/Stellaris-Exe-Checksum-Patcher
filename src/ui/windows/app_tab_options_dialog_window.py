@@ -214,6 +214,11 @@ class TabOptionsDialog(QDialog):
             widget = widget.parentWidget()
         self.layout().activate()
 
+        # Never go below the layout's minimum to avoid squeezing widgets like dropdowns
+        content_min_width = self.minimumSizeHint().width()
+        if self.minimumWidth() < content_min_width:
+            self.setMinimumWidth(content_min_width)
+
         hint = self.sizeHint()
         max_size = self.screen().availableGeometry().size() * self.MAX_SCREEN_FRACTION
         max_height = min(size_from_parent(self.parentWidget(), self.SIZE_PCT).height(), max_size.height())

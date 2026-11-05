@@ -6,7 +6,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -31,7 +30,7 @@ from utils.platform import open_in_file_manager
 
 from ...utils import find_game_path, prompt_install_dir, restore_window_focus
 from .base import OptionsContext, OptionsTab
-from .shared_widgets.game_combobox import GameComboBox
+from .shared_widgets.comboboxes_shared import AutoWidthComboBox, GameComboBox
 
 log = logging.getLogger("Patch Config")
 
@@ -70,9 +69,9 @@ class GameUtilitiesTab(OptionsTab):
 
         self.game_combobox = GameComboBox(self.ctx)
 
-        self.version_combobox = QComboBox()
+        self.version_combobox = AutoWidthComboBox(font=font)
         self.version_combobox.setFont(font)
-        self.version_combobox.setMaximumWidth(140)
+        # self.version_combobox.setMaximumWidth(140)
 
         selection_layout.addWidget(QLabel("Game:"))
         selection_layout.addWidget(self.game_combobox)
@@ -82,7 +81,7 @@ class GameUtilitiesTab(OptionsTab):
 
         # --- Native/Proton Dropdown (Linux/macOS) ---
         # Each item carries the platform of the binary it patches
-        self.platform_picker = QComboBox()
+        self.platform_picker = AutoWidthComboBox(font=font)
         if os_linux() or os_darwin():
             self.platform_picker.addItem(
                 patcher_models.TRANSLATION_LAYER_ENUM.NATIVE, patcher_models.Platform.detect_current()
@@ -91,12 +90,12 @@ class GameUtilitiesTab(OptionsTab):
                 patcher_models.TRANSLATION_LAYER_ENUM.PROTON, patcher_models.Platform.WINDOWS.value
             )
             self.platform_picker.setFont(font)
-            self.platform_picker.setMinimumWidth(100)
+            # self.platform_picker.setMinimumWidth(100)
             selection_layout.addWidget(self.platform_picker)
 
         # --- Game Store Dropdown ---
         # Each item carries the GameStore value saved for the game
-        self.store_picker = QComboBox()
+        self.store_picker = AutoWidthComboBox(font=font)
         for store in GameStore:
             self.store_picker.addItem(store.display_name, store)
         self.store_picker.setFont(font)
