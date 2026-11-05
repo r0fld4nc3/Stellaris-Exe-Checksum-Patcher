@@ -45,6 +45,11 @@ class GameUtilitiesTab(OptionsTab):
 
         self.active_threads: list[Threader] = []
 
+        # Executable paths of each store a game was switched away from: (game, store) -> (install_path, proton_install_path).
+        # Lets a store switch auto-detect again without losing the paths if switched back by the user.
+        # Lifetime is app run.
+        self.store_paths: dict[tuple[str, GameStore], tuple[str, str]] = {}
+
         font = self.ctx.font
 
         font_section = QFont(font)
@@ -232,11 +237,16 @@ class GameUtilitiesTab(OptionsTab):
     def _on_store_changed(self, index: int):
         if index < 0 or not self.selected_game:
             return
-        store = GameStore(self.store_picker.itemData(index))
-        log.info(f"{self.selected_game} store changed to: {store.display_name}", silent=True)
-        self.svc.settings.game(self.selected_game).store = store
 
-        self._show_validate_button(store)
+        game = self.selected_game
+        old_store = game_store(game)
+        new_store = GameStore(self.store_picker.itemData(index))
+        log.info(f"{game} store changed to: {new_store.display_name}", silent=True)
+
+        self._swap_store_paths(game, old_store, new_store)
+        self.svc.settings.game(game).store = new_store
+
+        self._show_validate_button(new_store)
 
     def _on_patch_toggled(self, patch_name: str, checked: bool):
         selected = self.config.selected_patches
@@ -445,6 +455,18 @@ class GameUtilitiesTab(OptionsTab):
             self._show_message("Backups Deleted", f"Deleted {len(deleted)} backup(s) of the {game} executable.")
 
     # --- Helpers ---
+
+    def _swap_store_paths(self, game: str, old_store: GameStore, new_store: GameStore):
+        """
+        Keep `game` executable paths for `old_store`, and put back the ones `new_store` had earlier in the run.
+        Empty when `new_store` had none, so it auto-detects the game again.
+        """
+        game_settings = self.svc.settings.game(game)
+        self.store_paths[(game, old_store)] = (game_settings.install_path, game_settings.proton_install_path)
+
+        install_path, proton_install_path = self.store_paths.get((game, new_store), ("", ""))
+        game_settings.install_path = install_path
+        game_settings.proton_install_path = proton_install_path
 
     def _show_validate_button(self, store: GameStore):
         """Name of the store on the button. Disabled when the store can't validate."""
