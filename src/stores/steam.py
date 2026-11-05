@@ -11,8 +11,8 @@ from config.path_helpers import os_darwin, os_linux, os_windows
 from utils import registry_helper
 from utils.encodings import safe_read_file_encode
 
-from .base import StoreHelper
-from .models import GameStore
+from .base import StoreHelperBase
+from .definitions import GameStore
 
 log = logging.getLogger("Steam Helper")
 
@@ -55,7 +55,7 @@ LINUX_DISTRO_PATHS = [
 MACOS_DISTRO_PATHS = [Path.home() / "Library" / "Application Support" / "Steam"]
 
 
-class SteamHelper(StoreHelper):
+class SteamHelper(StoreHelperBase):
     def __init__(self):
         self.steam_install: Optional[Path] = None
         self.steam_library_paths: list[Path] = []

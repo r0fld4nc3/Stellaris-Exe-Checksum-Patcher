@@ -1,21 +1,25 @@
 """
-Store data with no store logic: the stores themselves and the IDs each game has in them.
+Defintions for `GameStore`. The stores, the default store, and every supported game's name and ID in each store.
 
-Kept apart from the store helpers so any of them can import it without a circular import.
+Edit this file to:
+- Add a game store. One entry in `GAME_STORE_INFOS`.
+
+- Add a game store. A `GameStore` member, its `STORE_DISPLAY_NAMES` entry and a line in `GAME_STORE_INFOS` for each game it sells. Then its helper in `game_stores.py`.
+
+- Change the default store.
 """
 
 import logging
-from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
+
+from .base import StoreGameInfo
 
 log = logging.getLogger("Game Stores")
 
 
 class GameStore(str, Enum):
     """
-    Where a game was installed from. Decides how it's located, launched and validated.
-
     Values are the settings keys, written as literals.
     Not to be confused with `patchers.models.Platform`, which is the OS a binary is built for.
     """
@@ -27,8 +31,7 @@ class GameStore(str, Enum):
 
     @property
     def display_name(self) -> str:
-        display_names = {GameStore.STEAM: "Steam", GameStore.GOG: "GOG", GameStore.GENERIC: "Generic"}
-        return display_names[self]
+        return STORE_DISPLAY_NAMES[self]
 
     @classmethod
     def parse(cls, value: Optional[str]) -> Optional["GameStore"]:
@@ -38,7 +41,7 @@ class GameStore(str, Enum):
         except ValueError:
             return None
 
-    def game_info(self, game_name: str) -> Optional["StoreGameInfo"]:
+    def game_info(self, game_name: str) -> Optional[StoreGameInfo]:
         """`game_name`'s name and ID in this store (any case). None if this store doesn't have it."""
         store_infos = GAME_STORE_INFOS.get(game_name.lower())
         if not store_infos:
@@ -48,16 +51,17 @@ class GameStore(str, Enum):
         return store_infos.get(self)
 
 
-@dataclass(frozen=True)
-class StoreGameInfo:
-    """A game's name and ID in one store."""
+# Store for games without one picked yet.
+DEFAULT_GAME_STORE = GameStore.STEAM
 
-    name: str
-    id: int
+# Store names shown in the app
+STORE_DISPLAY_NAMES: dict[GameStore, str] = {
+    GameStore.STEAM: "Steam",
+    GameStore.GOG: "GOG",
+    GameStore.GENERIC: "Generic",
+}
 
-
-# Every supported game (lowercased name), and its name and ID in each store that sells it.
-# Add a game: one entry here. Add a store: a GameStore member, then a line in each game it sells.
+# Every supported game (lowercased), and its name and ID in each store it is available in
 GAME_STORE_INFOS: dict[str, dict[GameStore, StoreGameInfo]] = {
     "stellaris": {
         GameStore.STEAM: StoreGameInfo(name="stellaris", id=281990),

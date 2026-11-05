@@ -1,20 +1,22 @@
+"""
+Which store a game uses, and that store's helper.
+
+`definitions.py` holds the stores, the default store and each game's store ID.
+"""
+
 import logging
 from typing import Optional
 
 from app_services import services
 
-from .base import StoreHelper
-from .models import GameStore
+from .base import StoreHelperBase
+from .definitions import DEFAULT_GAME_STORE, GameStore
 from .steam import SteamHelper
 
 log = logging.getLogger("Game Stores")
 
-
-# Store for games without one picked yet. Steam was the only store before stores could be picked.
-DEFAULT_GAME_STORE = GameStore.STEAM
-
 # One helper per store. Generic has none: the user picks the executable themselves.
-_STORE_HELPERS: dict[GameStore, StoreHelper] = {GameStore.STEAM: SteamHelper()}
+_STORE_HELPERS: dict[GameStore, StoreHelperBase] = {GameStore.STEAM: SteamHelper()}
 
 
 def game_store(game_name: str) -> GameStore:
@@ -40,7 +42,7 @@ def game_store(game_name: str) -> GameStore:
     return store
 
 
-def get_store_helper(game_name: str) -> Optional[StoreHelper]:
+def get_store_helper(game_name: str) -> Optional[StoreHelperBase]:
     """Helper for the store `game_name` is installed from. None if that store has no helper."""
     store = game_store(game_name)
     helper = _STORE_HELPERS.get(store)

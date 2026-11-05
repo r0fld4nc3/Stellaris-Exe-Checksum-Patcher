@@ -1,9 +1,9 @@
 # built-ins
 import logging
 
-from .base import StoreHelper
+from .base import StoreHelperBase
 
 log = logging.getLogger("GoG Helper")
 
 
-class GoG(StoreHelper): ...
+class GoG(StoreHelperBase): ...

@@ -1,6 +1,7 @@
 import os
 import subprocess
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -11,7 +12,15 @@ DETACHED_PROCESS = 0x00000008
 CREATE_NEW_PROCESS_GROUP = 0x00000200
 
 
-class StoreHelper(ABC):
+@dataclass(frozen=True)
+class StoreGameInfo:
+    """A game's name and ID in one store."""
+
+    name: str
+    id: int
+
+
+class StoreHelperBase(ABC):
     """
     Base for a game store helper (Steam, GOG...): find, launch and validate a game.
 
