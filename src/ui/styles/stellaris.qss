@@ -69,8 +69,29 @@ QRadioButton {
 }
 
 QRadioButton::indicator {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
+    border: 1px solid rgb(67, 144, 134);
+    border-radius: 9px;
+    background-color: rgba(22, 59, 56, 100);
+}
+
+QRadioButton::indicator:hover {
+    border-color: rgba(255, 151, 33, 175);
+    background-color: rgba(255, 179, 25, 100);
+}
+
+QRadioButton::indicator:checked {
+    border-color: rgb(255, 179, 25);
+    background-color: qradialgradient(cx: 0.5,
+        cy: 0.5,
+        radius: 0.5,
+        fx: 0.5,
+        fy: 0.5,
+        stop: 0 rgb(255, 179, 25),
+        stop: 0.45 rgb(255, 179, 25),
+        stop: 0.55 rgba(22, 59, 56, 100)
+    );
 }
 
 QScrollArea {
