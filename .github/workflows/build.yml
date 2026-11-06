@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
@@ -73,7 +73,7 @@ jobs:
 
       - name: Restore Nuitka cache
         if: matrix.builder == 'nuitka'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/nuitka-cache
           # Each run saves a new entry (caches can't be overwritten) and restores the newest matching one
@@ -83,7 +83,8 @@ jobs:
             nuitka-${{ runner.os }}-
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+        # setup-uv only publishes exact version tags since v8 (no @v10), so this needs bumping by hand
+        uses: astral-sh/setup-uv@v10.3.3
 
       - name: Install Python and dependencies
         run: uv sync --locked --all-extras --dev
@@ -101,7 +102,7 @@ jobs:
           done
 
       - name: Upload executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Stellaris-Checksum-Patcher-${{ matrix.builder }}-${{ env.PLATFORM }}
           path: Stellaris-Checksum-Patcher-*
