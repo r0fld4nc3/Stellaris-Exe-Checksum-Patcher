@@ -361,7 +361,7 @@ class UtilitiesTab(OptionsTab):
 
         picked = prompt_path(
             self,
-            "Choose the GoG Galaxy folder",
+            "Choose the GOG Galaxy folder",
             pick_folder=True,
             start_path=Path(saved_path) if saved_path else None,
         )

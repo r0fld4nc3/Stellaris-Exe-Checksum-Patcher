@@ -10,7 +10,7 @@ from utils import registry_helper
 from .base import StoreHelperBase
 from .definitions import GameStore
 
-log = logging.getLogger("GoG Helper")
+log = logging.getLogger("GOG Helper")
 
 # KEY_LOCAL_MACHINE. GOG Galaxy is 32-bit, keys are under WOW6432Node
 GOG_GAMES_REGISTRY_PATH = r"SOFTWARE\WOW6432Node\GOG.com\Games"  # + "\<game id>"
@@ -19,7 +19,7 @@ GOG_GAME_PATH_KEY = "path"
 GOG_GALAXY_CLIENT_KEY = "client"
 
 GOG_GALAXY_EXECUTABLE_WINDOWS = "GalaxyClient.exe"
-# Every GoG install has this file in the folder, like Steam's steam_appid.txt
+# Every GOG install has this file in the folder, like Steam's steam_appid.txt
 GOG_GAME_INFO_FILE_NAME = "goggame-{game_id}.info"
 
 GOG_GALAXY_OPEN_GAME_URL = "goggalaxy://openGameView/{game_id}"
@@ -37,7 +37,7 @@ class GogHelper(StoreHelperBase):
     # --- Game ID ---
 
     def get_known_game_id(self, game_name: str) -> Optional[str]:
-        """GoG game ID for `game_name` from known game IDs. `None` if unknown."""
+        """GOG game ID for `game_name` from known game IDs. `None` if unknown."""
         gog_info = GameStore.GOG.game_info(game_name)
         if not gog_info:
             return None

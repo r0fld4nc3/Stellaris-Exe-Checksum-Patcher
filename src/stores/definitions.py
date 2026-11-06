@@ -89,7 +89,7 @@ STORE_DESCRIPTIONS: dict[GameStore, str] = {
 }
 
 STORE_SUPPORTED_SYSTEMS: dict[GameStore, list[str]] = {
-    GameStore.GOG: [OS_TYPE.WINDOWS, OS_TYPE.DARWIN],  # No GoG on Linux
+    GameStore.GOG: [OS_TYPE.WINDOWS, OS_TYPE.DARWIN],  # No GOG on Linux
     # GameStore.STEAM and GameStore.GENERIC are supported everywhere, so no need to filter.
 }
 
