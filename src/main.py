@@ -6,10 +6,13 @@ from cli import parse_args
 from config import runtime
 from config.definitions import (
     APP_NAME,
+    APP_REVISION,
     APP_VERSION,
     HOST,
+    REPO_BRANCH,
     REPO_NAME,
     REPO_OWNER,
+    TRACKING_BRANCH,
 )
 from config.path_helpers import get_os_env_config_folder, system
 from config.runtime import AppConfig
@@ -78,6 +81,9 @@ def main():
 
     log.info(f"Debug:                  {config.debug}")
     log.info(f"App Version:            {APP_VERSION}")
+    log.info(f"App Revision:           {APP_REVISION}")
+    log.info(f"Repo Branch:            {REPO_BRANCH}")
+    log.info(f"Tracking Branch:        {TRACKING_BRANCH}")
     log.info(f"Target System:          {system()}")
     log.info(f"AppConfig:              {config}")
     log.info(f"AppSettings:            {stgs.settings}")

@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-from config.definitions import APP_IS_PRERELEASE, APP_VERSION_STR
+from config.definitions import APP_IS_PRERELEASE, APP_REVISION, APP_VERSION_STR
 
 if TYPE_CHECKING:
     from .settings import SettingsManager
@@ -113,6 +113,7 @@ class AppSettings(AutoSaveHookedSettingsClass):
     # Want it to show first on the list of settings.
     # Records which app version last wrote the file. Never read back.
     app_version: str = memory(APP_VERSION_STR, locked=True)
+    app_revision: int = memory(APP_REVISION, locked=True)
     app_is_prerelease: bool = memory(APP_IS_PRERELEASE, locked=True)
 
     # --- Saved immediately ---

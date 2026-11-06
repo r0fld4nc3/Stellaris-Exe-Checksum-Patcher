@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import ssl
 import time
 from typing import Optional
@@ -8,11 +9,13 @@ import certifi
 import requests
 
 from app_services import services
-from config.definitions import APP_IS_PRERELEASE, APP_VERSION_STR
+from config.definitions import APP_IS_PRERELEASE, APP_REVISION, APP_VERSION_STR
 
 log = logging.getLogger("Updater")
 
 _current: Optional["Updater"] = None
+
+_REVISION_PATTERN = re.compile(r"\.rev(\d+)$")
 
 
 class Updater:
@@ -36,6 +39,7 @@ class Updater:
         # Always the built-in version.
         self.local_version = self.construct_version_list_from_str(APP_VERSION_STR)
         self.local_is_prerelease = APP_IS_PRERELEASE
+        self.local_revision = APP_REVISION
 
         self.has_new_version = False
 
@@ -129,24 +133,30 @@ class Updater:
             current_is_prerelease = self.local_is_prerelease
 
         log.info(f"Local version: {current}{' (pre-release)' if current_is_prerelease else ''}", silent=True)
+        log.info(f"Local revision: {self.local_revision}", silent=True)
 
-        remote_release_name = self.construct_version_list_from_str(remote.get(self._release_name))
-        remote_release_tag = self.construct_version_list_from_str(remote.get(self._release_tag))
-        remote_is_prerelease = bool(remote.get("prerelease"))
+        remote_release = remote.get(self._release_name)
+        remote_tag = remote.get(self._release_tag)
 
-        compare_iters = [remote_release_name, remote_release_tag]
+        remote_release_version: list[int] = self.construct_version_list_from_str(self.strip_revision(remote_release))
+        remote_release_tag: list[int] = self.construct_version_list_from_str(self.strip_revision(remote_tag))
+        remote_revision: int = self.get_revision(remote_tag)
+        remote_is_prerelease: bool = bool(remote.get("prerelease"))
 
-        log.info(f"Remote Name:    {remote_release_name}", silent=True)
-        log.info(f"Remote Tag:     {remote_release_tag}", silent=True)
-        log.info(f"Remote is pre-release: {remote_is_prerelease}", silent=True)
+        compare_iters = [remote_release_version, remote_release_tag]
+
+        log.info(f"Remote Name:        {remote_release_version}", silent=True)
+        log.info(f"Remote Tag:         {remote_release_tag}", silent=True)
+        log.info(f"Remote Revision:    {remote_revision}", silent=True)
+        log.info(f"Remote Pre-release: {remote_is_prerelease}", silent=True)
 
         has_update = False
 
-        current_key = self.version_sort_key(current, current_is_prerelease)
+        current_key = self.version_sort_key(current, current_is_prerelease, self.local_revision)
         for comp in compare_iters:
             if not comp:
                 continue  # Name or tag without a version in it
-            comp_key = self.version_sort_key(comp, remote_is_prerelease)
+            comp_key = self.version_sort_key(comp, remote_is_prerelease, remote_revision)
             if current_key < comp_key:
                 log.debug(f"{current_key} < {comp_key}")
                 has_update = True
@@ -155,11 +165,13 @@ class Updater:
         log.debug(f"{has_update=}")
 
         if has_update:
-            log.info(f"This release {current} is outdated with remote: {remote_release_name})")
+            log.info(
+                f"This release {current} (rev{self.local_revision}) is outdated with remote: {remote_release} (rev{remote_revision})"
+            )
             return True
         else:
             log.debug(
-                f"This release {current} is up to date with remote {remote_release_name} ({remote_release_tag})",
+                f"This release {current} (rev{self.local_revision}) is up to date with remote {remote_release} (rev{remote_revision})",
                 silent=True,
             )
             log.info("Up to date")
@@ -167,21 +179,33 @@ class Updater:
         return False
 
     @staticmethod
-    def version_sort_key(version: list[int], is_prerelease: bool) -> tuple:
+    def version_sort_key(version: list[int], is_prerelease: bool, revision: int = 0) -> tuple:
         """
         Key that orders versions correctly when compared (tuple comparison is lexicographical):
         1. Main version (major, minor, patch), missing parts count as 0
         2. Final release ranks above any pre-release of the same version
         3. Pre-releases only: any numbers after the main version (ex.: rc.2 -> 2) order them between themselves.
             Ignored for final releases, where they're usually unrelated (ex.: a name like "v2.2.2")
+        4. Revision (ex.: .rev2 -> 2), so re-releases of the same version order between themselves
 
         EX.:
-        v3.0.0-pre < v3.0.0-rc.2 < v3.0.0 < v3.0.1-pre
+        v3.0.0-pre < v3.0.0-rc.2 < v3.0.0 < v3.0.0.rev1 < v3.0.1-pre
         """
         main_version = tuple((list(version[:3]) + [0, 0, 0])[:3])
         if is_prerelease:
-            return main_version, 0, tuple(version[3:])
-        return main_version, 1, ()
+            return main_version, 0, tuple(version[3:]), revision
+        return main_version, 1, (), revision
+
+    @staticmethod
+    def get_revision(version: str) -> int:
+        match = _REVISION_PATTERN.search(version or "")
+        if not match:
+            return 0
+        return int(match.group(1))
+
+    @staticmethod
+    def strip_revision(version: str) -> str:
+        return _REVISION_PATTERN.sub("", version or "")
 
     @staticmethod
     def construct_version_list_from_str(version: str):
