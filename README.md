@@ -53,11 +53,12 @@ All versions are also listed on the [Releases page](https://github.com/r0fld4nc3
 
 1. Close Stellaris if it is running.
 2. Open the Stellaris Checksum Patcher.
-3. Click **Patch Executable**.
-4. If the app can't find your Stellaris installation, it will ask you to select the game's install folder. It remembers this for next time.
-5. Wait for the app to confirm that patching is done.
+3. Click **Patch**.
+4. The first time, the app asks where your game comes from: **Steam**, **GOG** or **Generic**. See [Game stores](#game-stores).
+5. If the app can't find your Stellaris installation, it asks you to select the game's executable. It remembers this for next time.
+6. Wait for the app to confirm that patching is done.
 
-That's it. Launch Stellaris as usual and play with your mods.
+That's it. Launch Stellaris as usual and play with your mods. You can also - optionally - use the app's **Launch** button.
 
 Previously, this was mostly targeted at specifically Ironman saves, however, Paradox has since made it possible to earn achievements without Ironman.
 
@@ -67,12 +68,40 @@ Before changing anything, the app saves a backup of your original game executabl
 
 ## Features
 
-### 🔧 Patch Executable
+### 🔧 Patch
 
-- Looks for your Steam installation of Stellaris automatically. If it can't find it, it asks you to select the folder.
+- Finds the game's checksum checks by itself, directly in the game executable, so game updates shouldn't need a new version of the app.
+- Looks for Stellaris through your game's store (Steam or GOG Galaxy). If it can't find it, it asks you to select the game's executable.
 - Creates a versioned backup of your current game executable.
 - Applies the selected patches (or the default ones if you haven't chosen any).
-- Remembers your installation folder for next time.
+- Remembers the game's location for next time.
+
+### Game stores
+
+The Patcher uses this to know where your copy of Stellaris comes from and enable automatic searches for paths.
+
+You choose this the first time you patch, and can change it later in the options (cogwheel at the top right), under **Game Utilities**.
+
+| Store | What happens |
+|---|---|
+| **Steam** | Finds the game in your Steam libraries. Launches and validates it through Steam. |
+| **GOG** | Finds the game through GOG Galaxy. Launches it there, and opens it in Galaxy so you can **Verify / Repair** its files. Windows and macOS only, Linux support confirmed coming. |
+| **Generic** | For anything else, or games started with another app. You select the runner to launch the game's executable yourself (_Heroic, Lutris, Bottles..._). |
+
+The store doesn't change how the game is patched. It only tells the Patcher where to look for the game and how to launch and validate it.
+
+The Steam and GOG Galaxy folders are found automatically. If they're somewhere unusual, set them in the options under **General Utilities** > **Launchers**.
+
+### Launching
+
+After patching, the **Patch** button becomes a **Launch** button. It starts the game through its store, or with your **Generic Runner** for **Generic** games. This is optional: you can always start the game from your store or launcher as usual.
+
+**Generic Runner:** any app that runs games, such as Wine, Heroic, Lutris or Bottles. Set it under **General Utilities** > **Launchers**, and type the arguments it needs under **Runner Arguments**. Each app has its own arguments, so check its documentation. Two placeholders are always filled in already:
+
+- `{binary}`: the game executable.
+- `{folder}`: the folder the game executable is in.
+
+Leave the arguments empty to pass only the game executable. For example, with `bottles-cli` as the runner, the arguments are `run -b <your bottle> -e {binary}`.
 
 ### 💾 Fix Save
 
@@ -97,7 +126,7 @@ This is the fix most people need.
 4. The app saves a backup of your save in its configuration folder, under "save games".
 5. The app applies the fixes you selected.
 
-If something doesn't look right afterwards, restore your save from that backup.
+If something doesn't look right afterwards, restore your save from that backup. To clean up old save backups, use **Manage Save Backups** in the options, under **General Utilities**.
 
 ---
 
@@ -132,18 +161,20 @@ Each time you patch, the app saves a backup copy of your original game executabl
 
 **Option 1: Restore the backup yourself**
 
-1. Open the app's **Utility Window** (cogwheel at the top right).
-2. Click the button that opens your Stellaris install folder.
+1. Open the app's options (cogwheel at the top right) and go to **Game Utilities**.
+2. Click **Show Game Folder**.
 3. Delete the patched executable: `stellaris.exe` on Windows, `stellaris` on Linux.
 4. Rename the backup copy to the original name: `stellaris.exe` on Windows, `stellaris` on Linux.
 
-**Option 2: Let Steam repair it**
+Old backups can be cleaned up with **Delete Backups**, also in **Game Utilities**.
+
+**Option 2: Let your store repair it**
 
 This also works if a game update or something else has broken the game.
 
-1. Delete the executable from the install folder, as in step 3 above.
-2. Have Steam verify your game files. The Utility Window has a shortcut button for this. In Steam, you can also right-click Stellaris, choose **Properties**, open **Installed Files**, and click **Verify integrity of game files**.
-3. Steam downloads a fresh, unpatched copy.
+- **Steam:** click **Validate Integrity of Game Files** in **Game Utilities**. In Steam, you can also right-click Stellaris, choose **Properties**, open **Installed Files**, and click **Verify integrity of game files**. Steam downloads a fresh, unpatched copy.
+- **GOG:** click **Validate Integrity of Game Files** in **Game Utilities** to open the game in GOG Galaxy, then click **More** > **Manage installation** > **Verify / Repair**.
+- **Generic:** use your launcher's own verify or repair option, if it has one.
 
 ### Do I need to patch again after a game update?
 
@@ -151,9 +182,16 @@ Probably, yes. Updates often replace the game's executable, which removes the pa
 
 ### Does it work with non-Steam installs?
 
-Version 3.0.0 introduces a completely overhauled patching method that should be more reliable and better prepared for future game updates. 
+From version 3.0.0, yes. Patching works on the game executable itself, wherever it came from.
 
-As a bonus, it may also work with installs outside of Steam. Check the [Releases page](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases) for updates on this.
+- **GOG:** choose **GOG** as the store (Windows and macOS). GOG support is new, please report any problems on GitHub.
+- **Anything else** (including GOG on Linux): choose **Generic** and select the game's executable yourself.
+
+See [Game stores](#game-stores) for what each choice does.
+
+### Can I patch the macOS version of the game?
+
+Not yet. The macOS app can still patch the Windows or Linux version of the game, for example one you run through Proton or CrossOver.
 
 ---
 
