@@ -32,6 +32,8 @@ class StorePickerDialog(QDialog):
     def __init__(self, game: str, preselected_store: GameStore, font: QFont, window_icon: QIcon, parent=None):
         super().__init__(parent)
 
+        self.custom_app_font = font
+
         self.store_buttons: dict[GameStore, QRadioButton] = {}
 
         self.setObjectName("StorePickerDialog")
@@ -75,7 +77,9 @@ class StorePickerDialog(QDialog):
         # --- Intro Label (explanation for both new and existing users) ---
         intro_label = QLabel(
             f"The Patcher now supports GOG as well as Steam. Pick where your copy of {game} comes from, so the Patcher knows how to find, launch and validate it.\n\n"
-            "You only need to do this once. You can change it later in the options, under Game Utilities."
+            "This doesn't change how the game is patched. It serves only for the Patcher to better know where to look for the game and which store's tools to use, such as Validate Game Files and the Launch button.\n\n"
+            "Launching from the Patcher is completely optional. You can always start the game from your preferred Store or Launcher as usual."
+            "You only need to do this once and can later change it in the options, under General and Game Utilities."
         )
         intro_label.setObjectName("StorePickerText")
         intro_label.setWordWrap(True)
@@ -122,6 +126,10 @@ class StorePickerDialog(QDialog):
 
     def _add_store_option(self, layout: QVBoxLayout, store: GameStore):
         radio_button = QRadioButton(store.display_name)
+        option_font = QFont(self.custom_app_font)
+        option_font.setBold(True)
+        option_font.setPointSize(12)
+        radio_button.setFont(option_font)
         layout.addWidget(radio_button)
 
         description_label = QLabel(store.description)

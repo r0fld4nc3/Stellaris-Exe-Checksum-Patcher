@@ -83,9 +83,9 @@ STORE_DISPLAY_NAMES: dict[GameStore, str] = {
 
 # What picking each store does, shown under it in the store picker
 STORE_DESCRIPTIONS: dict[GameStore, str] = {
-    GameStore.STEAM: "Bought on Steam. The game is found in Steam libraries, and launched and validated through Steam.",
-    GameStore.GOG: "Bought on GOG. The game is found through GOG Galaxy, and launched and verified there.",
-    GameStore.GENERIC: "Anywhere else, or launched with another app (Heroic, Lutris, Bottles...). Pick the runner yourself.",
+    GameStore.STEAM: "Bought on Steam. The game is found in Steam libraries. Launched and validated through Steam.",
+    GameStore.GOG: "Bought on GOG. The game is found through GOG Galaxy. Launched and verified there.",
+    GameStore.GENERIC: "Anywhere else, or launched with another app (Heroic, Lutris, Bottles...). Pick your preferred runner.",
 }
 
 STORE_SUPPORTED_SYSTEMS: dict[GameStore, list[str]] = {

@@ -197,7 +197,9 @@ QLabel#StorePickerText {
 }
 
 QLabel#StoreDescription {
-    color: rgb(224, 224, 224);
+    color: rgb(225, 225, 225);
+    background-color: rgb(35, 75, 70);
+    border-radius: 5px;
 }
 
 /* Patch Progress Bar */

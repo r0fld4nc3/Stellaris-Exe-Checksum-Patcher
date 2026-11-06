@@ -144,7 +144,7 @@ QLabel#StorePickerText {
 }
 
 QLabel#StoreDescription {
-    color: rgb(224, 224, 224);
+    color: rgb(225, 225, 225);
 }
 
 /* Patch Progress Bar */
