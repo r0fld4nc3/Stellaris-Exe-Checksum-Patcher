@@ -26,8 +26,8 @@ class StorePickerDialog(QDialog):
     """
 
     # (width, height) as percentages of the parent window
-    SIZE_PCT = (60, 60)
-    MIN_SIZE_PCT = (40, 40)
+    SIZE_PCT = (60, 64)
+    MIN_SIZE_PCT = (50, 64)
 
     def __init__(self, game: str, preselected_store: GameStore, font: QFont, window_icon: QIcon, parent=None):
         super().__init__(parent)
@@ -77,13 +77,15 @@ class StorePickerDialog(QDialog):
         # --- Intro Label (explanation for both new and existing users) ---
         intro_label = QLabel(
             f"The Patcher now supports GOG as well as Steam. Pick where your copy of {game} comes from, so the Patcher knows how to find, launch and validate it.\n\n"
-            "This doesn't change how the game is patched. It serves only for the Patcher to better know where to look for the game and which store's tools to use, such as Validate Game Files and the Launch button.\n\n"
-            "Launching from the Patcher is completely optional. You can always start the game from your preferred Store or Launcher as usual."
+            "This doesn't change how the game is patched. It simply helps the Patcher identify the game's location and determine which store's tools to use, such as Validate Game Files and the Launch button.\n\n"
+            "Launching from the Patcher is completely optional. You can always start the game from your preferred Store or Launcher as usual.\n\n"
             "You only need to do this once and can later change it in the options, under General and Game Utilities."
         )
         intro_label.setObjectName("StorePickerText")
         intro_label.setWordWrap(True)
         content_layout.addWidget(intro_label)
+
+        content_layout.addStretch(1)
 
         # --- Stores ---
         for store in GameStore:
