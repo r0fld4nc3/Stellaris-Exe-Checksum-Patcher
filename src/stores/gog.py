@@ -163,7 +163,8 @@ class GogHelper(StoreHelperBase):
 
     # --- Launch and Validate ---
 
-    def launch_game(self, game_name: str) -> None:
+    def launch_game(self, game_name: str, binary_path: Optional[Path]) -> None:
+        # Known store starts its own install of the game, so binary_path isn't needed
         game_id = self.get_known_game_id(game_name)
         if not game_id:
             log.error(f"Unable to find GOG game ID for: {game_name}")

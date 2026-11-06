@@ -12,13 +12,19 @@ from app_services import services
 
 from .base import StoreHelperBase
 from .definitions import DEFAULT_GAME_STORE, GameStore
+from .generic import GenericHelper
 from .gog import GogHelper
 from .steam import SteamHelper
 
 log = logging.getLogger("Game Stores")
 
-# One helper per store. Generic has none: the user picks the executable themselves.
-_STORE_HELPERS: dict[GameStore, StoreHelperBase] = {GameStore.STEAM: SteamHelper(), GameStore.GOG: GogHelper()}
+# One helper per store.
+# Generic finds nothing itself (the user picks the executable) and launches with the Generic runner.
+_STORE_HELPERS: dict[GameStore, StoreHelperBase] = {
+    GameStore.STEAM: SteamHelper(),
+    GameStore.GOG: GogHelper(),
+    GameStore.GENERIC: GenericHelper(),
+}
 
 
 def game_store(game_name: str) -> GameStore:

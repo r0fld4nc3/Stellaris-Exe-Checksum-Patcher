@@ -22,7 +22,7 @@ class StoreGameInfo:
 
 class StoreHelperBase(ABC):
     """
-    Base for a game store helper (Steam, GOG...): find, launch and validate a game.
+    Base for a game store helper (Steam, GOG, ..., Generic). Find, launch and validate a game.
 
     Each store implements the abstract methods. Code any store can use lives here.
     """
@@ -35,8 +35,11 @@ class StoreHelperBase(ABC):
         """Folder `game_name` is installed in. None if not found."""
 
     @abstractmethod
-    def launch_game(self, game_name: str) -> None:
-        """Start `game_name` through the store."""
+    def launch_game(self, game_name: str, binary_path: Optional[Path]) -> None:
+        """
+        Start `game_name` through the appropriate store.
+        `binary_path` is the saved game executable, if any. Stores that start their own install can ignore it (Steam, GOG, ...).
+        """
 
     @abstractmethod
     def validate_game_files(self, game_name: str, binary_path: Optional[Path]) -> bool:
@@ -45,14 +48,18 @@ class StoreHelperBase(ABC):
         `binary_path` is the saved game executable, if any. False if validation couldn't start.
         """
 
-    def run_detached(self, args: list[str]) -> None:
-        """Start `args` as its own process, so it keeps running after the app closes."""
+    def run_detached(self, args: list[str], cwd: Optional[Path] = None) -> None:
+        """
+        Start `args` as its own process, so it keeps running after the app closes.
+        `cwd` is the folder it starts in or the app's own folder when `None`.
+        """
         if os_windows():
-            subprocess.Popen(args, creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, close_fds=True)
+            subprocess.Popen(args, cwd=cwd, creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, close_fds=True)
             return
 
         subprocess.Popen(
             args,
+            cwd=cwd,
             start_new_session=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

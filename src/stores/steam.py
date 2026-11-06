@@ -344,7 +344,8 @@ class SteamHelper(StoreHelperBase):
 
         return str(steam_info.id)
 
-    def launch_game(self, game_name: str) -> None:
+    def launch_game(self, game_name: str, binary_path: Optional[Path]) -> None:
+        # Known store starts its own install of the game, so binary_path isn't needed
         app_id = self.get_known_app_id(game_name)
 
         if not app_id:

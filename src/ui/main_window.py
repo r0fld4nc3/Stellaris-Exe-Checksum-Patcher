@@ -47,6 +47,7 @@ from patch_patterns.patterns import (
 from patchers import models as patcher_models
 from patchers import pdx_patchers, save_patcher
 from stores import (
+    GameStore,
     game_store,
     get_store_helper,
     has_picked_store,
@@ -1236,7 +1237,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         store = game_store(self.configuration.game)
         self.btn_patch_executable.setText(f"Launch {self.configuration.game}")
-        self.btn_patch_executable.setToolTip(f"Launch the game through {store.display_name}.")
+
+        if store == GameStore.GENERIC:
+            launch_tooltip = "Launch the game with the Generic runner configured in General Utilities."
+        else:
+            launch_tooltip = f"Launch the game through {store.display_name}."
+        self.btn_patch_executable.setToolTip(launch_tooltip)
 
         log.info(
             f"Connected new signal to Patch Game Executable Button: self.launch_game",
@@ -1250,7 +1256,20 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.error(f"Unable to launch {game}.")
             return
 
-        store_helper.launch_game(game)
+        store_helper.launch_game(game, self._saved_binary_path(game))
+
+    def _saved_binary_path(self, game: str) -> Optional[Path]:
+        """Saved executable for the binary being patched (native or Proton). None if none is saved yet."""
+        game_settings = self.settings.game(game)
+        if self.configuration.is_proton:
+            binary_path = game_settings.proton_install_path
+        else:
+            binary_path = game_settings.install_path
+
+        if not binary_path:
+            return None
+
+        return Path(binary_path)
 
     def show_welcome_dialog(self):
         has_accepted_dialog = self.settings.settings.accepted_welcome_dialog
