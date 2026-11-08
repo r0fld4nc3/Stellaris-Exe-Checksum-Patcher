@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from messages.messages import Message, save_message_as_seen
+from remote_messages import Message, save_message_as_seen
 from ui.utils import EventFilterMoveResize, adapt_to_parent_size
 
 log = logging.getLogger("Message Dialog")

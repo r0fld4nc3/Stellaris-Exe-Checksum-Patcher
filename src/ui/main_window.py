@@ -36,7 +36,6 @@ from config.definitions import (
     TRACKING_BRANCH,
 )
 from config.path_helpers import os_linux, os_windows
-from messages.messages import Message, fetch_message
 
 # Patch Patterns
 from patch_patterns.patterns import (
@@ -46,6 +45,7 @@ from patch_patterns.patterns import (
 )
 from patchers import models as patcher_models
 from patchers import pdx_patchers, save_patcher
+from remote_messages import Message, fetch_message
 from stores import (
     GameStore,
     game_store,

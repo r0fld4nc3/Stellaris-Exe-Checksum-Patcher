@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSlider,
@@ -18,11 +19,13 @@ from PySide6.QtWidgets import (
 )
 
 from patch_patterns.patterns import get_patterns_config_remote
+from remote_messages import read_cached_message
 from ui.shared_widgets import QSquarePushButton
 from ui.utils import prompt_path
 from utils.helpers import block_signals
 from utils.platform import open_in_file_manager
 
+from ..message_dialog import MessageDialog
 from ..welcome_dialog import WelcomeDialog
 from .base import OptionsContext, OptionsTab
 
@@ -92,6 +95,12 @@ class UtilitiesTab(OptionsTab):
         btn_show_welcome_dialog.setFont(font)
         btn_show_welcome_dialog.clicked.connect(self.show_welcome_dialog)
         utilities_layout.addWidget(btn_show_welcome_dialog)
+
+        # --- Show Information Message Button ---
+        btn_show_info_message = QPushButton("Show Information Message")
+        btn_show_info_message.setFont(font)
+        btn_show_info_message.clicked.connect(self.show_information_message)
+        utilities_layout.addWidget(btn_show_info_message)
 
         # --- Maximum Allowed Backups ---
         max_backups_control_layout = QHBoxLayout()
@@ -293,9 +302,23 @@ class UtilitiesTab(OptionsTab):
         dialog.exec()
 
     def show_welcome_dialog(self):
-        dialog = self.window()
-        welcome_dialog = WelcomeDialog(self.ctx.font, window_icon=dialog.windowIcon(), parent=dialog)
-        welcome_dialog.show()
+        window = self.window()
+        dialog = WelcomeDialog(self.ctx.font, window_icon=window.windowIcon(), parent=window)
+        dialog.show()
+
+    def show_information_message(self):
+        """Show the last downloaded message again."""
+        message = read_cached_message()
+        window = self.window()
+
+        if not message.text:
+            log.info("No information message to show.")
+            QMessageBox.information(window, "Information Message", "There's no information message right now.")
+            return
+
+        dialog = MessageDialog(message, self.ctx.font, window_icon=window.windowIcon(), parent=window)
+        dialog.SIZE_PCT = (90, 100)
+        dialog.show()
 
     # --- Helpers ---
 
