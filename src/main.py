@@ -7,7 +7,7 @@ from core.definitions import (
     APP_REVISION,
     APP_VERSION,
     REPO_BRANCH,
-    TRACKING_BRANCH,
+    VISUAL_BRANCH,
 )
 from core.paths import system
 
@@ -46,7 +46,7 @@ def main():
     log.info(f"App Version:            {APP_VERSION}")
     log.info(f"App Revision:           {APP_REVISION}")
     log.info(f"Repo Branch:            {REPO_BRANCH}")
-    log.info(f"Tracking Branch:        {TRACKING_BRANCH}")
+    log.info(f"Tracking Branch:        {VISUAL_BRANCH}")
     log.info(f"Target System:          {system()}")
     log.info(f"AppConfig:              {config}")
     log.info(f"AppSettings:            {app_services.settings.app_settings}")

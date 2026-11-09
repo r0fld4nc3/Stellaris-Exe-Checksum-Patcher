@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject, Signal
 
-from core.definitions import APP_VERSION, TRACKING_BRANCH
+from core.definitions import APP_VERSION, VISUAL_BRANCH
 from core.paths import system
 from core.services import services, services_initialised
 
@@ -39,7 +39,7 @@ class LoggerWithSignals(logging.Logger):
         use_local_patterns = (
             str(services().config.use_local_patterns) if services_initialised() else "Unknown (app not started)"
         )
-        _version_print_msg = f"System Info: '{system()} {APP_VERSION}{'-' + TRACKING_BRANCH if TRACKING_BRANCH else ''}' 'Use Local Patterns: Config={use_local_patterns}'"
+        _version_print_msg = f"System Info: '{system()} {APP_VERSION}{'-' + VISUAL_BRANCH if VISUAL_BRANCH else ''}' 'Use Local Patterns: Config={use_local_patterns}'"
 
         super().error(msg, *args, **kwargs)
         if not silent:

@@ -33,7 +33,7 @@ from core.definitions import (
     APP_REVISION_STR,
     APP_VERSION_STR,
     SUPPORTED_GAMES,
-    TRACKING_BRANCH,
+    VISUAL_BRANCH,
 )
 from core.paths import os_linux, os_windows
 
@@ -217,7 +217,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.lbl_title.setProperty("windowDragHandle", True)
 
         self.lbl_app_version = QLabel(
-            f"{self._APP_VERSION}{APP_REVISION_STR}-{TRACKING_BRANCH}{'-debug' if self.app_config.debug else ''}"
+            f"{self._APP_VERSION}{APP_REVISION_STR}-{VISUAL_BRANCH}{'-debug' if self.app_config.debug else ''}"
         )
         self.lbl_app_version.setSizePolicy(size_policy_app_version_label)
         self.lbl_app_version.setProperty("windowDragHandle", True)
@@ -418,7 +418,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.window_title = f"{conf_game} Patcher"
         self.window_title_update_available = self.window_title + " (UPDATE AVAILABLE)"
-        self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}{APP_REVISION_STR}-{TRACKING_BRANCH}){'-debug' if self.app_config.debug else ''}"
+        self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}{APP_REVISION_STR}-{VISUAL_BRANCH}){'-debug' if self.app_config.debug else ''}"
 
         self.setWindowTitle(self.window_title_with_app_version)
         if os_windows():

@@ -12,7 +12,7 @@ elif APP_IS_PRERELEASE:
     APP_VERSION_STR += "-pre"
 
 REPO_BRANCH: str = "v3"  # Used for APIs and remote requests
-TRACKING_BRANCH: str = "v3"  # Used for local tracking and visual indicators. No remote impact.
+VISUAL_BRANCH: str = "v3"  # Used for local tracking and visual indicators. No remote impact.
 
 # Bump when re-releasing the same `APP_VERSION`. Reset to 0 when `APP_VERSION` changes.
 APP_REVISION: int = 5
