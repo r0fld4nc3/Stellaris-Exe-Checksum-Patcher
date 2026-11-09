@@ -75,7 +75,7 @@ class TabOptionsDialog(QDialog):
 
     # (width, height) as percentages of the main window.
     # Width is the starting width. height is the starting size.
-    SIZE_PCT = (80, 83)
+    SIZE_PCT = (80, 90)
 
     # Smallest (width, height) as percentages of the main window
     MIN_SIZE_PCT = (50, 50)

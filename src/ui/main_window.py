@@ -342,7 +342,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.active_threads = []
 
         # --- Track if Configure Patch Dialog Opened ---
-        self.patch_config_dialog: TabOptionsDialog | None = None
+        self.tab_options_dialog: TabOptionsDialog | None = None
 
         # --- Remote message, from last fetch. None until the startup fetch finishes ---
         self.welcome_dialog: WelcomeDialog | None = None
@@ -623,7 +623,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.info(f"Ignoring saved patches that no longer exist: {outdated_patches}", silent=True)
 
         # Nothing saved or picked yet (patches are only saved after patching): use the defaults
-        if not patches_to_apply and not self.patch_config_dialog:
+        if not patches_to_apply and not self.tab_options_dialog:
             patches_to_apply = [name for name, patch in available_patches.items() if patch.enabled]
             log.info(f"No saved patch selection. Using default patches for '{self.configuration.version}'.")
 
@@ -908,14 +908,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # configuration window.
         # This gives us flexibility of only applying the new config
         # when the user accepts the dialog.
-        _is_new_dialog = self.patch_config_dialog is None
+        _is_new_dialog = self.tab_options_dialog is None
 
         # Store original config for comparison
         original_config = copy.deepcopy(self.configuration)
 
-        if not self.patch_config_dialog:
+        if not self.tab_options_dialog:
             # Pass a copy of the config
-            self.patch_config_dialog = TabOptionsDialog(
+            self.tab_options_dialog = TabOptionsDialog(
                 patcher=self.multi_game_patcher,
                 configuration=copy.deepcopy(self.configuration),
                 font=QFont(self.app_font_bold, 12),
@@ -925,7 +925,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             )
         else:
             # Refresh with a new copy if it exists
-            self.patch_config_dialog.set_configuration(copy.deepcopy(self.configuration))
+            self.tab_options_dialog.set_configuration(copy.deepcopy(self.configuration))
 
         # Set current game as last selected
         self.last_conf_game = self.configuration.game
@@ -937,11 +937,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         settings_snapshot = self.settings.snapshot()
 
         # Show Configure Dialog and handle returns
-        dialog_result = self.patch_config_dialog.exec()
+        dialog_result = self.tab_options_dialog.exec()
 
         if dialog_result == QFileDialog.DialogCode.Accepted:
             # Only apply the changes to the configuration now
-            self.configuration = self.patch_config_dialog.get_configuration()
+            self.configuration = self.tab_options_dialog.get_configuration()
 
             # Also update app style
             self.apply_app_style()
@@ -985,7 +985,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # This should ensure patching works even if the user never
             # accepts the dialog.
             if _is_new_dialog and not self.configuration.selected_patches:
-                self.configuration.selected_patches = self.patch_config_dialog.configuration.selected_patches.copy()
+                self.configuration.selected_patches = self.tab_options_dialog.configuration.selected_patches.copy()
             log.info("Configuration unchanged.", silent=True)
 
     def open_configure_save_patch_options_window(self):
