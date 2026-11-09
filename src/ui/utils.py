@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -388,6 +388,11 @@ def size_from_parent(parent: QWidget | None, size_pct: tuple[int, int]) -> QSize
     height = int(reference_size.height() * (height_pct * 0.01))
 
     return QSize(width, height)
+
+
+def set_widgets_enabled(widgets: Iterable[QWidget], enabled: bool):
+    for widget in widgets:
+        widget.setEnabled(enabled)
 
 
 def centre_on_parent(window: QWidget, parent: QWidget | None = None):
