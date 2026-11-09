@@ -10,9 +10,8 @@ from PySide6.QtCore import (
     QSize,
     Qt,
     QTimer,
-    QUrl,
 )
-from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFont, QIcon, QMouseEvent, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -500,6 +499,58 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
 
     log.error(f"Failed to locate {configuration.game} installation.")
     return None
+
+
+def resolve_save_games_folder(
+    game: str, located: list[Path], font: QFont, parent: Optional[QWidget] = None
+) -> Optional[Path]:
+    """
+    The save games folder to use for `game`.
+
+    1. Folder remember in settings if it still exists.
+    2. One of `located`, asking to pick one when more than one exists.
+
+    None when nothing was found or cancelled.
+    """
+
+    # Circular imports.....
+    from ui.windows.option_picker_dialog import OptionPickerDialog, PickerOption
+
+    game_settings = services().settings.game(game)
+
+    saved = game_settings.save_games_folder
+    if saved and Path(saved).is_dir():
+        log.info(f"Got save games folder from settings: {saved}", silent=True)
+        return Path(saved)
+
+    if not located:
+        log.warning(f"No save games folder found for {game}.")
+        return None
+
+    if len(located) == 1:
+        picked = located[0]
+    else:
+        options = []
+        for folder in located:
+            options.append(PickerOption(label=str(folder), value=folder))
+
+        window_icon = QIcon()
+        if parent:
+            window_icon = parent.windowIcon()
+
+        picked = OptionPickerDialog.ask(
+            "Choose Save Games Folder",
+            f"More than one save game folder found for {game}. Pick one.",
+            options,
+            font=font,
+            window_icon=window_icon,
+            parent=parent,
+        )
+
+    if picked:
+        game_settings.save_games_folder = picked.as_posix()
+
+    return picked
 
 
 def prompt_path(

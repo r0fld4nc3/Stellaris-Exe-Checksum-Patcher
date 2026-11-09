@@ -21,7 +21,12 @@ from patchers import models as patcher_models
 from stores import GameStore, game_store, get_store_helper, set_game_store
 from thread_utils import Threader
 from ui.shared_widgets import AutoWidthComboBox, GameComboBox
-from ui.utils import find_game_path, prompt_path, restore_window_focus
+from ui.utils import (
+    find_game_path,
+    prompt_path,
+    resolve_save_games_folder,
+    restore_window_focus,
+)
 from utils.helpers import (
     block_signals,
     delete_fpaths,
@@ -30,6 +35,7 @@ from utils.helpers import (
 )
 from utils.platform import open_in_file_manager
 
+from ..option_picker_dialog import OptionPickerDialog, PickerOption
 from .base import OptionsContext, OptionsTab
 
 log = logging.getLogger("Patch Config")
@@ -150,10 +156,10 @@ class GameUtilitiesTab(OptionsTab):
 
         # ===========================================
 
-        # --- Steam Validate Game Files Button ---
+        # --- Validate Game Files Button (through the game's store) ---
         self.btn_validate_game_files = QPushButton("Validate Integrity of Game Files")
         self.btn_validate_game_files.setFont(font)
-        self.btn_validate_game_files.setToolTip("Trigger the validation of game files through Steam.")
+        self.btn_validate_game_files.setToolTip("Trigger the validation of game files through the game's store.")
         self.btn_validate_game_files.clicked.connect(self.validate_game_files)
         utilities_layout.addWidget(self.btn_validate_game_files)
 
@@ -357,30 +363,21 @@ class GameUtilitiesTab(OptionsTab):
             log.warning("User cancelled location. Unable to show game folder.")
 
     def show_save_games_folder(self):
+        from patchers.save_patcher import SavePatcher
+
         game = self.selected_game
 
         if not game:
             log.warning("No game selected. Unable to locate save games folder.")
             return
 
-        saved = self.svc.settings.game(game).save_games_folder
-        save_games_path = Path(saved) if saved else None
+        # Spawning an instance of the SavePatcher with a game immediately kicks of
+        # locating for known save games folder.
+        located = SavePatcher(game).save_games_folders
+        located.append("/Users/ralph/Applications")
+        picked = resolve_save_games_folder(game, located, font=self.ctx.font, parent=self.parent())
 
-        if not save_games_path or not save_games_path.is_dir():
-            from patchers.save_patcher import SavePatcher
-
-            located = SavePatcher(game).save_games_folders
-            save_games_path = located[0] if located else None  # TODO: Selection picker
-
-            if save_games_path:
-                self.svc.settings.game(game).save_games_folder = save_games_path.as_posix()
-
-        if not save_games_path:
-            log.warning(f"Could not find a save games folder for {game}.")
-            return
-
-        log.info(f"Opening save games folder: {save_games_path}", silent=True)
-        open_in_file_manager(save_games_path)
+        open_in_file_manager(picked)
 
     def delete_binary_backups(self):
         game = self.selected_game

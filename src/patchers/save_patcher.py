@@ -181,12 +181,12 @@ class SavePatcher:
 
         look_into: list[Path] = []
 
-        # First Pass: Collect root folders matching with game name
+        # Collect root folders matching with game name
         for path in potential_paths:
             path_with_game_name = path / self.game_name
             cond_path_valid = all([path_with_game_name.name == self.game_name, path_with_game_name.is_dir()])
 
-            log.info(f"{cond_path_valid=}", silent=True)
+            log.debug(f"Path valid '{path_with_game_name}': {cond_path_valid}", silent=True)
 
             if cond_path_valid:
                 if path_with_game_name not in look_into:
@@ -194,7 +194,7 @@ class SavePatcher:
 
         log.info(f"Look into folder(s): {look_into}")
 
-        # Second Pass: Recurse and look for "save games" folder
+        # Recurse and look for "save games" folder
         self.save_games_folders.clear()
         for root_path in look_into:
             # Recurse each

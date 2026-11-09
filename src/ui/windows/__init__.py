@@ -3,6 +3,7 @@ from .app_tab_options_dialog_window import TabOptionsDialog
 from .configure_save_patch_window import ConfigureSavePatchDialog
 from .faq_dialog import FAQDialog
 from .message_dialog import MessageDialog
+from .option_picker_dialog import OptionPickerDialog, PickerOption
 from .save_backups_dialog import SaveBackupsDialog
 from .store_picker_dialog import StorePickerDialog
 from .welcome_dialog import WelcomeDialog
@@ -15,5 +16,7 @@ __all__ = [
     "WelcomeDialog",
     "MessageDialog",
     "SaveBackupsDialog",
+    "OptionPickerDialog",
+    "PickerOption",
     "StorePickerDialog",
 ]

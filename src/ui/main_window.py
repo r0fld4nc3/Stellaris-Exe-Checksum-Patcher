@@ -54,15 +54,16 @@ from stores import (
     set_game_store,
 )
 from thread_utils import Threader, WorkerSignals
-from ui.utils import get_qt_platform
 from utils.platform import WAYLAND, X11
 
 from .resources import AppFont, AppIcon, IconAchievementState, ResourceManager
 from .utils import (
     EventFilterMoveResize,
     find_game_path,
+    get_qt_platform,
     get_screen_info,
     prompt_path,
+    resolve_save_games_folder,
 )
 from .windows import (
     ConfigureSavePatchDialog,
@@ -259,7 +260,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Fix Save Button---
         self.btn_fix_save_file = QPushButton("Fix Save")
         self.btn_fix_save_file.setFlat(False)
-        self.btn_fix_save_file.clicked.connect(self.fix_save_achievements_thread)
+        self.btn_fix_save_file.clicked.connect(self.fix_save_game_thread)
 
         # --- Patch Button ---
         self.btn_patch_executable = QPushButton()
@@ -825,7 +826,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.progress_bar.setFormat(f"%p% {text}")
 
     @Slot()
-    def fix_save_achievements_thread(self):
+    def fix_save_game_thread(self):
         if self.is_patching:
             return
 
@@ -834,22 +835,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         saver = save_patcher.StellarisSavePatcher(self.configuration.game, self.save_configuration)
 
         # --- Ask for save path ---
-        # Hack for empty save games folder List. Otherwise won't open dialog
-        save_games_folders: list = saver.save_games_folders
-        if not save_games_folders:
-            save_games_folders.append("")
-        # ---
-
-        initial_open_folder = ""
-        if save_games_folders:
-            for p in save_games_folders:
-                if Path(p).exists():
-                    initial_open_folder = p
-                    break
+        # Starts is user's save games folder. Without one, File Dialog stills opens from default location
+        save_games_folder: Optional[Path] = resolve_save_games_folder(
+            self.configuration.game, saver.save_games_folders, font=QFont(self.app_font_bold, 10), parent=self
+        )
 
         save_file_path = QFileDialog().getOpenFileName(
             caption="Save file to repair...",
-            dir=str(initial_open_folder),
+            dir=str(save_games_folder),
             filter=(f"Save File (*{saver.save_extension})"),
         )[0]
 
@@ -859,7 +852,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         if not save_file_path:
             return False
 
-        # --- Configure Fixes
+        # --- Configure Fixes ---
         self.save_configuration = self.open_configure_save_patch_options_window()
 
         if not self.save_configuration:
