@@ -53,8 +53,8 @@ from stores import (
     has_picked_store,
     set_game_store,
 )
-from thread_utils import Threader, WorkerSignals
 from utils.platform import WAYLAND, X11
+from utils.threads import Threader, WorkerSignals
 
 from .resources import AppFont, AppIcon, IconAchievementState, ResourceManager
 from .utils import (

@@ -5,7 +5,7 @@ from pathlib import Path
 from core.definitions import APP_VERSION, TRACKING_BRANCH
 from core.paths import system
 from core.services import services, services_initialised
-from thread_utils import WorkerSignals
+from utils.threads import WorkerSignals
 
 
 class LoggerWithSignals(logging.Logger):

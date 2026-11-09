@@ -19,7 +19,6 @@ from core.paths import os_darwin, os_linux
 from patchers import GamePatcher, PatchConfiguration
 from patchers import models as patcher_models
 from stores import GameStore, game_store, get_store_helper, set_game_store
-from thread_utils import Threader
 from ui.shared_widgets import AutoWidthComboBox, GameComboBox
 from ui.utils import (
     find_game_path,
@@ -34,6 +33,7 @@ from utils.helpers import (
     get_fpath_size,
 )
 from utils.platform import open_in_file_manager
+from utils.threads import Threader
 
 from ..option_picker_dialog import OptionPickerDialog, PickerOption
 from .base import OptionsContext, OptionsTab
