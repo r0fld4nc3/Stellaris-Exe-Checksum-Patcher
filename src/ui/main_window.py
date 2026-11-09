@@ -583,14 +583,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # Configuration
         if not self.configuration:
-            log.error(f"No configuration available.")
+            log.error("No configuration available.")
             return {}
 
         log.info(f"Using configuration: {self.configuration}", silent=True)
 
         # Check for empty game
         if not self.configuration.game:
-            log.error(f"Configuration game is empty")
+            log.error("Configuration game is empty")
             return {}
 
         # Get patcher
@@ -680,13 +680,13 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Configuration
         msgbox = QMessageBox(self)
         if not self.configuration:
-            log.error(f"No configuration available.")
+            log.error("No configuration available.")
             msgbox.setWindowTitle("No Configuration")
             msgbox.setText("Please choose a configuration.")
             msgbox.exec()
             return False
         elif not self.configuration.game:
-            log.error(f"Configuration does not provide a game.")
+            log.error("Configuration does not provide a game.")
             msgbox.setWindowTitle("No Game Selected")
             msgbox.setText("Please select a game to patch.")
             msgbox.exec()
@@ -753,7 +753,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 game_binary_path = user_selected_path
             else:
                 # User cancelled
-                log.warning(f"User cancelled location picker. Aborting patch.")
+                log.warning("User cancelled location picker. Aborting patch.")
                 self._set_stop_patching_state()
                 self.hide_progress_bar()
                 return
@@ -873,11 +873,27 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         saver.set_config(self.save_configuration)
 
         thread_repair_save = Threader(target=lambda save_file=save_file_path: saver.repair_save(save_file))
-        # thread_repair_save.signals.error.connect() # TODO
         thread_repair_save.signals.started.connect(self.disable_ui_elements)
         thread_repair_save.signals.finished.connect(self.enable_ui_elements)
         thread_repair_save.signals.result.connect(self.on_finished_save_repair)
+        thread_repair_save.signals.error.connect(self.on_save_repair_error)
         self.start_thread(thread_repair_save)
+
+    @Slot(tuple)
+    def on_save_repair_error(self, error_info: tuple) -> None:
+        """
+        SLOT: Runs on the main thread when repair_save raised.
+        Notify user of failed save repair, from unexpected fails.
+        """
+        _error_type, error, error_traceback = error_info
+        log.error(f"Fix Save failed unexpectedly: {error}")
+        log.error(error_traceback, silent=True)  # Traceback for the log file only
+
+        msgbox = QMessageBox(self)
+        msgbox.setWindowTitle("Fix Save Failed")
+        msgbox.setText("The save couldn't be repaired because of an unexpected error.")
+        msgbox.setInformativeText("Details are in the information screen and the log file.")
+        msgbox.exec()
 
     @Slot(object)
     def on_finished_save_repair(self, result: Optional[patcher_models.SavePatchResult]) -> None:
@@ -1188,14 +1204,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
     def swap_btn_patch_to_patch_binary(self):
         log.info(
-            f"Want to connect new signal to Patch Executable Button: self.start_patch_game_executable_thread",
+            "Want to connect new signal to Patch Executable Button: self.start_patch_game_executable_thread",
             silent=True,
         )
 
         try:
-            log.info(f"Disconnecting all signals from patch executable button", silent=True)
+            log.info("Disconnecting all signals from patch executable button", silent=True)
             self.btn_patch_executable.clicked.disconnect()
-        except Exception as e:
+        except Exception:
             # No signals exist
             pass
 
@@ -1205,20 +1221,20 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.LOCKED))
 
         log.info(
-            f"Connected new signal to Patch Game Executable Button: self.start_patch_game_executable_thread",
+            "Connected new signal to Patch Game Executable Button: self.start_patch_game_executable_thread",
             silent=True,
         )
 
     def swap_btn_patch_to_launch_game(self):
         log.info(
-            f"Want to connect new signal to Patch Executable Button: self.launch_game",
+            "Want to connect new signal to Patch Executable Button: self.launch_game",
             silent=True,
         )
 
         try:
-            log.info(f"Disconnecting all signals from patch executable button", silent=True)
+            log.info("Disconnecting all signals from patch executable button", silent=True)
             self.btn_patch_executable.clicked.disconnect()
-        except Exception as e:
+        except Exception:
             # No signals exist
             pass
 
@@ -1234,7 +1250,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_patch_executable.setToolTip(launch_tooltip)
 
         log.info(
-            f"Connected new signal to Patch Game Executable Button: self.launch_game",
+            "Connected new signal to Patch Game Executable Button: self.launch_game",
             silent=True,
         )
 
