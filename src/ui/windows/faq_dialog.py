@@ -28,12 +28,12 @@ class FAQDialog(QDialog):
 
         <p class="subheader">Patching failed after a game update</p>
         <p>The Patcher finds the game's checksum checks by itself, so after most updates you only need to press <b>Patch</b> again.</p>
-        <p>If it still fails, get a clean copy of the game: open the options with the <b>cogwheel</b>, go to <b>Game Utilities</b> and click <b>Validate Integrity of Game Files (Steam)</b>. Once Steam has finished, patch again.</p>
+        <p>If it still fails, get a clean copy of the game: open the options with the <b>cogwheel</b>, go to <b>Game Utilities</b> and click <b>Validate Integrity of Game Files</b>. On Steam this repairs the game by itself; on GOG it opens the game in GOG Galaxy, where you click <b>Verify / Repair</b>. Once the repair has finished, patch again.</p>
         <p>If that doesn't help, the update may have changed something the Patcher doesn't recognise yet. Check GitHub for an existing Issue, or open a new one and include the text from the information screen.</p>
 
         <p class="subheader">Is my game already patched?</p>
         <p>Just press <b>Patch</b>. If the game is already patched, the Patcher says so and leaves the file alone, so patching twice is safe.</p>
-        <p>The patch stays in place until Steam updates or validates the game. After that, patch again.</p>
+        <p>The patch stays in place until the game is updated or its files are verified or repaired (by Steam, GOG Galaxy or your launcher). After that, patch again.</p>
 
         <p class="subheader">The Patcher can't find my game</p>
         <p>If the game isn't found automatically, you'll be asked to select its executable (for example <b>stellaris.exe</b> on Windows or <b>stellaris</b> on Linux). The Patcher remembers it for next time.</p>
