@@ -167,14 +167,16 @@ class WelcomeDialog(QDialog):
 
                 <p>Below that, you can see the patches that will be applied. The defaults are all you need, so you technically don't <i>need</i> to change anything here, but I would rather give you options than restrict them.</p>
 
-                <p>This tab also has buttons to <b>Show Game Folder</b> and <b>Show Save Games Folder</b>, to <b>Validate Integrity of Game Files (Steam)</b>, and to <b>Delete Backups</b> of the game executable made when patching.</p>
+                <p>This tab also has buttons to <b>Show Game Folder</b> and <b>Show Save Games Folder</b>, to <b>Validate Integrity of Game Files</b> through your game's store, and to <b>Delete Backups</b> of the game executable made when patching.</p>
+
+                <p>You can also choose where your game comes from: <b>Steam</b>, <b>GOG</b> or <b>Generic</b> (anywhere else, or started with another app). This doesn't change how the game is patched, only where the Patcher looks for it and how it launches and validates it.</p>
 
                 <p class="header" align="center">General Tips</p>
 
                 <p class="subheader">Handling Game Updates</p>
                 <p>A game update replaces the game executable, so you will need to patch again afterwards. Usually that's just one click on the Patch button.</p>
-                <p>If you believe you should be receiving achievements or notice that patching did not work correctly, go to the <b>Game Utilities</b> tab and click <b>Validate Integrity of Game Files (Steam)</b>.</p>
-                <p>This will start Steam's verification process. It should remove your executable file, which will be reacquired during verification. Once finished, apply the patches again, and you should be good to go.</p>
+                <p>If you believe you should be receiving achievements or notice that patching did not work correctly, go to the <b>Game Utilities</b> tab and click <b>Validate Integrity of Game Files</b>.</p>
+                <p>On <b>Steam</b>, this starts Steam's verification, which replaces the executable with a fresh copy. On <b>GOG</b>, it opens the game in GOG Galaxy, where you click <b>Verify / Repair</b>. For <b>Generic</b> games, use your launcher's own verify or repair option. Once finished, apply the patches again, and you should be good to go.</p>
 
                 <p class="subheader">Restoring Achievements</p>
                 <p>Patching the executable does <b>not</b> necessarily make an existing save eligible to receive achievements. These are two separate systems.</p>
