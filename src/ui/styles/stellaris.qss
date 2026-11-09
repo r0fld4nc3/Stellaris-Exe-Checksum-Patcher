@@ -78,11 +78,12 @@ QCheckBox::indicator:checked {
 }
 
 QCheckBox::indicator:disabled {
-    border-color: rgb(140, 140, 140)
+    border-color: rgb(140, 140, 140);
 }
 
 QCheckBox::indicator:checked:disabled {
-    border-color: rgb(140, 140, 140)
+    border-color: rgb(140, 140, 140);
+    background-color: rgb(140, 140, 140);
 }
 
 QRadioButton {
