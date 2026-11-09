@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QFontDatabase
@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from patch_patterns.patterns import get_patterns_config_remote
 from remote_messages import read_cached_message
 from ui.shared_widgets import QSquarePushButton
-from ui.utils import prompt_path
+from ui.utils import prompt_path, set_widgets_enabled
 from utils.helpers import block_signals
 from utils.platform import open_in_file_manager
 
@@ -88,10 +88,10 @@ class UtilitiesTab(OptionsTab):
         utilities_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # --- Fetch/Update Patterns File Button ---
-        btn_update_patch_patterns = QPushButton("Update Patterns")
-        btn_update_patch_patterns.setFont(font)
-        btn_update_patch_patterns.clicked.connect(self.fetch_patch_patterns)
-        utilities_layout.addWidget(btn_update_patch_patterns)
+        self.btn_update_patch_patterns = QPushButton("Update Patterns")
+        self.btn_update_patch_patterns.setFont(font)
+        self.btn_update_patch_patterns.clicked.connect(self.fetch_patch_patterns)
+        utilities_layout.addWidget(self.btn_update_patch_patterns)
 
         # --- Open Config Directory Button ---
         btn_show_app_config_dir = QPushButton("Show App Config Folder")
@@ -321,12 +321,13 @@ class UtilitiesTab(OptionsTab):
     def fetch_patch_patterns(self):
         log.info("Fetch Patch Patterns...", silent=True)
 
-        get_patterns_config_remote()
+        with set_widgets_enabled((self.btn_update_patch_patterns,), False):
+            get_patterns_config_remote()
 
-        self.ctx.patcher.reload_patterns()
+            self.ctx.patcher.reload_patterns()
 
-        # New patterns may change games/versions/patches: reload every tab
-        self.ctx.reload_requested.emit()
+            # New patterns may change games/versions/patches: reload every tab
+            self.ctx.reload_requested.emit()
 
     def show_save_backups_dialog(self):
         from ui.windows import SaveBackupsDialog

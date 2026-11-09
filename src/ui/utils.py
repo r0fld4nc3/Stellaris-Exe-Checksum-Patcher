@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Generator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -390,9 +392,23 @@ def size_from_parent(parent: QWidget | None, size_pct: tuple[int, int]) -> QSize
     return QSize(width, height)
 
 
-def set_widgets_enabled(widgets: Iterable[QWidget], enabled: bool):
+@contextmanager
+def set_widgets_enabled(widgets: Iterable[QWidget], enabled: bool) -> Generator[None]:
+    """
+    Enable or disable widgets for the duration of the block.
+
+    Each widget returns to the state it had before.
+    """
+    original_states = [widget.isEnabled() for widget in widgets]
+
     for widget in widgets:
         widget.setEnabled(enabled)
+
+    try:
+        yield
+    finally:
+        for widget, original_state in zip(widgets, original_states):
+            widget.setEnabled(original_state)
 
 
 def centre_on_parent(window: QWidget, parent: QWidget | None = None):
