@@ -2,7 +2,6 @@ import datetime
 import logging
 import os
 import shutil
-import ssl
 import tempfile
 import zipfile
 from pathlib import Path
@@ -443,7 +442,7 @@ class StellarisSavePatcher(SavePatcher):
 
         if set_ironman_enabled and set_ironman_disabled:
             log.warning(
-                f"Conflicting Ironman detected! Both options to enable and disable are checked, and this causes a conflict. None will be applied."
+                "Conflicting Ironman detected! Both options to enable and disable are checked, and this causes a conflict. None will be applied."
             )
 
         return ironman_mode
@@ -477,7 +476,7 @@ class StellarisSavePatcher(SavePatcher):
         # --- Backup with timestamp ---
         backup_file = self.create_timestamped_backup(save_file)
         if backup_file is None:
-            log.error(f"Backup creation failed, aborting repair.")
+            log.error("Backup creation failed, aborting repair.")
             return None
         log.info(f"Backup created at: {backup_file}")
         self.save_patch_result.backup_file = backup_file
@@ -490,7 +489,7 @@ class StellarisSavePatcher(SavePatcher):
 
             # --- Extract save archive ---
             if not self.extract_save_archive(save_file, repair_dir):
-                log.error(f"Failed to extract the save file, aborting repair!")
+                log.error("Failed to extract the save file, aborting repair!")
                 return None
 
             # --- Define file paths ---
@@ -505,7 +504,7 @@ class StellarisSavePatcher(SavePatcher):
                 self.save_patch_result.achievement_source = achievement_source
 
                 if not self.achievements:
-                    log.error(f"Unable to fix save: Could not retrieve achievements.")
+                    log.error("Unable to fix save: Could not retrieve achievements.")
                     shutil.rmtree(repair_dir)
                     return None
 
@@ -523,14 +522,14 @@ class StellarisSavePatcher(SavePatcher):
 
             # --- Repackage save archive ---
             if not self.repackage_save_archive(repair_dir, save_file, preserve_timestamps=True):
-                log.error(f"Failed to rebuild save file!")
+                log.error("Failed to rebuild save file!")
                 shutil.rmtree(repair_dir)
                 return None
 
             # --- Restore original timestamps ---
             os.utime(save_file, save_file_times)
 
-        log.info(f"Finished repairing save.")
+        log.info("Finished repairing save.")
         return self.save_patch_result
 
     def _process_gamestate(self, gamestate_file: str | Path) -> bool:
@@ -616,7 +615,7 @@ class StellarisSavePatcher(SavePatcher):
                 # Insert achievements before clusters if not found
                 if not achievements_found and not achievements_inserted and stripped.startswith(CLUSTERS_EQ_LINE):
                     clusters_found = True
-                    log.info(f"Clusters found! Inserting achievements before it.", silent=True)
+                    log.info("Clusters found! Inserting achievements before it.", silent=True)
 
                     # Get indentation from clusters line
                     indent_level = len(line) - len(line.lstrip())
@@ -635,7 +634,7 @@ class StellarisSavePatcher(SavePatcher):
             if ironman_mode != IronmanMode.NONE and not ironman_handled:
                 # Galaxy block
                 if GALAXY_EQ_LINE in stripped:
-                    log.info(f"In galaxy block", silent=True)
+                    log.info("In galaxy block", silent=True)
                     in_galaxy_block = True
                     galaxy_depth = 0
 
@@ -712,10 +711,10 @@ class StellarisSavePatcher(SavePatcher):
             i += 1
 
         if update_achievements and achievements_inserted:
-            log.info(f"Repaired achievements line.")
+            log.info("Repaired achievements line.")
             self.save_patch_result.achievements_updated = True
         else:
-            log.warning(f"Did not fix achievements line. Already present or not configured.")
+            log.warning("Did not fix achievements line. Already present or not configured.")
 
         # Validate only if we're updating achievements
         if update_achievements and not achievements_found and not clusters_found:
@@ -752,12 +751,12 @@ class StellarisSavePatcher(SavePatcher):
             try:
                 with meta_file.open("w", encoding=_encoding) as f:
                     f.writelines(lines)
-                log.info(f"Meta file updated.")
+                log.info("Meta file updated.")
             except Exception as e:
                 log.error(f"Failed to write meta: {e}")
                 return False
         else:
-            log.info(f"No changes needed for meta file.")
+            log.info("No changes needed for meta file.")
 
         return True
 
@@ -923,7 +922,7 @@ class StellarisSavePatcher(SavePatcher):
 
             log.info("=== End of Removed Lines ===", silent=True)
         else:
-            log.info(f"No malformed achievement blocks found.")
+            log.info("No malformed achievement blocks found.")
 
         return cleaned_lines
 
@@ -993,7 +992,7 @@ class StellarisSavePatcher(SavePatcher):
             log.info(f"Loaded achievements file\n{contents}", silent=True)
 
         if not contents:
-            log.error(f"No local achievements file found!")
+            log.error("No local achievements file found!")
             return ""
 
         return contents
@@ -1005,14 +1004,8 @@ class StellarisSavePatcher(SavePatcher):
         config = services().config
 
         if config.prevent_conn:
-            log.info(f"Will not fetch achievements file from remote as prevent connections is active.")
+            log.info("Will not fetch achievements file from remote as prevent connections is active.")
             return self.load_local_achievements_file(), "local"
-
-        # Force SSL context to fix Thread issues
-        try:
-            ssl_context = ssl.create_default_context(cafile=certifi.where())
-        except Exception as e:
-            log.error(f"Failed to create SSL context: {e}", silent=True)
 
         log.info(ACHIEVEMENTS_URL, silent=True)
 
@@ -1020,7 +1013,7 @@ class StellarisSavePatcher(SavePatcher):
             response = requests.get(ACHIEVEMENTS_URL, timeout=10, verify=certifi.where())
             response.raise_for_status()
         except requests.ConnectionError as con_err:
-            log.error(f"Unable to establish connection to update repo.")
+            log.error("Unable to establish connection to update repo.")
             log.error(con_err)
             return self.load_local_achievements_file(), "local"
         except requests.RequestException as req_err:
@@ -1036,7 +1029,7 @@ class StellarisSavePatcher(SavePatcher):
 
         try:
             achievements = response.text
-            log.info(f"Successfully pulled achievements file from repository.")
+            log.info("Successfully pulled achievements file from repository.")
             log.debug(f"Content preview: {achievements[:200]}")
 
             # Update local achievements file

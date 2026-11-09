@@ -35,7 +35,6 @@ from utils.helpers import (
 from utils.platform import open_in_file_manager
 from utils.threads import Threader
 
-from ..option_picker_dialog import OptionPickerDialog, PickerOption
 from .base import OptionsContext, OptionsTab
 
 log = logging.getLogger("Patch Config")

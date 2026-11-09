@@ -71,7 +71,7 @@ class GameComboBox(AutoWidthComboBox):
 
     def populate(self):
         """Refill games list, then select the configured game."""
-        log.info(f"Retrieving available games to add.", silent=True)
+        log.info("Retrieving available games to add.", silent=True)
 
         with block_signals(self):
             self.clear()

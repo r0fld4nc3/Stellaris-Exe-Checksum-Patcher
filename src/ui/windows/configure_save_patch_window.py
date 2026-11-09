@@ -105,7 +105,7 @@ class ConfigureSavePatchDialog(QDialog):
         self._populate_options()
 
     def _populate_options(self):
-        log.info(f"Populating Options", silent=True)
+        log.info("Populating Options", silent=True)
 
         while self.patches_layout.count():
             child = self.patches_layout.takeAt(0)

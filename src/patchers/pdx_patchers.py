@@ -161,7 +161,7 @@ class GamePatcher:
                 log.info(f"Auto-located path: '{item}'")
                 return item.resolve()
 
-        log.warning(f"Unable to auto-locate game binary. Automatic path detection failed.")
+        log.warning("Unable to auto-locate game binary. Automatic path detection failed.")
         return None
 
     def _resolve_binary(self, file_path: Path, platform: Optional[Platform] = None) -> Path:
@@ -496,7 +496,7 @@ class MultiGamePatcher:
         return self.patterns_config
 
     def reload_patterns(self) -> Dict:
-        log.info(f"Reload Patterns...", silent=True)
+        log.info("Reload Patterns...", silent=True)
         return self._load_patterns()
 
     def get_available_games(self) -> List[str]:

@@ -36,6 +36,6 @@ if os_windows():
             winreg.CloseKey(key)
         except Exception:
             path_name = None
-            log.error(f"Unable to read key.")
+            log.error("Unable to read key.")
 
         return path_name

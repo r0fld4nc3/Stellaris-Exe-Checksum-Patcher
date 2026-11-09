@@ -40,7 +40,7 @@ def main():
 
     log.info("Application Entry Point")
 
-    log.info(f"[INIT] Running Application.")
+    log.info("[INIT] Running Application.")
 
     log.info(f"Debug:                  {config.debug}")
     log.info(f"App Version:            {APP_VERSION}")

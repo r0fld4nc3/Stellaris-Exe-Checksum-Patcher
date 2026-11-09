@@ -5,7 +5,6 @@ Which store a game uses, and that store's helper.
 """
 
 import logging
-from pathlib import Path
 from typing import Optional
 
 from core import services

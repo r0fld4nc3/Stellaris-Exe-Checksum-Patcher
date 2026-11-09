@@ -1,9 +1,7 @@
 import json
 import logging
 import shutil
-import ssl
 import time
-from enum import Enum
 from pathlib import Path
 
 import certifi
@@ -45,12 +43,6 @@ def get_patterns_config_remote() -> dict:
     if not last_checked:
         settings.app_settings.patch_patterns_update_last_checked = now
 
-    # Force SSL context to fix Thread issues
-    try:
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-    except Exception as e:
-        log.error(f"Failed to create SSL context: {e}", silent=True)
-
     if check_delta < config.update_check_cooldown:
         log.info(f"Update cooldown still in effect: {check_delta} seconds remaining")
         # Return local file
@@ -65,7 +57,7 @@ def get_patterns_config_remote() -> dict:
 
         patterns_data: dict = response.json()
 
-        log.info(f"Successfully fetched remote patterns.")
+        log.info("Successfully fetched remote patterns.")
         log.info(json.dumps(patterns_data, indent=2), silent=True)
 
         # Save patterns file. Local patterns aren't forced here.
@@ -114,7 +106,7 @@ def get_patterns_config_local() -> dict:
         log.info(f"Loaded patterns data\n{json.dumps(config, indent=2)}", silent=True)
 
     if not config:
-        log.error(f"No local configuration found!")
+        log.error("No local configuration found!")
         return {}
 
     return config

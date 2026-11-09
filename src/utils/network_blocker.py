@@ -79,7 +79,7 @@ def enable_network_blocking():
     socket.gethostbyaddr = _block_operation("socket.gethostbyaddr")
 
     _network_blocked = True
-    log.info(f"Network access has been disabled.", file=sys.stderr)
+    log.info("Network access has been disabled.", file=sys.stderr)
 
 
 def disable_network_blocking():
@@ -96,7 +96,7 @@ def disable_network_blocking():
     socket.create_connection = _original_create_connection
 
     _network_blocked = False
-    log.info(f"Network access has been restored.", file=sys.stderr)
+    log.info("Network access has been restored.", file=sys.stderr)
 
 
 def is_blocked():

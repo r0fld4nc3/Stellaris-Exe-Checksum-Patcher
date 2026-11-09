@@ -1,6 +1,4 @@
 import logging
-from collections.abc import Generator
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -256,7 +254,7 @@ class EventFilterMoveResize(EventFilterOvr):
     def get_mouse_area(self, event):
         """Determine which edge/corner is being pressed for resizing"""
         rect = self.window.rect()
-        x, y, w, h = rect.x(), rect.y(), rect.width(), rect.height()
+        w, h = rect.width(), rect.height()
         pos = event.position().toPoint()
 
         left = pos.x() <= self.MARGIN
@@ -479,7 +477,7 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
             log.info(f"Retrieved game executable from settings: {saved_path}", silent=True)
             return saved_path
         else:
-            log.warning(f"Saved game path found, but executable is invalid.")
+            log.warning("Saved game path found, but executable is invalid.")
 
     # Auto-locate
     store_helper = get_store_helper(configuration.game)
@@ -487,7 +485,7 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
         log.error(f"Failed to locate {configuration.game} installation.")
         return None
 
-    log.info(f"Attempting to auto-locate game installation.")
+    log.info("Attempting to auto-locate game installation.")
     game_install_path = store_helper.get_game_install_path(configuration.game)
     auto_located_path = game_patcher.locate_game_install(game_install_path)
 

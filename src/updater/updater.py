@@ -1,7 +1,6 @@
 import json
 import logging
 import re
-import ssl
 import time
 from typing import Optional
 
@@ -43,7 +42,7 @@ class Updater:
 
     def check_for_update(self):
         if services().config.prevent_conn:
-            log.info(f"Update turned off due to prevent connections argument being active.")
+            log.info("Update turned off due to prevent connections argument being active.")
             return False
 
         log.info("Checking for Stellaris Checksum Patcher update...")
@@ -65,34 +64,38 @@ class Updater:
 
         return has_new_version
 
-    def fetch_releases(self, max_fetch: int = -1):
+    def fetch_releases(self, max_fetch: int = -1) -> list[dict]:
+        """Newest releases first, at most `max_fetch` (-1 for all). Empty when they can't be fetched."""
         log.info("Fetching releases...", silent=True)
 
         releases = []
 
         if services().config.prevent_conn:
-            log.info(f"Update turned off due to prevent connections argument being active.")
+            log.info("Update turned off due to prevent connections argument being active.")
             return releases
-
-        # Force SSL context to fix Thread issues
-        try:
-            ssl_context = ssl.create_default_context(cafile=certifi.where())
-        except Exception as e:
-            log.error(f"Failed to create SSL context: {e}", silent=True)
 
         try:
             api_call = f"{self.api}{self._api_releases}"
             log.info(f"CALL {api_call}", silent=True)
             response = requests.get(api_call, timeout=60, verify=certifi.where())
-        except requests.ConnectionError as con_err:
-            log.warning(f"Unable to establish connection to update repo.")
-            log.error(con_err, silent=True)
-            return False
+        except requests.RequestException as request_err:
+            # Covers connection errors and timeouts
+            log.warning("Unable to establish connection to update repo.")
+            log.error(request_err, silent=True)
+            return releases
 
         if not response.status_code == 200:
-            log.error(f"Not a valid repository: {self.repo} ({self.api})")
-        else:
-            releases = response.json()[:max_fetch]
+            log.error(f"Unable to fetch releases from {self.repo} ({self.api}): HTTP {response.status_code}")
+            return releases
+
+        try:
+            releases = response.json()
+        except ValueError as json_err:
+            log.error(f"Releases response is not valid JSON: {json_err}", silent=True)
+            return []
+
+        if max_fetch > 0:
+            releases = releases[:max_fetch]
 
         log.debug("Dumping fetched releases.")
         log.debug(f"Releases: {json.dumps(releases, indent=2)}")

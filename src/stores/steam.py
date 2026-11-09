@@ -247,7 +247,7 @@ class SteamHelper(StoreHelperBase):
             saved_path = Path(saved_path_str)
             if saved_path.exists():
                 self.steam_install = saved_path
-                log.info(f"Got Steam install path from Settings")
+                log.info("Got Steam install path from Settings")
                 return self.steam_install
 
         steam_path_str: Optional[str] = None

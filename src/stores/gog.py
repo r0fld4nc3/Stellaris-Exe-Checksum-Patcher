@@ -66,7 +66,7 @@ class GogHelper(StoreHelperBase):
             galaxy_path = GOG_GALAXY_DEFAULT_PATH_MACOS
 
         if not galaxy_path or not galaxy_path.exists():
-            log.error(f"Unable to acquire GOG Galaxy installation.")
+            log.error("Unable to acquire GOG Galaxy installation.")
             return None
 
         services().settings.app_settings.gog_install_path = galaxy_path.resolve().as_posix()
