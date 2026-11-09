@@ -2,33 +2,38 @@ import logging
 from logging import FileHandler
 from pathlib import Path
 
+from PySide6.QtCore import QObject, Signal
+
 from core.definitions import APP_VERSION, TRACKING_BRANCH
 from core.paths import system
 from core.services import services, services_initialised
-from utils.threads import WorkerSignals
+
+
+class LoggerSignals(QObject):
+    message = Signal(str)
 
 
 class LoggerWithSignals(logging.Logger):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.signals = WorkerSignals()
+        self.signals = LoggerSignals()
 
     def debug(self, msg, *args, silent=True, **kwargs):
         super().debug(msg, *args, **kwargs)
         if self.level < logging.INFO:
             if not silent:
-                self.signals.progress.emit("[DEBUG] " + str(msg))
+                self.signals.message.emit("[DEBUG] " + str(msg))
 
     def info(self, msg, *args, silent=False, **kwargs):
         super().info(msg, *args, **kwargs)
         if not silent:
-            self.signals.progress.emit("[INFO] " + str(msg))
+            self.signals.message.emit("[INFO] " + str(msg))
 
     def warning(self, msg, *args, silent=False, **kwargs):
         super().warning(msg, *args, **kwargs)
         if not silent:
-            self.signals.progress.emit("[WARN] " + str(msg))
+            self.signals.message.emit("[WARN] " + str(msg))
 
     def error(self, msg, *args, silent=False, **kwargs):
         use_local_patterns = (
@@ -38,7 +43,7 @@ class LoggerWithSignals(logging.Logger):
 
         super().error(msg, *args, **kwargs)
         if not silent:
-            self.signals.progress.emit("[ERROR] " + str(msg))
+            self.signals.message.emit("[ERROR] " + str(msg))
         super().error(_version_print_msg, *args, **kwargs)
 
 

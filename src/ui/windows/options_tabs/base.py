@@ -1,12 +1,13 @@
 from typing import Optional
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Signal, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget
 
 from core import services
 from patchers import MultiGamePatcher, PatchConfiguration
 from patchers.models import KEY_VERSION_LATEST
+from utils.threads import Threader
 
 
 class OptionsContext(QObject):
@@ -59,6 +60,7 @@ class OptionsTab(QWidget):
         super().__init__(parent)
         self.ctx = context
         self.svc = services()
+        self.active_threads: list[Threader] = []
 
     @property
     def config(self) -> PatchConfiguration:
@@ -78,3 +80,27 @@ class OptionsTab(QWidget):
 
     def cleanup(self):
         """Release resources (threads, etc.) when the dialog closes."""
+        for thread in self.active_threads:
+            if thread.isRunning():
+                thread.quit()
+                thread.wait()
+            thread.deleteLater()
+        self.active_threads.clear()
+
+    def start_thread(self, thread: Threader):
+        """
+        Start `thread` and keep a reference to it until it has ended.
+        Qt aborts if a running thread is garbage collected, so tabs start threads through here.
+        """
+        # QThread's own `finished` fires once run() has returned, unlike `thread.signals.finished`
+        thread.finished.connect(self.prune_finished)
+        self.active_threads.append(thread)
+        thread.start()
+
+    @Slot()
+    def prune_finished(self):
+        """Drop and delete threads that have ended. Running threads stay referenced."""
+        for thread in reversed(self.active_threads):
+            if thread.isFinished():
+                thread.deleteLater()
+                self.active_threads.remove(thread)

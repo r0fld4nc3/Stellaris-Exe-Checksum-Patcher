@@ -49,8 +49,6 @@ class GameUtilitiesTab(OptionsTab):
     def __init__(self, context: OptionsContext, parent=None):
         super().__init__(context, parent)
 
-        self.active_threads: list[Threader] = []
-
         font = self.ctx.font
 
         font_section = QFont(font)
@@ -191,15 +189,6 @@ class GameUtilitiesTab(OptionsTab):
 
         self.game_combobox.populate()
         self._on_game_changed(self.config.game)
-
-    def cleanup(self):
-        """Stop any running worker threads."""
-        for thread in self.active_threads:
-            if thread.isRunning():
-                thread.quit()
-                thread.wait()
-            thread.deleteLater()
-        self.active_threads.clear()
 
     # --- Slots ---
 
@@ -344,9 +333,7 @@ class GameUtilitiesTab(OptionsTab):
             path_finder_thread.signals.result.connect(
                 lambda result: self.show_game_folder(result, _retry_attempted=True)
             )
-            path_finder_thread.signals.finished.connect(lambda: self._cleanup_thread(path_finder_thread))
-            self.active_threads.append(path_finder_thread)
-            path_finder_thread.start()
+            self.start_thread(path_finder_thread)
             return
 
         log.info("Auto-location already attempted and failed.", silent=True)
@@ -560,10 +547,3 @@ class GameUtilitiesTab(OptionsTab):
         Returns the path if found, otherwise None.
         """
         return find_game_path(self.ctx.patcher, self.config)
-
-    def _cleanup_thread(self, thread: Threader):
-        """Remove finished thread from active list."""
-        if thread in self.active_threads:
-            self.active_threads.remove(thread)
-            thread.deleteLater()
-            log.info(f"Cleaned up worker thread. Active threads: {len(self.active_threads)}", silent=True)

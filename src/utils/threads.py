@@ -1,22 +1,20 @@
 from PySide6.QtCore import QObject, QThread, Signal
 
 
-class WorkerSignals(QObject):
+class ThreadSignals(QObject):
+    """Lifecycle of one `Threader` run. Connected slots run on the main thread, so they can update widgets."""
+
     started = Signal()
-    finished = Signal()
-    progress = Signal(str)
-    patch_progress = Signal(int, str)
-    terminal_progress = Signal(str)
-    request_file_path = Signal()
-    result = Signal(object)
-    failed = Signal()
-    sig_quit = Signal()
-    error = Signal(tuple)
+    finished = Signal()  # Always emitted, after `result` or `error`
+    result = Signal(object)  # The target's return value. Not emitted if it raised
+    error = Signal(tuple)  # (exception type, exception, formatted traceback)
 
 
 class Threader(QThread):
+    """Run `target(*args, **kwargs)` on a separate thread and report back through `signals`."""
+
     def __init__(self, target, args=(), kwargs=None) -> None:
-        self.signals = WorkerSignals()
+        self.signals = ThreadSignals()
 
         QThread.__init__(self)
         self._target = target
@@ -40,8 +38,3 @@ class Threader(QThread):
             self.signals.error.emit(err_info)
         finally:
             self.signals.finished.emit()
-
-    def stop(self):
-        if self.isRunning():
-            self.requestInterruption()
-            self.wait()

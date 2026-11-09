@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import QDeadlineTimer, QSize, Qt, QThreadPool, Slot
+from PySide6.QtCore import QDeadlineTimer, QSize, Qt, QThreadPool, Signal, Slot
 from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
@@ -54,7 +54,7 @@ from stores import (
     set_game_store,
 )
 from utils.platform import WAYLAND, X11
-from utils.threads import Threader, WorkerSignals
+from utils.threads import Threader
 
 from .resources import AppFont, AppIcon, IconAchievementState, ResourceManager
 from .utils import (
@@ -92,6 +92,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     _APP_VERSION = APP_VERSION_STR
     THREAD_STOP_TIMEOUT_MS = 5000  # How long closing the app waits for threads that aren't patching
 
+    # Emitted from worker threads, so they're connected with Qt.QueuedConnection
+    patch_progress = Signal(int, str)  # Percentage and current step, for the progress bar
+    terminal_progress = Signal(str)  # Text for the information screen
+
     def __init__(self):
         if not QApplication.instance():
             self.app = QApplication(sys.argv)
@@ -112,7 +116,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 log.warning(f"Unknown Qt plaform on Linux: '{qt_platform}'. Moving/Resizing might behave oddly.")
 
         self.resources = ResourceManager()
-        self.signals = WorkerSignals()
 
         # --- Get size settings ---
         width, height = self.settings.app_settings.window_width, self.settings.app_settings.window_height
@@ -325,14 +328,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Hook up Signals ---
         # Could be a bit hacky. Ensure created before assign
-        log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        updater_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        patcher_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        patcher_save_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        steam_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        registry_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        self.signals.terminal_progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        self.signals.patch_progress.connect(self._set_progress, Qt.QueuedConnection)
+        log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        updater_log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        patcher_log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        patcher_save_log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        steam_log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        registry_log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        self.terminal_progress.connect(self.terminal_display_log, Qt.QueuedConnection)
+        self.patch_progress.connect(self._set_progress, Qt.QueuedConnection)
 
         # --- Worker ---
         self.worker = None  # Currently unusued, possibly to deprecate
@@ -639,13 +642,13 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         log.info(f"Patches to apply: {patches_to_apply}", silent=True)
 
-        self.signals.patch_progress.emit(10, "Preparing patches")
+        self.patch_progress.emit(10, "Preparing patches")
 
         results = patcher.patch_file_multiple(
-            game_binary_path, patches_to_apply, platform=platform, progress=self.signals.patch_progress.emit
+            game_binary_path, patches_to_apply, platform=platform, progress=self.patch_progress.emit
         )
 
-        self.signals.terminal_progress.emit(" ")
+        self.terminal_progress.emit(" ")
 
         applied: list = []
         for patch, success in results.items():
@@ -696,7 +699,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self._set_start_patching_state()
 
-        self.signals.patch_progress.emit(0, "")
+        self.patch_progress.emit(0, "")
 
         # Attempt to find and establish paths
         self.path_finder_thread = Threader(target=self._find_game_path_worker_thread)
@@ -870,7 +873,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         saver.set_config(self.save_configuration)
 
         thread_repair_save = Threader(target=lambda save_file=save_file_path: saver.repair_save(save_file))
-        # self.threader.signals.failed.connect() # TODO
+        # thread_repair_save.signals.error.connect() # TODO
         thread_repair_save.signals.started.connect(self.disable_ui_elements)
         thread_repair_save.signals.finished.connect(self.enable_ui_elements)
         thread_repair_save.signals.result.connect(self.on_finished_save_repair)

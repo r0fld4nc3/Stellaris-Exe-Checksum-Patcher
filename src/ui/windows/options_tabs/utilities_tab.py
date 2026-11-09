@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -21,9 +21,10 @@ from PySide6.QtWidgets import (
 from patch_patterns.patterns import get_patterns_config_remote
 from remote_messages import read_cached_message
 from ui.shared_widgets import QSquarePushButton
-from ui.utils import prompt_path, set_widgets_enabled
+from ui.utils import prompt_path
 from utils.helpers import block_signals
 from utils.platform import open_in_file_manager
+from utils.threads import Threader
 
 from ..message_dialog import MessageDialog
 from ..welcome_dialog import WelcomeDialog
@@ -136,7 +137,7 @@ class UtilitiesTab(OptionsTab):
         # --- Fetch/Update Patterns File Button ---
         self.btn_update_patch_patterns = QPushButton("Update Patterns")
         self.btn_update_patch_patterns.setFont(font)
-        self.btn_update_patch_patterns.clicked.connect(self.fetch_patch_patterns)
+        self.btn_update_patch_patterns.clicked.connect(self.request_fetch_patch_patterns_reload)
         utilities_layout.addWidget(self.btn_update_patch_patterns)
 
         # --- Maximum Allowed Backups ---
@@ -305,7 +306,29 @@ class UtilitiesTab(OptionsTab):
 
         self._update_launchers_paths()
 
+    def request_fetch_patch_patterns_reload(self):
+        log.info("Requested to fetch patch patterns...", silent=True)
+
+        self.btn_update_patch_patterns.setEnabled(False)
+
+        fetch_thread = Threader(target=get_patterns_config_remote)
+        fetch_thread.signals.result.connect(self._on_patch_patterns_fetched)
+
+        fetch_thread.signals.finished.connect(self._on_patch_patterns_fetch_finished)
+        self.start_thread(fetch_thread)
+
     # --- Slots ---
+
+    @Slot(object)
+    def _on_patch_patterns_fetched(self, _patterns: dict):
+        self.ctx.patcher.reload_patterns()
+
+        # New patterns can change UI elements
+        self.ctx.reload_requested.emit()
+
+    @Slot()
+    def _on_patch_patterns_fetch_finished(self):
+        self.btn_update_patch_patterns.setEnabled(True)
 
     def _on_max_backups_slider_changed(self, value: int):
         self._update_max_backups_label(value)
@@ -338,17 +361,6 @@ class UtilitiesTab(OptionsTab):
             log.info(f"App Config Folder: {config_dir}", silent=True)
 
             open_in_file_manager(config_dir)
-
-    def fetch_patch_patterns(self):
-        log.info("Fetch Patch Patterns...", silent=True)
-
-        with set_widgets_enabled(self.btn_update_patch_patterns, False):
-            get_patterns_config_remote()
-
-            self.ctx.patcher.reload_patterns()
-
-            # New patterns may change games/versions/patches: reload every tab
-            self.ctx.reload_requested.emit()
 
     def show_save_backups_dialog(self):
         from ui.windows import SaveBackupsDialog
