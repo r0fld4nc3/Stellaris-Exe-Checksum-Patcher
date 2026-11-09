@@ -45,6 +45,9 @@ class UtilitiesTab(OptionsTab):
         font_section = QFont(font)
         font_section.setPointSize(18)
 
+        font_header = QFont(font)
+        font_header.setPointSize(16)
+
         utilities_tab_layout = QVBoxLayout(self)
         utilities_tab_layout.setContentsMargins(10, 10, 10, 10)
         utilities_tab_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -57,7 +60,8 @@ class UtilitiesTab(OptionsTab):
         utilities_tab_layout.addWidget(title_label)
 
         # --- Description Label
-        desc_label = QLabel("Additional tools and utilities.")
+        desc_label = QLabel("Additional tools and utilities")
+        desc_label.setFont(font_header)
         desc_label.setWordWrap(True)
         utilities_tab_layout.addWidget(desc_label)
 
@@ -135,6 +139,7 @@ class UtilitiesTab(OptionsTab):
 
         # --- Use Local Patterns Checkbox---
         self.chkbox_use_local_patterns = QCheckBox("Force Local Patterns")
+        # self.chkbox_use_local_patterns.setFont(self.ctx.font)
         self.chkbox_use_local_patterns.setToolTip(
             "When toggled, application will not longer pull updated patterns from remote and will only strictly use the patterns file present on disk.\nThis is mainly useful for testing purposes, for trying out different patterns to prevent the local file from being overwritten on application startup."
         )
@@ -146,6 +151,7 @@ class UtilitiesTab(OptionsTab):
 
         # --- Include Pre-releases in Update Check Checkbox ---
         self.chkbox_include_prerelease_updates = QCheckBox("Include Pre-releases in Update Check")
+        # self.chkbox_include_prerelease_updates.setFont(self.ctx.font)
         self.chkbox_include_prerelease_updates.setToolTip(
             "When toggled, newer pre-releases also count as an available update, not only stable releases.\nPre-releases are early versions for testing and may be less stable."
         )

@@ -54,8 +54,28 @@ QCheckBox {
 }
 
 QCheckBox::indicator {
-    width: 20px;
-    height: 20px;
+    width: 10px;
+    height: 10px;
+    padding: 2px;
+    border: 3px solid rgb(75, 35, 35);
+    background-color: rgba(59, 22, 22, 100);
+    background-clip: content;
+}
+
+QCheckBox::indicator:hover {
+    border-color: rgba(255, 100, 25, 175);
+}
+
+QCheckBox::indicator:checked {
+    background-color: rgb(255, 100, 25);
+}
+
+QCheckBox::indicator:disabled {
+    border-color: rgb(140, 140, 140);
+}
+
+QCheckBox::indicator:checked:disabled {
+    background-color: rgb(140, 140, 140);
 }
 
 QRadioButton {
@@ -103,6 +123,11 @@ QLabel#SectionTitle {
     color: rgb(255, 179, 25);
     background-color: rgb(35, 75, 70);
     border-radius: 5px;
+}
+
+/* WelcomeDialogTitleLabel */
+QLabel#WelcomeDialogTitleLabel {
+    color: rgb(255, 179, 25);
 }
 
 /* FieldNameLabel */

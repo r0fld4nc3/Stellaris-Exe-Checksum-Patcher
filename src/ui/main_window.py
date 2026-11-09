@@ -1086,7 +1086,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             welcome_open = self.welcome_dialog is not None and self.welcome_dialog.isVisible()
 
             if welcome_open:
-                # Connect closing the welcome dialog to firing the show message immediately after.
+                # Connect closing the dialog to firing the show message immediately after.
                 self.welcome_dialog.finished.connect(lambda: self.show_message(message))
             else:
                 message_dialog = MessageDialog(

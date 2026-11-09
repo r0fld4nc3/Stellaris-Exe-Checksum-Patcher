@@ -72,6 +72,7 @@ class WelcomeDialog(QDialog):
 
         # --- Title ---
         title_label = QLabel("<h1>Welcome to Checksum Patcher!</h1>")
+        title_label.setObjectName("WelcomeDialogTitleLabel")
         title_label.setFont(self.font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         content_layout.addWidget(title_label)
@@ -99,7 +100,6 @@ class WelcomeDialog(QDialog):
 
         foreword_text = QLabel(self._style_html("""
                 <p>Before that, I would like to thank you for choosing to use this project. It is something I invest quite a bit of time in and I consider it one of my <i>babies</i>. Thank you for supporting and contributing with issues and suggestions, I am always eager to hear what can be improved and to fix what may be broken so that we all share in this <i>bounty</i>.</p>
-                <p>Happy Achievement Hunting!</p>
             """))
         foreword_text.setWordWrap(True)
 
@@ -192,7 +192,7 @@ class WelcomeDialog(QDialog):
                 <p>For quick answers to common problems, press the <b>?</b> button at the top right of the main window.</p>
                 <p>In case you are faced with any issues, don't hesitate to open an Issue on GitHub, but before you press "Create", please search for existing issues or fixes that may have already been addressed in the past!</p>
                 <p></p>
-                <p>Happy Hunting!</p>
+                <p>Happy Achievement Hunting!</p>
                 <p>- r0fld4nc3</p>
             """))
         how_to_use_desc.setWordWrap(True)
