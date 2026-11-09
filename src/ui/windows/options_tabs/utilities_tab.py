@@ -31,6 +31,18 @@ from .base import OptionsContext, OptionsTab
 
 log = logging.getLogger("Utilities")
 
+RUNNER_EXAMPLES_HTML = """
+<p><b>How it works:</b> the Generic Runner is started with these arguments. <b>{binary}</b> becomes the game executable and <b>{folder}</b> the folder it's in. Leave the field empty to pass only the game executable.</p>
+<p>Some runners, like Heroic and Lutris, start their own install of the game rather than the patched file. Make sure they point to the same install you patched.</p>
+<p><b>Wine</b><br>Runner: /usr/bin/wine<br>Arguments: {binary}</p>
+<p><b>Proton outside Steam (umu-run)</b><br>Runner: /usr/bin/umu-run<br>Arguments: {binary}</p>
+<p><b>Heroic (Stellaris GOG)</b><br>Runner: heroic<br>Arguments: --no-gui heroic://launch/gog/1508702879</p>
+<p><b>Heroic (sideloaded game)</b><br>Runner: heroic<br>Arguments: --no-gui heroic://launch/sideload/&lt;game ID in Heroic&gt;</p>
+<p><b>Heroic (Flatpak)</b><br>Runner: /usr/bin/flatpak<br>Arguments: run com.heroicgameslauncher.hgl --no-gui heroic://launch/gog/1508702879</p>
+<p><b>Lutris</b><br>Runner: lutris<br>Arguments: lutris:rungame/&lt;game slug in Lutris&gt;</p>
+<p><b>CrossOver (macOS)</b><br>Runner: /Applications/CrossOver.app/Contents/SharedSupport/CrossOver/bin/wine<br>Arguments: --bottle &lt;your bottle&gt; {binary}</p>
+"""
+
 
 class UtilitiesTab(OptionsTab):
     """General app settings and helper tools."""
@@ -184,7 +196,7 @@ class UtilitiesTab(OptionsTab):
             launchers_layout,
             0,
             "Steam:",
-            "Steam executable, used to launch and validate Steam games.",
+            "Steam folder, used to find, launch and validate Steam games.\n" "Found automatically when empty.",
             on_browse=self._browse_steam_folder,
             on_clear=self._clear_steam_path,
         )
@@ -193,7 +205,7 @@ class UtilitiesTab(OptionsTab):
             launchers_layout,
             1,
             "GOG Galaxy:",
-            "GOG Galaxy executable, used to launch GOG games.",
+            "GOG Galaxy folder, used to find and launch GOG games.\n" "Found automatically when empty.",
             on_browse=self._browse_gog_folder,
             on_clear=self._clear_gog_path,
         )
@@ -203,7 +215,7 @@ class UtilitiesTab(OptionsTab):
             2,
             "Generic Runner:",
             "Anything that can run the game executable (Wine, Bottles, Lutris, Heroic...).\n"
-            "Used when no store launcher can run the patched executable.",
+            "Used to launch games set to Generic.",
             on_browse=self._browse_generic_runner,
             on_clear=self._clear_generic_runner_path,
         )
@@ -214,18 +226,31 @@ class UtilitiesTab(OptionsTab):
 
         self.generic_runner_args_field = QLineEdit()
         self.generic_runner_args_field.setFont(self.system_font)
-        self.generic_runner_args_field.setPlaceholderText("{binary}")
-        self.generic_runner_args_field.setToolTip(
-            "Arguments passed to the Generic Runner.\n" "{binary}: the game executable. {folder}: the folder it's in."
-        )
+        self.generic_runner_args_field.setPlaceholderText("--no-gui heroic://launch/gog/1508702879")
         self.generic_runner_args_field.editingFinished.connect(self._on_generic_runner_args_edited)
 
+        # --- Runner examples (scrolls on its own, so the tab stays short) ---
+        runner_examples_label = QLabel(RUNNER_EXAMPLES_HTML)
+        runner_examples_label.setObjectName("HintLabel")
+        runner_examples_label.setFont(self.system_font)
+        runner_examples_label.setWordWrap(True)
+        runner_examples_label.setTextFormat(Qt.TextFormat.RichText)
+        runner_examples_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        runner_examples_label.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        runner_examples_scroll_area = QScrollArea()
+        runner_examples_scroll_area.setWidgetResizable(True)
+        runner_examples_scroll_area.setMinimumHeight(160)
+        runner_examples_scroll_area.setWidget(runner_examples_label)
+
         launchers_layout.addWidget(generic_runner_args_label, 3, 0)
-        launchers_layout.addWidget(self.generic_runner_args_field, 3, 1, 1, 2)
+        launchers_layout.addWidget(self.generic_runner_args_field, 3, 1, 1, 3)
+        launchers_layout.addWidget(runner_examples_scroll_area, 4, 1, 1, 3)
+        # launchers_layout.addWidget(generic_runner_note_label, 4, 1, 1, 3)
         utilities_layout.addLayout(launchers_layout)
 
         # --- Spacer ---
-        utilities_layout.addWidget(QLabel())
+        # utilities_layout.addWidget(QLabel())
 
         # --- Set scrollable widget ---
         utilities_scroll_area.setWidget(utilities_content_widget)
