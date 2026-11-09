@@ -410,7 +410,7 @@ class StellarisSavePatcher(SavePatcher):
 
         self.save_game_patches_to_apply = config
 
-        log.info(f"Set Stellaris Save Patcher SaveGamePatchesToApply: {config}", silent=True)
+        log.info(f"Set {self.game_name.capitalize()}Save Patcher SaveGamePatchesToApply: {config}", silent=True)
 
         return True
 

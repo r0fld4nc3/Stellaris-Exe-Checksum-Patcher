@@ -31,6 +31,9 @@ class ConfigureSavePatchDialog(QDialog):
         super().__init__(parent)
 
         self.font = font
+        title_font = QFont(self.font)
+        title_font.setPointSize(16)
+
         self.game_name = game_name
         self.current_config = patcher_models.SavePatchConfigRegistry.get_config(game_name)
 
@@ -68,7 +71,7 @@ class ConfigureSavePatchDialog(QDialog):
         # --- Game Info Section --.
         if self.current_config:
             info_label = QLabel(f"<b>{self.current_config.display_name}</b>")
-            info_label.setFont(self.font)
+            info_label.setFont(title_font)
             content_layout.addWidget(info_label)
 
             desc_label = QLabel(self.current_config.description)
@@ -127,6 +130,7 @@ class ConfigureSavePatchDialog(QDialog):
         # Create checkboxes
         for option in available_options:
             checkbox = QCheckBox(option.display_name)
+            checkbox.setObjectName("StyledCheckbox1")
             checkbox.setToolTip(option.description)
             checkbox.setChecked(option.default_value)
             checkbox.setEnabled(option.user_can_change)
