@@ -267,6 +267,7 @@ def main():
             f"--add-data=src/ui/fonts{data_separator}ui/fonts",
             f"--add-data=src/ui/icons{data_separator}ui/icons",
             f"--add-data=src/ui/styles{data_separator}ui/styles",
+            f"--add-data=src/ui/guides{data_separator}ui/guides",
             f"--add-data=src/achievements{data_separator}achievements",
             f"--add-data=src/patch_patterns/patterns_v2.json{data_separator}patch_patterns",
         ]
