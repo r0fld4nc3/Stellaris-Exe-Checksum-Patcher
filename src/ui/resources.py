@@ -14,6 +14,7 @@ BASE_PATH = Path(__file__).parent
 ICONS_PATH = BASE_PATH / "icons"
 FONTS_PATH = BASE_PATH / "fonts"
 STYLES_PATH = BASE_PATH / "styles"
+GUIDES_PATH = BASE_PATH / "guides"
 
 
 class IconAchievementState(str, Enum):
@@ -36,6 +37,21 @@ class AppFont(str, Enum):
 class AppStyle(str, Enum):
     STELLARIS = "stellaris"
     CK3 = "ck3"
+
+
+class AppGuide(str, Enum):
+    FAQ = "faq.md"
+
+
+def load_guide(guide: AppGuide) -> str:
+    """Markdown text of a guide shown in the app. Empty if the file is missing."""
+    file_path = GUIDES_PATH / guide
+
+    if not file_path.exists():
+        log.error(f"Guide not found: {file_path}")
+        return ""
+
+    return file_path.read_text(encoding="utf-8")
 
 
 class ResourceManager:

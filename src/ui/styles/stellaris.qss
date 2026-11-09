@@ -294,10 +294,13 @@ QProgressBar#PatchProgressBar::chunk {
     background-color: rgba(255, 179, 25, 150);  /* Orange fill */
 }
 
-QTextBrowser#MessageText {
+/* Markdown text: message, FAQ */
+QTextBrowser#MarkdownText {
     border: 1px solid rgb(67, 144, 134);
     background-color: rgba(22, 59, 56, 100);
     color: white;
-    qproperty-headerColor: #F5A030;
+    font-size: 14px;
+    qproperty-headerColor: rgb(235, 188, 61);
+    qproperty-subheaderColor: rgb(23, 147, 97);
     qproperty-linkColor: rgb(25, 255, 236);
 }
