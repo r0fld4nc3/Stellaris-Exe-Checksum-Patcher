@@ -262,13 +262,12 @@ class UtilitiesTab(OptionsTab):
 
         runner_examples_scroll_area = QScrollArea()
         runner_examples_scroll_area.setWidgetResizable(True)
-        runner_examples_scroll_area.setMinimumHeight(160)
+        runner_examples_scroll_area.setMinimumHeight(200)
         runner_examples_scroll_area.setWidget(runner_examples_label)
 
         launchers_layout.addWidget(generic_runner_args_label, 3, 0)
         launchers_layout.addWidget(self.generic_runner_args_field, 3, 1, 1, 3)
-        launchers_layout.addWidget(runner_examples_scroll_area, 4, 1, 1, 3)
-        # launchers_layout.addWidget(generic_runner_note_label, 4, 1, 1, 3)
+        # launchers_layout.addWidget(runner_examples_scroll_area, 4, 1, 1, 3)
         utilities_layout.addLayout(launchers_layout)
 
         # --- Spacer ---
@@ -277,6 +276,7 @@ class UtilitiesTab(OptionsTab):
         # --- Set scrollable widget ---
         utilities_scroll_area.setWidget(utilities_content_widget)
         utilities_tab_layout.addWidget(utilities_scroll_area)
+        utilities_layout.addWidget(runner_examples_scroll_area)
 
     # --- OptionsTab hooks ---
 
