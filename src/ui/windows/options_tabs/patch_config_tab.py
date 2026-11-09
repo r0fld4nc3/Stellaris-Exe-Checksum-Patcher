@@ -55,6 +55,9 @@ class GameUtilitiesTab(OptionsTab):
         font_section = QFont(font)
         font_section.setPointSize(18)
 
+        font_header = QFont(font)
+        font_header.setPointSize(16)
+
         patch_layout = QVBoxLayout(self)
         patch_layout.setContentsMargins(10, 10, 10, 10)
 
@@ -65,7 +68,8 @@ class GameUtilitiesTab(OptionsTab):
         info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         patch_layout.addWidget(info_label)
 
-        desc_label = QLabel("Select what game to patch and with that options.")
+        desc_label = QLabel("Select what game to patch and is options")
+        desc_label.setFont(font_header)
         desc_label.setWordWrap(True)
         patch_layout.addWidget(desc_label)
 
