@@ -51,6 +51,7 @@ QLineEdit {
 QCheckBox {
     color: rgb(255, 255, 255);
     spacing: 10px;
+    margin: 3px 0;
 }
 
 QCheckBox::indicator {
