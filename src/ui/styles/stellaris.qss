@@ -142,6 +142,11 @@ QLabel#WelcomeDialogTitleLabel {
     color: rgb(255, 179, 25);
 }
 
+/* Small explanatory text under a field */
+QLabel#HintLabel {
+    color: rgb(224, 224, 224);
+}
+
 /* FieldNameLabel */
 QLabel#FieldNameLabel {
     color: rgb(255, 255, 255);
@@ -249,6 +254,31 @@ QLabel#StoreDescription {
     color: rgb(225, 225, 225);
     background-color: rgb(35, 75, 70);
     border-radius: 5px;
+}
+
+/* Option picker dialog */
+QLabel#OptionPickerText {
+    color: rgb(255, 255, 255);
+}
+
+QListWidget#OptionPickerList {
+    color: rgb(255, 255, 255);
+    background-color: rgba(22, 59, 56, 100);
+    border: 1px solid rgb(67, 144, 134);
+    padding: 3px;
+}
+
+QListWidget#OptionPickerList::item {
+    padding: 6px;
+}
+
+QListWidget#OptionPickerList::item:hover {
+    background-color: rgba(255, 179, 25, 60);
+}
+
+QListWidget#OptionPickerList::item:selected {
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 179, 25, 120);
 }
 
 /* Patch Progress Bar */
