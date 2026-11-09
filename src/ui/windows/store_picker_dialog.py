@@ -127,6 +127,12 @@ class StorePickerDialog(QDialog):
         return DEFAULT_GAME_STORE
 
     def _add_store_option(self, layout: QVBoxLayout, store: GameStore):
+        # Only one store can be checked, and Qt's QRadioButton already supports this feature by default.
+        # Radio buttons are auto-exclusive by default, and auto-exclusive buttons with the same parent widget form one group.
+        # Adding them to `content_layout` makes `main_frame` their parent. Groups follow parents - not layouts - so buttons
+        # in another widget are a separate group.
+        # For two groups under one parent, or one signal for the whole group, use a QButtonGroup.
+
         radio_button = QRadioButton(store.display_name)
         option_font = QFont(self.custom_app_font)
         option_font.setBold(True)
