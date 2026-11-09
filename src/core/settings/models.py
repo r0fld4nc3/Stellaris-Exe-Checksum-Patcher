@@ -25,10 +25,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-from config.definitions import APP_IS_PRERELEASE, APP_REVISION, APP_VERSION_STR
+from ..definitions import APP_IS_PRERELEASE, APP_REVISION, APP_VERSION_STR
 
+# TYPE_CHECKING used to restore IntelliSense auto-completion
 if TYPE_CHECKING:
-    from .settings import SettingsManager
+    from .manager import SettingsManager
 
 _MEMORY = "MEMORY"
 _LOCKED = "LOCKED"

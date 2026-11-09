@@ -8,12 +8,10 @@ from typing import Optional
 import certifi
 import requests
 
-from app_services import services
-from config.definitions import APP_IS_PRERELEASE, APP_REVISION, APP_VERSION_STR
+from core import services
+from core.definitions import APP_IS_PRERELEASE, APP_REVISION, APP_VERSION_STR
 
 log = logging.getLogger("Updater")
-
-_current: Optional["Updater"] = None
 
 _REVISION_PATTERN = re.compile(r"\.rev(\d+)$")
 
@@ -52,7 +50,7 @@ class Updater:
 
         self.pulled_releases = self.fetch_releases(max_fetch=self._releases_max_fill)
 
-        include_prereleases = services().settings.settings.include_prerelease_updates
+        include_prereleases = services().settings.app_settings.include_prerelease_updates
         release_idx = self.get_newest_release(self.pulled_releases, include_prereleases=include_prereleases)
 
         if release_idx is None:
@@ -245,29 +243,3 @@ class Updater:
         log.info(f"API: {_api}", silent=True)
 
         return _user, _repo, _api
-
-
-def init(user: str = "", repo_name: str = "") -> Updater:
-    global _current
-
-    if _current:
-        if isinstance(_current, Updater):
-            return _current
-        else:
-            raise RuntimeError(f"Current Updater Instance is invalid: {_current}")
-
-    _current = Updater(user=user, repo_name=repo_name)
-
-    return _current
-
-
-def get() -> Updater:
-    global _current
-
-    if not isinstance(_current, Updater):
-        raise RuntimeError(f"Current Updater Instance is invalid: {_current}")
-
-    if not _current or _current is None:
-        raise RuntimeError(f"Updater is not valid or uninitialised: {_current}")
-
-    return _current

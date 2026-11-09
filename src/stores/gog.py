@@ -3,8 +3,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from app_services import services
-from config.path_helpers import os_darwin, os_windows
+from core import services
+from core.paths import os_darwin, os_windows
 from utils import registry_helper
 
 from .base import StoreHelperBase
@@ -50,7 +50,7 @@ class GogHelper(StoreHelperBase):
         """GOG Galaxy's saved folder. Otherwise, found on this system. Else `None`."""
         log.info("Acquiring GOG Galaxy installation...")
 
-        saved_path_str = services().settings.settings.gog_install_path
+        saved_path_str = services().settings.app_settings.gog_install_path
         if saved_path_str:
             saved_path = Path(saved_path_str)
             if saved_path.exists():
@@ -69,7 +69,7 @@ class GogHelper(StoreHelperBase):
             log.error(f"Unable to acquire GOG Galaxy installation.")
             return None
 
-        services().settings.settings.gog_install_path = galaxy_path.resolve().as_posix()
+        services().settings.app_settings.gog_install_path = galaxy_path.resolve().as_posix()
         return galaxy_path
 
     def get_windows_gog_galaxy_executable(self) -> Optional[Path]:

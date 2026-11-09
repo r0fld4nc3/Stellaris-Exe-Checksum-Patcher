@@ -14,7 +14,7 @@ import logging
 from enum import Enum
 from typing import Optional
 
-from config.path_helpers import OS_TYPE, system
+from core.paths import OS_TYPE, system
 
 from .base import StoreGameInfo
 

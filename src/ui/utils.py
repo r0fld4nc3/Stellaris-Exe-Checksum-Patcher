@@ -24,8 +24,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app_services import services
-from config.path_helpers import os_darwin, os_linux
+from core import services
+from core.paths import os_darwin, os_linux
 from patchers import MultiGamePatcher
 from patchers import models as patcher_models
 from stores import get_store_helper

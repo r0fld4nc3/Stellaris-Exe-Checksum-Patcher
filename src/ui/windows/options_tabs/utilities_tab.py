@@ -262,7 +262,7 @@ class UtilitiesTab(OptionsTab):
         log.info("Load Settings")
 
         # Backups slider (no signal: value comes from settings, nothing to save)
-        max_backups = self.svc.settings.settings.max_allowed_binary_backups
+        max_backups = self.svc.settings.app_settings.max_allowed_binary_backups
         with block_signals(self.max_backups_slider):
             self.max_backups_slider.setValue(max_backups)
         self._update_max_backups_label(max_backups)
@@ -272,7 +272,7 @@ class UtilitiesTab(OptionsTab):
             [
                 self.svc.config.use_local_patterns,
                 self.svc.config.prevent_conn,
-                self.svc.settings.settings.force_local_patterns,
+                self.svc.settings.app_settings.force_local_patterns,
             ]
         )
         self.chkbox_use_local_patterns.setCheckState(
@@ -280,7 +280,7 @@ class UtilitiesTab(OptionsTab):
         )
 
         with block_signals(self.chkbox_include_prerelease_updates):
-            self.chkbox_include_prerelease_updates.setChecked(self.svc.settings.settings.include_prerelease_updates)
+            self.chkbox_include_prerelease_updates.setChecked(self.svc.settings.app_settings.include_prerelease_updates)
 
         self._update_launchers_paths()
 
@@ -290,7 +290,7 @@ class UtilitiesTab(OptionsTab):
         self._update_max_backups_label(value)
 
         # Save to settings
-        self.svc.settings.settings.max_allowed_binary_backups = value
+        self.svc.settings.app_settings.max_allowed_binary_backups = value
 
         log.info(f"Maximum allowed backups set to: {value}")
 
@@ -298,17 +298,17 @@ class UtilitiesTab(OptionsTab):
         if state in (Qt.CheckState.Checked.value, Qt.CheckState.Unchecked.value):
             # We don't need to set for --no-conn
             if not self.svc.config.prevent_conn:
-                self.svc.settings.settings.force_local_patterns = bool(state)
+                self.svc.settings.app_settings.force_local_patterns = bool(state)
         else:
             log.warning("Checkbox in Partially Checked state. We shouldn't be here.", silent=True)
 
     def _on_include_prerelease_updates_toggled(self, checked: bool):
-        self.svc.settings.settings.include_prerelease_updates = checked
+        self.svc.settings.app_settings.include_prerelease_updates = checked
 
         log.info(f"Include pre-releases in update check: {checked}")
 
     def _on_generic_runner_args_edited(self):
-        self.svc.settings.settings.generic_runner_args = self.generic_runner_args_field.text().strip()
+        self.svc.settings.app_settings.generic_runner_args = self.generic_runner_args_field.text().strip()
 
     def show_app_config_folder(self):
         config_dir = self.svc.config.config_dir
@@ -397,7 +397,7 @@ class UtilitiesTab(OptionsTab):
         self.max_backup_value_label.setText("Off" if value <= 0 else str(value))
 
     def _browse_steam_folder(self):
-        saved_path = self.svc.settings.settings.steam_install_path
+        saved_path = self.svc.settings.app_settings.steam_install_path
 
         picked = prompt_path(
             self,
@@ -408,12 +408,12 @@ class UtilitiesTab(OptionsTab):
         if not picked:
             return
 
-        self.svc.settings.settings.steam_install_path = picked.as_posix()
+        self.svc.settings.app_settings.steam_install_path = picked.as_posix()
 
         self._update_launchers_paths()
 
     def _browse_gog_folder(self):
-        saved_path = self.svc.settings.settings.gog_install_path
+        saved_path = self.svc.settings.app_settings.gog_install_path
 
         picked = prompt_path(
             self,
@@ -424,12 +424,12 @@ class UtilitiesTab(OptionsTab):
         if not picked:
             return
 
-        self.svc.settings.settings.gog_install_path = picked.as_posix()
+        self.svc.settings.app_settings.gog_install_path = picked.as_posix()
 
         self._update_launchers_paths()
 
     def _browse_generic_runner(self):
-        saved_path = self.svc.settings.settings.generic_runner_path
+        saved_path = self.svc.settings.app_settings.generic_runner_path
 
         picked = prompt_path(
             self,
@@ -439,20 +439,20 @@ class UtilitiesTab(OptionsTab):
         if not picked:
             return
 
-        self.svc.settings.settings.generic_runner_path = picked.as_posix()
+        self.svc.settings.app_settings.generic_runner_path = picked.as_posix()
 
         self._update_launchers_paths()
 
     def _clear_steam_path(self):
-        self.svc.settings.settings.steam_install_path = ""
+        self.svc.settings.app_settings.steam_install_path = ""
         self._update_launchers_paths()
 
     def _clear_gog_path(self):
-        self.svc.settings.settings.gog_install_path = ""
+        self.svc.settings.app_settings.gog_install_path = ""
         self._update_launchers_paths()
 
     def _clear_generic_runner_path(self):
-        self.svc.settings.settings.generic_runner_path = ""
+        self.svc.settings.app_settings.generic_runner_path = ""
         self._update_launchers_paths()
 
     def _update_launchers_paths(self):
@@ -461,7 +461,7 @@ class UtilitiesTab(OptionsTab):
         Empty fields show the placeholder.
         """
 
-        app_settings = self.svc.settings.settings
+        app_settings = self.svc.settings.app_settings
         self.steam_launcher_path_field.setText(app_settings.steam_install_path)
         self.gog_launcher_path_field.setText(app_settings.gog_install_path)
         self.generic_runner_path_field.setText(app_settings.generic_runner_path)

@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app_services import services
+from core import services
 from ui.utils import EventFilterMoveResize, adapt_to_parent_size
 
 log = logging.getLogger("Welcome Dialog")
@@ -32,11 +32,10 @@ class WelcomeDialog(QDialog):
     FONT_SIZE_SUBHEADER_1 = "24px"
     FONT_SIZE_TEXT = "18px"
 
-    svc = services()
-    settings = svc.settings
-
     def __init__(self, font: QFont, window_icon: QIcon, parent=None):
         super().__init__(parent)
+
+        self.settings = services().settings
 
         self.font = font
 
@@ -213,7 +212,7 @@ class WelcomeDialog(QDialog):
 
         # Confirm and Don't Show Again
         # Make it dynamic! Appear only if never accepted!
-        has_accepted = self.settings.settings.accepted_welcome_dialog
+        has_accepted = self.settings.app_settings.accepted_welcome_dialog
         if not has_accepted:
             btn_confirm = QPushButton("Understood! - Don't Show Again")
             # Override button font
@@ -235,7 +234,7 @@ class WelcomeDialog(QDialog):
         content_layout.addLayout(button_layout)
 
     def _on_confirm(self):
-        self.settings.settings.accepted_welcome_dialog = True
+        self.settings.app_settings.accepted_welcome_dialog = True
         self.accept()
 
     @staticmethod

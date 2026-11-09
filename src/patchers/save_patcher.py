@@ -11,9 +11,9 @@ from typing import Optional, Union
 import certifi
 import requests
 
-from app_services import services
-from config.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
-from config.path_helpers import os_darwin, os_linux, os_windows
+from core import services
+from core.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
+from core.paths import os_darwin, os_linux, os_windows
 
 # 3rd Party
 from utils.encodings import detect_file_encoding
@@ -39,13 +39,30 @@ MACOS_PARADOX_INTERACTIVE_PATHS = [Path.home() / "Documents" / "Paradox Interact
 
 ACHIEVEMENTS_FILE_NAME = "achievements.txt"
 ACHIEVEMENTS_URL = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/src/achievements/{ACHIEVEMENTS_FILE_NAME}"
-ACHIEVEMENTS_FILE_LOCAL = services().config.config_dir / ACHIEVEMENTS_FILE_NAME
 
-if not services().config.frozen:
+
+def local_achievements_file() -> Path:
+    """Achievements file in the app's config folder. Updated from remote."""
+    return services().config.config_dir / ACHIEVEMENTS_FILE_NAME
+
+
+def distributed_achievements_file() -> Path:
+    """Achievements file bundled with the app. Copied to the config folder when there's none yet."""
+    config = services().config
+    if config.frozen:
+        return config.working_dir / ACHIEVEMENTS_FILE_NAME
+
     # We're not running a compiled build
-    ACHIEVEMENTS_DISTRIBUTED_FILE = Path(__file__).parent.parent / "achievements" / ACHIEVEMENTS_FILE_NAME
-else:
-    ACHIEVEMENTS_DISTRIBUTED_FILE = services().config.working_dir / ACHIEVEMENTS_FILE_NAME
+    return Path(__file__).parent.parent / "achievements" / ACHIEVEMENTS_FILE_NAME
+
+
+SAVE_BACKUPS_FOLDER_NAME = "saves_backup"
+
+
+def save_backups_folder() -> Path:
+    """Where saves are backed up before they're fixed, in the app's config folder."""
+    return services().config.config_dir / SAVE_BACKUPS_FOLDER_NAME
+
 
 NO = "no"
 YES = "yes"
@@ -72,7 +89,7 @@ def find_save_backups(backup_base_dir: Path | str | None = None) -> dict[str, li
 
     Playthroughs with the newest backup come first, and each playthrough's backups are newest first.
     """
-    base_dir = Path(backup_base_dir) if backup_base_dir else services().config.saves_backup_dir
+    base_dir = Path(backup_base_dir) if backup_base_dir else save_backups_folder()
 
     if not base_dir.is_dir():
         log.debug(f"No save backups folder: '{base_dir}'")
@@ -335,7 +352,7 @@ class SavePatcher:
 
         # Determine backup directory
         if backup_base_dir is None:
-            backup_base_dir = services().config.saves_backup_dir
+            backup_base_dir = save_backups_folder()
 
         timestamp_str = datetime.datetime.now().strftime(SAVE_BACKUP_TIMESTAMP_FORMAT)
         backup_dir = backup_base_dir / save_file.parent.name / timestamp_str
@@ -957,13 +974,13 @@ class StellarisSavePatcher(SavePatcher):
 
         config = services().config
 
-        if not ACHIEVEMENTS_FILE_LOCAL.exists():
+        if not local_achievements_file().exists():
             config_dir = config.config_dir
             copy_dest = config_dir / ACHIEVEMENTS_FILE_NAME
 
             try:
                 log.info(f"Copy distributed '{ACHIEVEMENTS_FILE_NAME}' to config dir '{copy_dest}'", silent=True)
-                shutil.copy2(ACHIEVEMENTS_DISTRIBUTED_FILE, copy_dest)
+                shutil.copy2(distributed_achievements_file(), copy_dest)
             except Exception as e:
                 log.error(
                     f"Failed to copy distributed '{ACHIEVEMENTS_FILE_NAME}' to config directory '{copy_dest}': {e}"
@@ -971,7 +988,7 @@ class StellarisSavePatcher(SavePatcher):
                 return []
 
         # Load the file
-        with open(ACHIEVEMENTS_FILE_LOCAL, "r", encoding="UTF-8") as f:
+        with open(local_achievements_file(), "r", encoding="UTF-8") as f:
             contents: list = f.read()
             log.info(f"Loaded achievements file\n{contents}", silent=True)
 
@@ -1015,7 +1032,7 @@ class StellarisSavePatcher(SavePatcher):
             log.error("Not a valid repository or file not found.")
             return self.load_local_achievements_file(), "local"
 
-        log.info(f"Achievements file: {ACHIEVEMENTS_FILE_LOCAL}", silent=True)
+        log.info(f"Achievements file: {local_achievements_file()}", silent=True)
 
         try:
             achievements = response.text
@@ -1025,7 +1042,7 @@ class StellarisSavePatcher(SavePatcher):
             # Update local achievements file
             log.info("Updating achievements file with repo content.")
             try:
-                with ACHIEVEMENTS_FILE_LOCAL.open("w", encoding="utf-8") as ach_f:
+                with local_achievements_file().open("w", encoding="utf-8") as ach_f:
                     ach_f.write(achievements)
             except Exception as e:
                 log.error(f"Error writing to achievements file.\nError: {e}")
@@ -1036,5 +1053,5 @@ class StellarisSavePatcher(SavePatcher):
             log.info(f"Error in pulling achievements from repo. Falling back to physical file.\nError: {e}")
             log.debug(response)
             # Fallback to physical file
-            log.debug(f"Achievements file: {ACHIEVEMENTS_FILE_LOCAL}")
+            log.debug(f"Achievements file: {local_achievements_file()}")
             return self.load_local_achievements_file(), "local"

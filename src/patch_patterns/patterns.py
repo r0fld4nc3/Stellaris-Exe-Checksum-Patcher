@@ -9,15 +9,19 @@ from pathlib import Path
 import certifi
 import requests
 
-from app_services import services
-from config.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
+from core import services
+from core.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
 
 log = logging.getLogger("Patterns")  # isort: skip
 
 PATTERNS_FILE_NAME = "patterns_v2.json"
 PATTERNS_URL = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/src/patch_patterns/{PATTERNS_FILE_NAME}"
-PATTERNS_LOCAL = services().config.config_dir / PATTERNS_FILE_NAME
 PATTERNS_DISTRIBUTED_FILE = Path(__file__).parent / PATTERNS_FILE_NAME
+
+
+def local_patterns_file() -> Path:
+    """Patterns file in the app's config folder. Updated from remote, used for patching."""
+    return services().config.config_dir / PATTERNS_FILE_NAME
 
 
 def get_patterns_config_remote() -> dict:
@@ -27,19 +31,19 @@ def get_patterns_config_remote() -> dict:
     settings = services().settings
 
     _force_local_patterns = any(
-        (config.prevent_conn, config.use_local_patterns, settings.settings.force_local_patterns)
+        (config.prevent_conn, config.use_local_patterns, settings.app_settings.force_local_patterns)
     )
 
     if _force_local_patterns:
         log.info("Forced local patterns. Returning local patterns.", silent=True)
         return get_patterns_config_local()
 
-    last_checked = settings.settings.patch_patterns_update_last_checked
+    last_checked = settings.app_settings.patch_patterns_update_last_checked
     now = int(time.time())
     check_delta = now - last_checked
 
     if not last_checked:
-        settings.settings.patch_patterns_update_last_checked = now
+        settings.app_settings.patch_patterns_update_last_checked = now
 
     # Force SSL context to fix Thread issues
     try:
@@ -52,7 +56,7 @@ def get_patterns_config_remote() -> dict:
         # Return local file
         return get_patterns_config_local()
     else:
-        settings.settings.patch_patterns_update_last_checked = now
+        settings.app_settings.patch_patterns_update_last_checked = now
 
     try:
         response = requests.get(PATTERNS_URL, timeout=10, verify=certifi.where())
@@ -65,8 +69,8 @@ def get_patterns_config_remote() -> dict:
         log.info(json.dumps(patterns_data, indent=2), silent=True)
 
         # Save patterns file. Local patterns aren't forced here.
-        log.info(f"Saving remote patterns to config dir: {PATTERNS_LOCAL}")
-        with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
+        log.info(f"Saving remote patterns to config dir: {local_patterns_file()}")
+        with open(local_patterns_file(), "w", encoding="UTF-8") as f:
             f.write(json.dumps(patterns_data, indent=2))
 
         return patterns_data
@@ -86,12 +90,12 @@ def get_patterns_config_remote() -> dict:
 
 
 def get_patterns_config_local() -> dict:
-    log.info(f"Fetching patterns from local: {PATTERNS_LOCAL}")
+    log.info(f"Fetching patterns from local: {local_patterns_file()}")
 
     config = services().config
 
-    if not PATTERNS_LOCAL.exists():
-        log.error(f"Expected local patterns file does not exist: {PATTERNS_LOCAL}")
+    if not local_patterns_file().exists():
+        log.error(f"Expected local patterns file does not exist: {local_patterns_file()}")
 
         # Copy from local distribution to config dir
         config_dir = config.config_dir
@@ -105,7 +109,7 @@ def get_patterns_config_local() -> dict:
             return {}
 
     # Load the config
-    with open(PATTERNS_LOCAL, "r", encoding="UTF-8") as f:
+    with open(local_patterns_file(), "r", encoding="UTF-8") as f:
         config: dict = json.load(f)
         log.info(f"Loaded patterns data\n{json.dumps(config, indent=2)}", silent=True)
 
@@ -119,16 +123,16 @@ def get_patterns_config_local() -> dict:
 def update_local_config(key: str, content):
     log.info("Updating local patterns config.")
 
-    if not PATTERNS_LOCAL.exists():
-        log.error(f"Expected local patterns file does not exist: {PATTERNS_LOCAL}")
+    if not local_patterns_file().exists():
+        log.error(f"Expected local patterns file does not exist: {local_patterns_file()}")
         return False
 
-    with open(PATTERNS_LOCAL, "r", encoding="UTF-8") as f:
+    with open(local_patterns_file(), "r", encoding="UTF-8") as f:
         patterns_data = json.load(f)
         log.info(f"Loaded patterns data\n{json.dumps(patterns_data, indent=2)}", silent=True)
 
     patterns_data[key] = content
 
-    with open(PATTERNS_LOCAL, "w", encoding="UTF-8") as f:
+    with open(local_patterns_file(), "w", encoding="UTF-8") as f:
         f.write(json.dumps(patterns_data, indent=2))
         log.info(f"Updated local patterns data\n{json.dumps(patterns_data, indent=2)}", silent=True)

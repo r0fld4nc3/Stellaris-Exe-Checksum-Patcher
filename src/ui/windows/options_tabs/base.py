@@ -4,7 +4,7 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget
 
-from app_services import services
+from core import services
 from patchers import MultiGamePatcher, PatchConfiguration
 from patchers.models import KEY_VERSION_LATEST
 
@@ -54,11 +54,11 @@ class OptionsTab(QWidget):
     """
 
     title: str = "Untitled Tab"
-    svc = services()
 
     def __init__(self, context: OptionsContext, parent=None):
         super().__init__(parent)
         self.ctx = context
+        self.svc = services()
 
     @property
     def config(self) -> PatchConfiguration:

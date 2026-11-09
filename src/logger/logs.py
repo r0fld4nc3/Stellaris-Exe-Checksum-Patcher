@@ -2,9 +2,9 @@ import logging
 from logging import FileHandler
 from pathlib import Path
 
-from config.definitions import APP_VERSION, TRACKING_BRANCH
-from config.path_helpers import system
-from config.runtime import get_config as get_app_cfg
+from core.definitions import APP_VERSION, TRACKING_BRANCH
+from core.paths import system
+from core.services import services, services_initialised
 from thread_utils import WorkerSignals
 
 
@@ -31,7 +31,10 @@ class LoggerWithSignals(logging.Logger):
             self.signals.progress.emit("[WARN] " + str(msg))
 
     def error(self, msg, *args, silent=False, **kwargs):
-        _version_print_msg = f"System Info: '{system()} {APP_VERSION}{'-' + TRACKING_BRANCH if TRACKING_BRANCH else ''}' 'Use Local Patterns: Config={get_app_cfg().use_local_patterns}'"
+        use_local_patterns = (
+            str(services().config.use_local_patterns) if services_initialised() else "Unknown (app not started)"
+        )
+        _version_print_msg = f"System Info: '{system()} {APP_VERSION}{'-' + TRACKING_BRANCH if TRACKING_BRANCH else ''}' 'Use Local Patterns: Config={use_local_patterns}'"
 
         super().error(msg, *args, **kwargs)
         if not silent:

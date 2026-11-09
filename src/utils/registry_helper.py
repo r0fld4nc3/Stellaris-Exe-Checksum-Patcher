@@ -1,6 +1,6 @@
 import logging
 
-from config.path_helpers import os_windows
+from core.paths import os_windows
 
 log = logging.getLogger("Registry Helper")
 

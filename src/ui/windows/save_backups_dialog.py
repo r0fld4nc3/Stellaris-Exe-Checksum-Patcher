@@ -16,9 +16,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from app_services import services
+from core import services
 from patchers.models import SaveBackup
-from patchers.save_patcher import find_save_backups
+from patchers.save_patcher import find_save_backups, save_backups_folder
 from utils.helpers import block_signals, delete_fpaths, format_size
 from utils.platform import open_in_file_manager
 
@@ -43,7 +43,7 @@ class SaveBackupsDialog(QDialog):
     def __init__(self, font: QFont, parent=None):
         super().__init__(parent)
 
-        self.backups_dir: Path = services().config.saves_backup_dir
+        self.backups_dir: Path = save_backups_folder()
 
         # Every backup row in the tree, with the backup it shows
         self._rows: list[tuple[QTreeWidgetItem, SaveBackup]] = []

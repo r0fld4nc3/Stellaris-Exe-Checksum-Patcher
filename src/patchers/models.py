@@ -5,7 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from config.path_helpers import OS_TYPE, os_windows, system
+from core.paths import OS_TYPE, os_windows, system
 from patchers.auto_patch import FILE_FORMAT
 
 log = logging.getLogger("Patcher Models")

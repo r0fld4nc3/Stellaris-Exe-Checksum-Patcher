@@ -1,23 +1,15 @@
 import logging
 from pathlib import Path
 
-from app_services import AppServices, init_services
 from cli import parse_args
-from config import runtime
-from config.definitions import (
-    APP_NAME,
+from core import bootstrap
+from core.definitions import (
     APP_REVISION,
     APP_VERSION,
-    HOST,
     REPO_BRANCH,
-    REPO_NAME,
-    REPO_OWNER,
     TRACKING_BRANCH,
 )
-from config.path_helpers import get_os_env_config_folder, system
-from config.runtime import AppConfig
-from logger import configure_logging, reset_log_file
-from settings import settings
+from core.paths import system
 
 log = logging.getLogger("Entry_Point")
 
@@ -40,42 +32,13 @@ def show_message_box(title: str, msg: str):
 
 
 def main():
-    log_file = get_os_env_config_folder() / HOST / APP_NAME / f"{APP_NAME}.log"
+    args = parse_args()
+    app_services = bootstrap.start(args, working_dir=Path(__file__).parent)
+    config = app_services.config
+    log_file = config.log_file
     print(log_file)
 
-    args = parse_args()
-    working_dir: Path = Path(__file__).parent
-    config: AppConfig = runtime.init(runtime.build(APP_NAME, HOST, working_dir=working_dir))
-
-    if args.debug:
-        config.debug = True
-        config.log_level = logging.DEBUG
-
-    if args.no_conn:
-        from utils import network_blocker
-
-        network_blocker.enable_network_blocking()
-
-        config.prevent_conn = True
-        log.info("Network blocking is ENABLED (--no-conn flag)")
-
-    if args.prevent_save_write:
-        config.prevent_settings_save = True
-        log.info("Prevent settings write is ENABLED (--prevent-settings-write)")
-
-    # Importing here so the no-conn monkey patch works
-    from updater import updater
-
-    configure_logging(log_file, level=config.log_level)
-    reset_log_file(log_file)
-
     log.info("Application Entry Point")
-
-    stgs = settings.init()
-    upd = updater.init(REPO_OWNER, REPO_NAME)
-
-    # Bootstrap services
-    init_services(AppServices(config=config, settings=stgs, updater=upd))
 
     log.info(f"[INIT] Running Application.")
 
@@ -86,7 +49,7 @@ def main():
     log.info(f"Tracking Branch:        {TRACKING_BRANCH}")
     log.info(f"Target System:          {system()}")
     log.info(f"AppConfig:              {config}")
-    log.info(f"AppSettings:            {stgs.settings}")
+    log.info(f"AppSettings:            {app_services.settings.app_settings}")
 
     try:
         from ui import StellarisChecksumPatcherGUI

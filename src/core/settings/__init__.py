@@ -1,2 +1,2 @@
 from .models import AppSettings, AutoSaveHookedSettingsClass, GameSettings
-from .settings import SettingsManager
+from .manager import SettingsManager

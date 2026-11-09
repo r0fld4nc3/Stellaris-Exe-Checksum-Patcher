@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from config.path_helpers import os_darwin, os_linux
+from core.paths import os_darwin, os_linux
 from patchers import GamePatcher, PatchConfiguration
 from patchers import models as patcher_models
 from stores import GameStore, game_store, get_store_helper, set_game_store
@@ -50,11 +50,6 @@ class GameUtilitiesTab(OptionsTab):
         super().__init__(context, parent)
 
         self.active_threads: list[Threader] = []
-
-        # Executable paths of each store a game was switched away from: (game, store) -> (install_path, proton_install_path).
-        # Lets a store switch auto-detect again without losing the paths if switched back by the user.
-        # Lifetime is app run.
-        self.store_paths: dict[tuple[str, GameStore], tuple[str, str]] = {}
 
         font = self.ctx.font
 
@@ -449,10 +444,12 @@ class GameUtilitiesTab(OptionsTab):
         Keep `game` executable paths for `old_store`, and put back the ones `new_store` had earlier in the run.
         Empty when `new_store` had none, so it auto-detects the game again.
         """
+        store_paths = self.svc.config.store_paths
         game_settings = self.svc.settings.game(game)
-        self.store_paths[(game, old_store)] = (game_settings.install_path, game_settings.proton_install_path)
 
-        install_path, proton_install_path = self.store_paths.get((game, new_store), ("", ""))
+        store_paths[(game, old_store)] = (game_settings.install_path, game_settings.proton_install_path)
+
+        install_path, proton_install_path = store_paths.get((game, new_store), ("", ""))
         game_settings.install_path = install_path
         game_settings.proton_install_path = proton_install_path
 

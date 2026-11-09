@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from app_services import services
+from core import services
 
 from .base import StoreHelperBase
 from .definitions import DEFAULT_GAME_STORE, GameStore

@@ -20,12 +20,13 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from http import HTTPStatus
+from pathlib import Path
 
 import certifi
 import requests
 
-from app_services import services
-from config.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
+from core import services
+from core.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
 
 log = logging.getLogger("Messages")
 
@@ -33,7 +34,11 @@ MESSAGE_FILE_NAME = "message.md"
 MESSAGE_URL = (
     f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/messages/{MESSAGE_FILE_NAME}"
 )
-MESSAGE_CACHE = services().config.config_dir / "messages" / MESSAGE_FILE_NAME
+
+
+def message_cache_file() -> Path:
+    """Last fetched message, kept in the app's config folder for when the remote can't be reached."""
+    return services().config.config_dir / "messages" / MESSAGE_FILE_NAME
 
 
 class MessageStatus(str, Enum):
@@ -87,7 +92,7 @@ def fetch_message() -> Message:
     """
 
     config = services().config
-    settings = services().settings.settings
+    settings = services().settings.app_settings
 
     if config.prevent_conn:
         log.info("Network access is blocked. using cached message.")
@@ -134,17 +139,17 @@ def _update_cache(text: str) -> Message:
     if not text:
         log.info("No remote message. Removing cached message.")
         try:
-            MESSAGE_CACHE.unlink(missing_ok=True)
+            message_cache_file().unlink(missing_ok=True)
         except OSError as e:
-            log.warning(f"Unable to delete the cached message '{MESSAGE_CACHE}': {e}")
+            log.warning(f"Unable to delete the cached message '{message_cache_file()}': {e}")
         return Message(MessageStatus.NO_MESSAGE)
 
     try:
-        MESSAGE_CACHE.parent.mkdir(parents=True, exist_ok=True)
-        MESSAGE_CACHE.write_text(text, encoding="utf-8")
-        log.info(f"Saved message to: {MESSAGE_CACHE}")
+        message_cache_file().parent.mkdir(parents=True, exist_ok=True)
+        message_cache_file().write_text(text, encoding="utf-8")
+        log.info(f"Saved message to: {message_cache_file()}")
     except OSError as e:
-        log.warning(f"Unable to save the message to '{MESSAGE_CACHE}': {e}")
+        log.warning(f"Unable to save the message to '{message_cache_file()}': {e}")
 
     return _available_message(text)
 
@@ -156,11 +161,11 @@ def read_cached_message(status_if_missing: MessageStatus = MessageStatus.NO_MESS
     """
 
     try:
-        text = _normalise(MESSAGE_CACHE.read_text(encoding="utf-8"))
+        text = _normalise(message_cache_file().read_text(encoding="utf-8"))
     except FileNotFoundError:
         return Message(status_if_missing)
     except OSError as e:
-        log.warning(f"Unable to read the cached message '{MESSAGE_CACHE}': {e}")
+        log.warning(f"Unable to read the cached message '{message_cache_file()}': {e}")
         return Message(status_if_missing)
 
     if not text:
@@ -172,7 +177,7 @@ def read_cached_message(status_if_missing: MessageStatus = MessageStatus.NO_MESS
 def _available_message(text: str) -> Message:
     """A message to show, marked seen if the user already closed this exact version."""
     message = Message(MessageStatus.AVAILABLE, text)
-    if message.fingerprint == services().settings.settings.last_seen_message_hash:
+    if message.fingerprint == services().settings.app_settings.last_seen_message_hash:
         message.mark_seen()
     return message
 
@@ -188,7 +193,7 @@ def save_message_as_seen(message: Message) -> None:
         return
     message.mark_seen()
 
-    settings = services().settings.settings
+    settings = services().settings.app_settings
     if settings.last_seen_message_hash != message.fingerprint:
         settings.last_seen_message_hash = message.fingerprint
         log.info(f"Saved message as seen: {message.fingerprint}")

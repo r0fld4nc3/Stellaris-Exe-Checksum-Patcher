@@ -28,20 +28,20 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app_services import services
-from config.definitions import (
+from core import services
+from core.definitions import (
     APP_REVISION_STR,
     APP_VERSION_STR,
     SUPPORTED_GAMES,
     TRACKING_BRANCH,
 )
-from config.path_helpers import os_linux, os_windows
+from core.paths import os_linux, os_windows
 
 # Patch Patterns
 from patch_patterns.patterns import (
-    PATTERNS_LOCAL,
     get_patterns_config_local,
     get_patterns_config_remote,
+    local_patterns_file,
 )
 from patchers import models as patcher_models
 from patchers import pdx_patchers, save_patcher
@@ -92,11 +92,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     _APP_VERSION = APP_VERSION_STR
     THREAD_STOP_TIMEOUT_MS = 5000  # How long closing the app waits for threads that aren't patching
 
-    svc = services()
-    app_config = svc.config
-    settings = svc.settings
-    updater = svc.updater
-
     def __init__(self):
         if not QApplication.instance():
             self.app = QApplication(sys.argv)
@@ -105,6 +100,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         super().__init__()
         self.setObjectName("MainWindow")
+
+        self.app_config = services().config
+        self.settings = services().settings
+        self.updater = services().updater
 
         qt_platform = get_qt_platform()
         log.info(f"Qt Platform: {qt_platform}")
@@ -116,7 +115,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.signals = WorkerSignals()
 
         # --- Get size settings ---
-        width, height = self.settings.settings.window_width, self.settings.settings.window_height
+        width, height = self.settings.app_settings.window_width, self.settings.app_settings.window_height
 
         # --- Failsafes ---
         width = 966 if width < 1 else width
@@ -350,15 +349,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.message: Message | None = None
 
         # --- Cache Configuration ---
-        self.multi_game_patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
+        self.multi_game_patcher = pdx_patchers.MultiGamePatcher(local_patterns_file())
 
         self.configuration = patcher_models.PatchConfiguration(
             game="",
-            platform=(
-                patcher_models.Platform.WINDOWS
-                if self.app_config.use_proton
-                else patcher_models.Platform.detect_current()
-            ),
+            platform=patcher_models.Platform.detect_current(),
         )
         self.save_configuration: patcher_models.SaveGamePatchesToApply = None
         self.last_conf_game = ""
@@ -390,7 +385,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     def load_settings(self):
         if not self.configuration.game:
             # Fall back to the default game so an entry is never created with an empty name
-            self.configuration.game = self.settings.settings.selected_game or SUPPORTED_GAMES[0]
+            self.configuration.game = self.settings.app_settings.selected_game or SUPPORTED_GAMES[0]
 
         game_settings = self.settings.game(self.configuration.game)
         # Restore the platform last patched with (Native or Proton), if one was saved
@@ -434,7 +429,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Label Title ---
         self.lbl_title.setText(self.window_title)
-        if self.settings.settings.update_available:
+        if self.settings.app_settings.update_available:
             self.lbl_title.setText(self.window_title_update_available)
         self.lbl_title.setFont(QFont(self.app_font_bold, 24))
         self.lbl_title.setMinimumSize(QSize(24, 36))
@@ -924,7 +919,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.last_conf_game = self.configuration.game
 
         # Store last setting regarding pre-release updates
-        include_prerelease_updates = self.settings.settings.include_prerelease_updates
+        include_prerelease_updates = self.settings.app_settings.include_prerelease_updates
 
         # Settings change as soon as they're edited in the dialog. Keep a snapshot to undo them on Cancel.
         settings_snapshot = self.settings.snapshot()
@@ -940,10 +935,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             self.apply_app_style()
 
             # Handle and update selected game(s) and configuration
-            self.settings.settings.selected_game = self.configuration.game
+            self.settings.app_settings.selected_game = self.configuration.game
             self.settings.game(self.configuration.game).patched_platform = self.configuration.platform
-            # Proton choice is shared with the rest of the app, once user accept.
-            self.app_config.use_proton = self.configuration.is_proton
 
             if not self.configuration.selected_patches:
                 self.configuration.selected_patches = list(self.settings.game(self.configuration.game).patches)
@@ -968,7 +961,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 self.swap_btn_patch_to_patch_binary()
 
             # Handle check pre-release updates if accepted.
-            if self.settings.settings.include_prerelease_updates != include_prerelease_updates:
+            if self.settings.app_settings.include_prerelease_updates != include_prerelease_updates:
                 self.check_update(force=True)
         else:
             # Cancelled (or closed): undo every settings change made in the dialog
@@ -1004,7 +997,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         return self.save_configuration
 
     def check_update(self, force: bool = False):
-        last_checked = self.settings.settings.update_last_checked if not force else 0
+        last_checked = self.settings.app_settings.update_last_checked if not force else 0
 
         now = int(time.time())
 
@@ -1028,14 +1021,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # No online check was performed
         if updater_last_checked <= 1:
-            update_available = self.settings.settings.update_available
+            update_available = self.settings.app_settings.update_available
         else:
-            self.settings.settings.update_last_checked = self.updater.last_checked_timestamp
+            self.settings.app_settings.update_last_checked = self.updater.last_checked_timestamp
             if self.updater.has_new_version:
-                self.settings.settings.update_available = True
+                self.settings.app_settings.update_available = True
                 update_available = True
             else:
-                self.settings.settings.update_available = False
+                self.settings.app_settings.update_available = False
                 update_available = False
 
         if update_available:
@@ -1044,7 +1037,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             )
             self.txt_browser_project_link.setHtml(html)
             self.lbl_title.setText(self.window_title_update_available)
-            self.settings.settings.update_available = True
+            self.settings.app_settings.update_available = True
         else:
             self.txt_browser_project_link.setHtml(self.project_link_html)
             self.lbl_title.setText(self.window_title)
@@ -1093,7 +1086,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             [
                 not self.app_config.prevent_conn,
                 not self.app_config.use_local_patterns,
-                not self.settings.settings.force_local_patterns,
+                not self.settings.app_settings.force_local_patterns,
             ]
         )
 
@@ -1108,7 +1101,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         else:
             # We are preventing a connection or forcing the usage of local patterns
 
-            if not PATTERNS_LOCAL.exists() and not self.app_config.prevent_conn:
+            if not local_patterns_file().exists() and not self.app_config.prevent_conn:
                 # Local patterns don't exist, pull remote first, we allow connections
                 log.info(
                     "Force local patterns is off. Downloading remote patch patterns to local storage.", silent=True
@@ -1120,7 +1113,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.multi_game_patcher.reload_patterns()
 
         # Fallback if still empty
-        precached_game = self.configuration.game or self.settings.settings.selected_game or SUPPORTED_GAMES[0]
+        precached_game = self.configuration.game or self.settings.app_settings.selected_game or SUPPORTED_GAMES[0]
 
         platform = self.configuration.platform
 
@@ -1265,7 +1258,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         return Path(binary_path)
 
     def show_welcome_dialog(self):
-        has_accepted_dialog = self.settings.settings.accepted_welcome_dialog
+        has_accepted_dialog = self.settings.app_settings.accepted_welcome_dialog
         if not has_accepted_dialog:
             # --- Show welcome dialog ---
             self.welcome_dialog = WelcomeDialog(
@@ -1308,8 +1301,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # Save after the threads have stopped.
         # memory() settings, ensure save_if_dirty call to write them to disk.
-        self.settings.settings.window_width = self.width()
-        self.settings.settings.window_height = self.height()
+        self.settings.app_settings.window_width = self.width()
+        self.settings.app_settings.window_height = self.height()
         self.settings.save_if_dirty()
 
         if not all_threads_stopped:
@@ -1333,8 +1326,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     def adapt_to_screen_size(self, parent=None, width_pct: int = 40, height_pct: int = 60):
         screen_info = get_screen_info(self.app)
 
-        saved_w = self.settings.settings.window_width
-        saved_h = self.settings.settings.window_height
+        saved_w = self.settings.app_settings.window_width
+        saved_h = self.settings.app_settings.window_height
 
         if parent:
             screen = parent.screen()

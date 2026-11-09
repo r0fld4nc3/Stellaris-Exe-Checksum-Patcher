@@ -3,7 +3,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from config.path_helpers import FILE_EXTENSION, os_darwin, os_linux, os_windows
+from core.paths import FILE_EXTENSION, os_darwin, os_linux, os_windows
 
 log = logging.getLogger("utils.platform")
 

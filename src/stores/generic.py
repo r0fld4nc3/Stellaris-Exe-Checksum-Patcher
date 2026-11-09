@@ -12,8 +12,8 @@ import shlex
 from pathlib import Path
 from typing import Optional
 
-from app_services import services
-from config.path_helpers import FILE_EXTENSION, os_darwin, os_windows
+from core import services
+from core.paths import FILE_EXTENSION, os_darwin, os_windows
 
 from .base import StoreHelperBase
 
@@ -41,7 +41,7 @@ class GenericHelper(StoreHelperBase):
             log.error(f"No {game_name} executable to launch: '{binary_path}'")
             return
 
-        app_settings = services().settings.settings
+        app_settings = services().settings.app_settings
         if not app_settings.generic_runner_path:
             log.warning(
                 f"No Generic runner set, so {game_name} can't be launched from here. "

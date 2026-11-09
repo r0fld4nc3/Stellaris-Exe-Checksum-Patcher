@@ -8,8 +8,8 @@ import shutil
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
-from app_services import services
-from config.path_helpers import FILE_EXTENSION
+from core import services
+from core.paths import FILE_EXTENSION
 from patchers import auto_patch
 from patchers.models import (
     KEY_VERSION_LATEST,
@@ -196,7 +196,7 @@ class GamePatcher:
 
     def _create_backup(self, file_path: Path) -> bool:
         """Create a timestamped backup next to `file_path`, removing the oldest backups over the limit."""
-        max_allowed_backups = services().settings.settings.max_allowed_binary_backups
+        max_allowed_backups = services().settings.app_settings.max_allowed_binary_backups
 
         # If max is 0, don't create or delete any backups
         if max_allowed_backups <= 0:

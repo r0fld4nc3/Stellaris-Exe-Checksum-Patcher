@@ -2,8 +2,10 @@
 Application settings, kept in memory and saved to a JSON file.
 
 How it works:
-- The file is read once at startup (init() -> SettingsManager.load()).
-- Everyone reads and changes the in-memory dataclasses (AppSettings, GameSettings in models.py).
+- The file is read once at startup (`bootstrap.start()` -> SettingsManager.load()), once `services()` is available.
+- Where the file lives and whether writing is allowed come from `services().config`, read when needed.
+- Everyone reads and changes the in-memory dataclasses (AppSettings, GameSettings in models.py):
+  `services().settings.app` and `services().settings.game(name)`.
 - Changing a plain field saves the whole file right away.
 - Changing a `memory()` field only marks the settings as changed. It is written by the next immediate save, or by `save_if_dirty()`, which runs when the options dialog closes and when the app quits.
 - `snapshot()` / `restore()` undo a batch of changes, ex.: when the options dialog is cancelled.
@@ -26,30 +28,23 @@ from dataclasses import MISSING, fields
 from pathlib import Path
 from typing import Optional
 
-from config.runtime import get_config
-
+from ..services import services
 from .models import AppSettings, GameSettings
 
 log = logging.getLogger("Settings")
 
 SETTINGS_FILE_NAME = "stellaris-checksum-patcher-settings-v2.json"
 
-_current: Optional["SettingsManager"] = None
-
 
 class SettingsManager:
     """Owns the in-memory settings and saves them to disk."""
 
-    def __init__(self, config_file_name: str = SETTINGS_FILE_NAME):
-        self.config_dir = Path(get_config().config_dir)
-        self.config_file = self.config_dir / config_file_name
-        self.backup_file = self.config_file.with_name(self.config_file.name + ".bak")
-
+    def __init__(self):
         # RLock (re-entrant) because a save can happen while the same thread already holds
         # the lock, ex.: assigning a field holds the lock and then saves.
         self.lock = threading.RLock()
 
-        self.settings = self._attach(AppSettings())
+        self.app_settings = self._attach(AppSettings())
         self._dirty = False  # Something changed in memory that isn't on disk yet
 
         # False when the settings file couldn't be read AND couldn't be moved aside.
@@ -58,6 +53,15 @@ class SettingsManager:
 
         # Message when something went wrong while loading. Empty if all was fine.
         self.load_problem = ""
+
+    @property
+    def config_file(self) -> Path:
+        return services().config.config_dir / SETTINGS_FILE_NAME
+
+    @property
+    def backup_file(self) -> Path:
+        """Copy of the last settings file that loaded fine."""
+        return self.config_file.with_name(self.config_file.name + ".bak")
 
     # ---------- Loading ----------
 
@@ -74,7 +78,7 @@ class SettingsManager:
 
             data = self._read_json(self.config_file)
             if data is not None:
-                self.settings = self._from_dict(data)
+                self.app_settings = self._from_dict(data)
                 self._dirty = False
                 log.info(f"Loaded settings from {self.config_file}")
                 # Remember good file in case the next one gets damaged
@@ -95,7 +99,7 @@ class SettingsManager:
 
             data = self._read_json(self.backup_file)
             if data is not None:
-                self.settings = self._from_dict(data)
+                self.app_settings = self._from_dict(data)
                 self.save_settings()
                 self.load_problem = (
                     "Settings file could not be read, settings were restored from the last backup.\n\n"
@@ -180,9 +184,7 @@ class SettingsManager:
     def save_settings(self) -> bool:
         """Write the current settings to disk. Thread-safe call."""
 
-        prevent_write: bool = get_config().prevent_settings_save
-
-        if prevent_write:
+        if services().config.prevent_settings_save:
             log.info("Prevent write is active. Skipping writing changes.", silent=True)
             return False
 
@@ -201,8 +203,8 @@ class SettingsManager:
 
     def _to_dict(self) -> dict:
         """Turn settings into a plain dict for JSON. Call while holding the lock."""
-        data = _dataclass_to_dict(self.settings)
-        data["games"] = {name: _dataclass_to_dict(game) for name, game in self.settings.games.items()}
+        data = _dataclass_to_dict(self.app_settings)
+        data["games"] = {name: _dataclass_to_dict(game) for name, game in self.app_settings.games.items()}
         return data
 
     def _write_text_atomic(self, fp: Path, text: str) -> bool:
@@ -254,7 +256,7 @@ class SettingsManager:
             if self._to_dict() == snapshot:
                 log.info("Settings snapshots match when attempting to restore. Skipping.", silent=True)
                 return
-            self.settings = self._from_dict(copy.deepcopy(snapshot))
+            self.app_settings = self._from_dict(copy.deepcopy(snapshot))
             self.save_settings()
             log.info("Restored settings from snapshot.")
 
@@ -268,20 +270,20 @@ class SettingsManager:
             return GameSettings()
 
         with self.lock:
-            if name not in self.settings.games:
-                self.settings.games[name] = self._attach(GameSettings())
+            if name not in self.app_settings.games:
+                self.app_settings.games[name] = self._attach(GameSettings())
                 # Empty entry isn't worth a write on its own.
                 # Wait until next save to write to disk.
                 self._on_change(save_now=False)
-            return self.settings.games[name]
+            return self.app_settings.games[name]
 
     def has_game(self, name: str) -> bool:
-        return name in self.settings.games
+        return name in self.app_settings.games
 
     def remove_game(self, name: str) -> bool:
         with self.lock:
-            if name in self.settings.games:
-                del self.settings.games[name]
+            if name in self.app_settings.games:
+                del self.app_settings.games[name]
                 self._on_change(save_now=True)
                 return True
             return False
@@ -336,23 +338,3 @@ def _dataclass_to_dict(obj) -> dict:
             value = getattr(obj, f.name)
             data[f.name] = list(value) if isinstance(value, list) else value
     return data
-
-
-# ---------- Module access ----------
-
-
-def init() -> SettingsManager:
-    """Create the settings manager and load the file. Call once at startup."""
-    global _current
-
-    if _current is None:
-        _current = SettingsManager()
-        _current.load()
-
-    return _current
-
-
-def get() -> SettingsManager:
-    if _current is None:
-        raise RuntimeError("Settings are not initialised. Call settings.init() first.")
-    return _current

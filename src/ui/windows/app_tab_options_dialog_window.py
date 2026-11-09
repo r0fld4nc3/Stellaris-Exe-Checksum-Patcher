@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app_services import services
+from core import services
 from patchers import MultiGamePatcher, PatchConfiguration
 from ui.utils import adapt_to_parent_size, centre_on_parent
 

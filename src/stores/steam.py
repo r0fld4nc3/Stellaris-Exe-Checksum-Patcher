@@ -6,8 +6,8 @@ from typing import Optional, Union
 
 import vdf
 
-from app_services import services
-from config.path_helpers import os_darwin, os_linux, os_windows
+from core import services
+from core.paths import os_darwin, os_linux, os_windows
 from utils import registry_helper
 from utils.encodings import safe_read_file_encode
 
@@ -242,7 +242,7 @@ class SteamHelper(StoreHelperBase):
     def get_steam_install_path(self) -> Optional[Path]:
         log.info("Acquiring Steam installation...")
 
-        saved_path_str = services().settings.settings.steam_install_path
+        saved_path_str = services().settings.app_settings.steam_install_path
         if saved_path_str:
             saved_path = Path(saved_path_str)
             if saved_path.exists():
@@ -274,7 +274,7 @@ class SteamHelper(StoreHelperBase):
 
         if steam_path_str:
             self.steam_install = Path(steam_path_str)
-            services().settings.settings.steam_install_path = self.steam_install.resolve().as_posix()
+            services().settings.app_settings.steam_install_path = self.steam_install.resolve().as_posix()
             return self.steam_install
         else:
             log.error("Unable to acquire Steam installation.")
@@ -413,7 +413,7 @@ class SteamHelper(StoreHelperBase):
         if not os_windows():
             return None
 
-        steam_install_path = services().settings.settings.steam_install_path
+        steam_install_path = services().settings.app_settings.steam_install_path
         if not steam_install_path:
             return None
 

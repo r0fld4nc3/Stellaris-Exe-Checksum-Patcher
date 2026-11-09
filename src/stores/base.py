@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from config.path_helpers import os_darwin, os_linux, os_windows
+from core.paths import os_darwin, os_linux, os_windows
 
 # Windows process creation flags: the started process keeps running after the app closes
 DETACHED_PROCESS = 0x00000008
