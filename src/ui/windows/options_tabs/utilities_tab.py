@@ -139,6 +139,7 @@ class UtilitiesTab(OptionsTab):
 
         # --- Use Local Patterns Checkbox---
         self.chkbox_use_local_patterns = QCheckBox("Force Local Patterns")
+        self.chkbox_use_local_patterns.setObjectName("StyledCheckbox1")
         # self.chkbox_use_local_patterns.setFont(self.ctx.font)
         self.chkbox_use_local_patterns.setToolTip(
             "When toggled, application will not longer pull updated patterns from remote and will only strictly use the patterns file present on disk.\nThis is mainly useful for testing purposes, for trying out different patterns to prevent the local file from being overwritten on application startup."
@@ -151,6 +152,7 @@ class UtilitiesTab(OptionsTab):
 
         # --- Include Pre-releases in Update Check Checkbox ---
         self.chkbox_include_prerelease_updates = QCheckBox("Include Pre-releases in Update Check")
+        self.chkbox_include_prerelease_updates.setObjectName("StyledCheckbox1")
         # self.chkbox_include_prerelease_updates.setFont(self.ctx.font)
         self.chkbox_include_prerelease_updates.setToolTip(
             "When toggled, newer pre-releases also count as an available update, not only stable releases.\nPre-releases are early versions for testing and may be less stable."

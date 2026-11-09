@@ -53,13 +53,13 @@ QLineEdit {
     padding: 3px;
 }
 
-QCheckBox {
+QCheckBox#StyledCheckbox1 {
     color: rgb(255, 255, 255);
     spacing: 10px;
     margin: 3px 0;
 }
 
-QCheckBox::indicator {
+QCheckBox#StyledCheckbox1::indicator {
     width: 18px;
     height: 18px;
     padding: 2px;
@@ -68,20 +68,20 @@ QCheckBox::indicator {
     background-clip: content;
 }
 
-QCheckBox::indicator:hover {
+QCheckBox#StyledCheckbox1::indicator:hover {
     border-color: rgba(255, 151, 33, 175);
 }
 
-QCheckBox::indicator:checked {
+QCheckBox#StyledCheckbox1::indicator:checked {
     border-color: rgb(255, 179, 25);
     background-color: rgb(255, 179, 25);
 }
 
-QCheckBox::indicator:disabled {
+QCheckBox#StyledCheckbox1::indicator:disabled {
     border-color: rgb(140, 140, 140);
 }
 
-QCheckBox::indicator:checked:disabled {
+QCheckBox#StyledCheckbox1::indicator:checked:disabled {
     border-color: rgb(140, 140, 140);
     background-color: rgb(140, 140, 140);
 }
