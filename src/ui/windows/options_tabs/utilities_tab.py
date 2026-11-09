@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QFontDatabase
@@ -87,36 +87,57 @@ class UtilitiesTab(OptionsTab):
         utilities_layout.setContentsMargins(5, 5, 5, 5)
         utilities_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # --- Fetch/Update Patterns File Button ---
-        self.btn_update_patch_patterns = QPushButton("Update Patterns")
-        self.btn_update_patch_patterns.setFont(font)
-        self.btn_update_patch_patterns.clicked.connect(self.fetch_patch_patterns)
-        utilities_layout.addWidget(self.btn_update_patch_patterns)
+        # --- Show X Dialog Layout ---
+        show_x_dialog_layout = QGridLayout()
+        utilities_layout.addLayout(show_x_dialog_layout)
 
         # --- Open Config Directory Button ---
         btn_show_app_config_dir = QPushButton("Show App Config Folder")
         btn_show_app_config_dir.setFont(font)
         btn_show_app_config_dir.clicked.connect(self.show_app_config_folder)
-        utilities_layout.addWidget(btn_show_app_config_dir)
+        # utilities_layout.addWidget(btn_show_app_config_dir)
 
         # --- Manage Save Backups Button ---
         btn_manage_save_backups = QPushButton("Manage Save Backups")
         btn_manage_save_backups.setFont(font)
         btn_manage_save_backups.setToolTip("Choose which of the generated save backups to keep or delete.")
         btn_manage_save_backups.clicked.connect(self.show_save_backups_dialog)
-        utilities_layout.addWidget(btn_manage_save_backups)
+        # utilities_layout.addWidget(btn_manage_save_backups)
 
         # --- Open Welcome Dialog Button ---
         btn_show_welcome_dialog = QPushButton("Show Welcome Dialog")
         btn_show_welcome_dialog.setFont(font)
         btn_show_welcome_dialog.clicked.connect(self.show_welcome_dialog)
-        utilities_layout.addWidget(btn_show_welcome_dialog)
 
         # --- Show Information Message Button ---
         btn_show_info_message = QPushButton("Show Information Message")
         btn_show_info_message.setFont(font)
         btn_show_info_message.clicked.connect(self.show_information_message)
-        utilities_layout.addWidget(btn_show_info_message)
+
+        # Fill left to right, onto next row.
+        show_x_dialog_buttons = (
+            btn_show_app_config_dir,
+            btn_manage_save_backups,
+            btn_show_welcome_dialog,
+            btn_show_info_message,
+        )
+        dialog_columns: int = 2
+        for index, button in enumerate(show_x_dialog_buttons):
+            row = index // dialog_columns
+            column = index % dialog_columns
+
+            # Handle last index
+            is_last = index == len(show_x_dialog_buttons) - 1
+            if is_last and column == 0:
+                show_x_dialog_layout.addWidget(button, row, column, 1, dialog_columns)
+            else:
+                show_x_dialog_layout.addWidget(button, row, column)
+
+        # --- Fetch/Update Patterns File Button ---
+        self.btn_update_patch_patterns = QPushButton("Update Patterns")
+        self.btn_update_patch_patterns.setFont(font)
+        self.btn_update_patch_patterns.clicked.connect(self.fetch_patch_patterns)
+        utilities_layout.addWidget(self.btn_update_patch_patterns)
 
         # --- Maximum Allowed Backups ---
         max_backups_control_layout = QHBoxLayout()
@@ -321,7 +342,7 @@ class UtilitiesTab(OptionsTab):
     def fetch_patch_patterns(self):
         log.info("Fetch Patch Patterns...", silent=True)
 
-        with set_widgets_enabled((self.btn_update_patch_patterns,), False):
+        with set_widgets_enabled(self.btn_update_patch_patterns, False):
             get_patterns_config_remote()
 
             self.ctx.patcher.reload_patterns()

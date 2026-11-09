@@ -2,7 +2,7 @@ import logging
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -393,7 +393,7 @@ def size_from_parent(parent: QWidget | None, size_pct: tuple[int, int]) -> QSize
 
 
 @contextmanager
-def set_widgets_enabled(widgets: Iterable[QWidget], enabled: bool) -> Generator[None]:
+def set_widgets_enabled(*widgets: QWidget, enabled: bool) -> Generator[None]:
     """
     Enable or disable widgets for the duration of the block.
 
