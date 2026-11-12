@@ -125,7 +125,7 @@ class WelcomeDialog(QDialog):
                 <p class="subheader">Main Action Buttons</p>
                 <p>Below the information screen are two main buttons:</p>
                 <ul>
-                    <li><b>Fix Save</b> opens the save configurator and picker, allowing you to modify specific save properties such as restoring achievement eligibility and enabling or converting saves to and from Ironman mode.</li>
+                    <li><b>Fix Save</b> asks you to pick a save, shows what it contains and lets you choose fixes, such as restoring achievement eligibility and converting saves to and from Ironman mode.</li>
 
                     <li><b>The Patch button</b>, with the achievement icon. Once the application has initialised successfully, just click this button to patch your game so achievements are earnable with mods.</li>
                 </ul>
@@ -180,7 +180,8 @@ class WelcomeDialog(QDialog):
                 <p class="subheader">Restoring Achievements</p>
                 <p>Patching the executable does <b>not</b> necessarily make an existing save eligible to receive achievements. These are two separate systems.</p>
                 <p>To restore the ability to gain achievements on an existing save game, use the <b>Fix Save</b> button next to the Patch button.</p>
-                <p>This prompts you to select a save game and, similarly to patching, asks which modifications to perform on the save.</p>
+                <p>This prompts you to select a save game, then reads it and shows what it found: whether it's Ironman, whether it's flagged as cheated, and whether its achievements list is complete. Values that a fix can change are highlighted.</p>
+                <p>Tick the fixes you want and click <b>Apply Fixes</b>. <b>Update Achievements</b> is ticked for you when the list needs updating; the other fixes are always your choice. The save is only changed, and backed up first, when a fix actually changes something.</p>
                 <p>If all goes well, the save will have achievements enabled again, and loading it in-game should restore the ability to receive them.</p>
 
                 <p class="subheader">Save Backups</p>

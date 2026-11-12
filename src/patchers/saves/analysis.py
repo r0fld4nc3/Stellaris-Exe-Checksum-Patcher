@@ -68,7 +68,7 @@ class SaveFix:
 
 @dataclass
 class SaveGame:
-    """What the save tools need to know about one game. Listed in `SAVE_GAMES` (`__init__.py`)."""
+    """What the save tools need to know about one game. Listed in `SUPPORTED_SAVE_GAMES` (`__init__.py`)."""
 
     name: str  # As in the game settings. Ex.: "Stellaris"
     save_extension: str  # Ex.: ".sav"

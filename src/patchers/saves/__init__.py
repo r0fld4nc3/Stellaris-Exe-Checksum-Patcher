@@ -9,11 +9,11 @@ Save analysis and fixes: open a save, show what it contains, and change what the
 
 Usage:
 
-    game = get_save_game("Stellaris")
+    game = get_supported_save_game("Stellaris")
     analysis = analyse_save(path, game)                       # Opens and reads the save
     report = fix_save(analysis, [game.fix("achievements")])   # Backs up, applies the fixes and writes the save
 
-To support another game, describe it with a `SaveGame` in its own module (like `stellaris.py`) and add it to `SAVE_GAMES`.
+To support another game, describe it with a `SaveGame` in its own module (like `stellaris.py`) and add it to `SUPPORTED_SAVE_GAMES`.
 """
 
 from typing import Optional
