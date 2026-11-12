@@ -55,7 +55,7 @@ All versions are also listed on the [Releases page](https://github.com/r0fld4nc3
 2. Open the Stellaris Checksum Patcher.
 3. Click **Patch**.
 4. The first time, the app asks where your game comes from: **Steam**, **GOG** or **Generic**. See [Game stores](#game-stores).
-5. If the app can't find your Stellaris installation, it asks you to select the game's executable. It remembers this for next time.
+5. If the app can't find your Stellaris installation, it asks you to select the game's executable. It remembers this for next time. To choose a different executable later, hold **Shift** while clicking **Patch**.
 6. Wait for the app to confirm that patching is done.
 
 That's it. Launch Stellaris as usual and play with your mods. You can also - optionally - use the app's **Launch** button.

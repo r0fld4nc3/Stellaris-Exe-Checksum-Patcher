@@ -137,6 +137,8 @@ class WelcomeDialog(QDialog):
 
                 <p>This, however, <i>can</i> fail, and in such cases it should prompt you to point to the file path manually.</p>
 
+                <p>To choose the executable yourself anyway, for example when the Patcher found the wrong copy of the game, hold <b>Shift</b> while clicking the patch button.</p>
+
                 <p>To start the patch process, click the patch button indicated by the greyed-out image of an achievement.</p>
 
                 <p>Patching requires some base information to identify the correct sites to patch. The patcher should now be much more robust as it automatically tries to find the sites to patch based off of checksum information and some byte regex rules.</p>
@@ -167,6 +169,8 @@ class WelcomeDialog(QDialog):
                 <p>Below that, you can see the patches that will be applied. The defaults are all you need, so you technically don't <i>need</i> to change anything here, but I would rather give you options than restrict them.</p>
 
                 <p>This tab also has buttons to <b>Show Game Folder</b> and <b>Show Save Games Folder</b>, to <b>Validate Integrity of Game Files</b> through your game's store, and to <b>Delete Backups</b> of the game executable made when patching.</p>
+
+                <p>The save games folder you pick is remembered. Hold <b>Shift</b> while clicking <b>Show Save Games Folder</b> to choose a different one yourself, or click the <b>X</b> next to it to forget it so it's looked for again.</p>
 
                 <p>You can also choose where your game comes from: <b>Steam</b>, <b>GOG</b> or <b>Generic</b> (anywhere else, or started with another app). This doesn't change how the game is patched, only where the Patcher looks for it and how it launches and validates it.</p>
 
