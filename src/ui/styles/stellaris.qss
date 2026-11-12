@@ -256,6 +256,19 @@ QLabel#StoreDescription {
     border-radius: 5px;
 }
 
+/* Save review dialog: finding values coloured by status */
+QLabel#FindingValue {
+    color: rgb(255, 255, 255);
+}
+
+QLabel#FindingValue[status="ok"] {
+    color: rgb(120, 220, 140);
+}
+
+QLabel#FindingValue[status="attention"] {
+    color: rgb(255, 179, 25);
+}
+
 /* Option picker dialog */
 QLabel#OptionPickerText {
     color: rgb(255, 255, 255);

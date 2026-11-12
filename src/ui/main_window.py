@@ -44,7 +44,17 @@ from patch_patterns.patterns import (
     local_patterns_file,
 )
 from patchers import models as patcher_models
-from patchers import pdx_patchers, save_patcher
+from patchers import pdx_patchers
+from patchers.saves import (
+    SaveAnalysis,
+    SaveFileError,
+    SaveFixError,
+    SaveFixReport,
+    analyse_save,
+    fix_save,
+    get_save_games_folders,
+    get_supported_save_game,
+)
 from remote_messages import Message, fetch_message
 from stores import (
     GameStore,
@@ -62,13 +72,13 @@ from .utils import (
     find_game_path,
     get_qt_platform,
     get_screen_info,
+    option_dialog_pick_from_options,
     prompt_path,
-    resolve_save_games_folder,
 )
 from .windows import (
-    ConfigureSavePatchDialog,
     DisclaimerFixCheatedSave,
     FAQDialog,
+    FixSaveReviewDialog,
     MessageDialog,
     StorePickerDialog,
     TabOptionsDialog,
@@ -81,7 +91,7 @@ APP_OPTIONS_TABS = []
 # loggers to hook up to signals
 from updater.updater import log as updater_log  # isort: skip
 from patchers.pdx_patchers import log as patcher_log  # isort: skip
-from patchers.save_patcher import log as patcher_save_log  # isort: skip
+from patchers.saves.save_file import log as patcher_save_log  # isort: skip
 from stores.steam import log as steam_log  # isort: skip
 from utils.registry_helper import log as registry_log  # isort: skip
 
@@ -358,7 +368,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             game="",
             platform=patcher_models.Platform.detect_current(),
         )
-        self.save_configuration: patcher_models.SaveGamePatchesToApply = None
         self.last_conf_game = ""
 
         self.load_settings()
@@ -825,86 +834,150 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
     @Slot()
     def fix_save_game_thread(self):
+        """
+        Pick a save, then read in the background.
+
+        `on_save_analysed()` shows what was found.
+        """
         if self.is_patching:
             return
 
         self.terminal_display.clear()
 
-        saver = save_patcher.StellarisSavePatcher(self.configuration.game, self.save_configuration)
+        game = get_supported_save_game(self.configuration.game)
+        if game is None:
+            log.warning(f"Fixing saves isn't supported for {self.configuration.game}.")
+            return
 
         # --- Ask for save path ---
-        # Starts is user's save games folder. Without one, File Dialog stills opens from default location
-        save_games_folder: Optional[Path] = resolve_save_games_folder(
-            self.configuration.game, saver.save_games_folders, font=QFont(self.app_font_bold, 10), parent=self
+        save_games_folders: list[Path] = get_save_games_folders(game.name)
+        log.info(f"Returned possible save games folders: {save_games_folders}", silent=True)
+
+        options: list[tuple[str, Path, str]] = []
+        for path_option in save_games_folders:
+            options.append((str(path_option), path_option, ""))
+
+        # One folder is used without asking. Several: asks in a dialog over this window
+        picked_save_games_folder = option_dialog_pick_from_options(
+            f"Pick {game.name} Save Games Folder",
+            "Pick save games folder to use for this game configuration.",
+            options,
+            parent=self.window(),
         )
+
+        if picked_save_games_folder is not None:
+            # Remembered, so it isn't asked again.
+            self.settings.game(game.name).save_games_folder = picked_save_games_folder.as_posix()
+            start_folder = str(picked_save_games_folder)
+        else:
+            # Nothing found or picked. File picker opens in its default location
+            log.info("No save games folder picked. Opening the file picker in its default location.", silent=True)
+            start_folder = ""
 
         save_file_path = QFileDialog().getOpenFileName(
             caption="Save file to repair...",
-            dir=str(save_games_folder),
-            filter=(f"Save File (*{saver.save_extension})"),
+            dir=start_folder,
+            filter=(f"Save File (*{game.save_extension})"),
         )[0]
 
-        if save_file_path or save_file_path != "":
-            log.info(f"Save file: {save_file_path}")
-
         if not save_file_path:
-            return False
+            return
 
-        # --- Configure Fixes ---
-        self.save_configuration = self.open_configure_save_patch_options_window()
+        log.info(f"Save file: {save_file_path}")
 
-        if not self.save_configuration:
-            log.info(f"No fixes: {self.save_configuration}", silent=True)
-            return False
+        thread_analyse_save = Threader(target=analyse_save, args=(save_file_path, game))
+        thread_analyse_save.signals.started.connect(self.disable_ui_elements)
+        thread_analyse_save.signals.finished.connect(self.enable_ui_elements)
+        thread_analyse_save.signals.result.connect(self.on_save_analysed)
+        thread_analyse_save.signals.error.connect(self.on_save_fix_error)
+        self.start_thread(thread_analyse_save)
+
+    @Slot(object)
+    def on_save_analysed(self, analysis: SaveAnalysis) -> None:
+        """
+        SLOT: Runs on the main thread once the save was read.
+        Shows findings, asks which fixes to apply, then applies in the background.
+        """
+        picked_fixes = FixSaveReviewDialog.ask(
+            analysis, font=QFont(self.app_font_bold, 10), window_icon=self.windowIcon(), parent=self
+        )
+
+        if not picked_fixes:
+            log.info("No fixes picked.", silent=True)
+            return
 
         # Cheated Save Repair Disclaimer
-        if self.save_configuration.is_enabled("fix_cheated_save"):
+        show_cheated_save_disclaimer = False
+        for fix in picked_fixes:
+            if fix.needs_disclaimer:
+                show_cheated_save_disclaimer = True
+
+        if show_cheated_save_disclaimer:
             log.info("User enabled option to fix cheated save.")
-            user_accepted = self.show_fix_cheated_save_dialog()
 
-            if not user_accepted:
-                log.info("User declined cheated save disclaimer agreement. Cancelling this fix.", silent=True)
-                self.save_configuration.set_enabled("fix_cheated_save", False)
-            else:
+            if self.show_fix_cheated_save_dialog():
                 log.info("User accepted cheated save disclaimer.", silent=True)
+            else:
+                log.info("User declined cheated save disclaimer agreement. Cancelling this fix.", silent=True)
+                accepted_fixes = []
+                for fix in picked_fixes:
+                    if not fix.needs_disclaimer:
+                        accepted_fixes.append(fix)
+                picked_fixes = accepted_fixes
 
-        log.info(f"Fixes: {self.save_configuration}", silent=True)
+        if not picked_fixes:
+            return
 
-        saver.set_config(self.save_configuration)
+        log.info(f"Fixes: {[fix.label for fix in picked_fixes]}", silent=True)
 
-        thread_repair_save = Threader(target=lambda save_file=save_file_path: saver.repair_save(save_file))
-        thread_repair_save.signals.started.connect(self.disable_ui_elements)
-        thread_repair_save.signals.finished.connect(self.enable_ui_elements)
-        thread_repair_save.signals.result.connect(self.on_finished_save_repair)
-        thread_repair_save.signals.error.connect(self.on_save_repair_error)
-        self.start_thread(thread_repair_save)
+        thread_fix_save = Threader(target=fix_save, args=(analysis, picked_fixes))
+        thread_fix_save.signals.started.connect(self.disable_ui_elements)
+        thread_fix_save.signals.finished.connect(self.enable_ui_elements)
+        thread_fix_save.signals.result.connect(self.on_save_fixed)
+        thread_fix_save.signals.error.connect(self.on_save_fix_error)
+        self.start_thread(thread_fix_save)
+
+    @Slot(object)
+    def on_save_fixed(self, report: SaveFixReport) -> None:
+        """SLOT: Runs on the main thread once the save was fixed. Reports what changed."""
+        lines = []
+        for fix in report.changed_fixes:
+            lines.append(f"{fix.label}: done")
+        for fix in report.unchanged_fixes:
+            lines.append(f"{fix.label}: already done, nothing to change")
+
+        msgbox = QMessageBox(self)
+        msgbox.setWindowTitle("Fix Save")
+        if report.backup_file is None:
+            msgbox.setText("The save already had everything you picked, so it wasn't changed.")
+        else:
+            msgbox.setText("The save was fixed. A backup of it is in Manage Save Backups.")
+        msgbox.setInformativeText("\n".join(lines))
+        msgbox.exec()
 
     @Slot(tuple)
-    def on_save_repair_error(self, error_info: tuple) -> None:
+    def on_save_fix_error(self, error_info: tuple) -> None:
         """
-        SLOT: Runs on the main thread when repair_save raised.
-        Notify user of failed save repair, from unexpected fails.
+        SLOT: Runs on the main thread when reading or fixing the save raised.
+        Show known problems as their message. Everything else supposed unexpected.
         """
         _error_type, error, error_traceback = error_info
-        log.error(f"Fix Save failed unexpectedly: {error}")
-        log.error(error_traceback, silent=True)  # Traceback for the log file only
+        known_error = isinstance(error, (SaveFileError, SaveFixError, ValueError))
 
         msgbox = QMessageBox(self)
         msgbox.setWindowTitle("Fix Save Failed")
-        msgbox.setText("The save couldn't be repaired because of an unexpected error.")
-        msgbox.setInformativeText("Details are in the information screen and the log file.")
+
+        if known_error:
+            log.error(f"Fix Save failed: {error}")
+            msgbox.setText("The save couldn't be fixed. It wasn't changed.")
+            msgbox.setInformativeText(str(error))
+        else:
+            log.error(f"Fix Save failed unexpectedly: {error}")
+            log.error(error_traceback, silent=True)  # Traceback for the log file only
+            msgbox.setText("The save couldn't be fixed because of an unexpected error.")
+            msgbox.setInformativeText("Details are in the information screen and the log file.")
+
         msgbox.exec()
-
-    @Slot(object)
-    def on_finished_save_repair(self, result: Optional[patcher_models.SavePatchResult]) -> None:
-        if result is None:
-            return
-
-        if result.is_cheated_save:
-            msgbox = QMessageBox(self)
-            msgbox.setWindowTitle("Cheated Save")
-            msgbox.setText("WARNING: Save is flagged as cheated. Fixes might not work without resetting this flag.")
-            msgbox.exec()
 
     @Slot()
     def open_configure_patch_options_window(self):
@@ -992,28 +1065,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             if _is_new_dialog and not self.configuration.selected_patches:
                 self.configuration.selected_patches = self.tab_options_dialog.configuration.selected_patches.copy()
             log.info("Configuration unchanged.", silent=True)
-
-    def open_configure_save_patch_options_window(self):
-        log.info("Opening save patch configuration window", silent=True)
-
-        dialog = ConfigureSavePatchDialog(
-            self.configuration.game,
-            font=QFont(self.app_font_bold, 10),
-            window_icon=self.windowIcon(),
-            parent=self,
-        )
-
-        # Show Configure Dialog and handle returns
-        if dialog.exec() == QFileDialog.DialogCode.Accepted:
-            self.save_configuration = dialog.get_configuration()
-
-            log.info(
-                f"Selected save patches: {[opt.display_name for opt in self.save_configuration.get_enabled_options()]}"
-            )
-        else:
-            log.info("Configuration unchanged.", silent=True)
-
-        return self.save_configuration
 
     def check_update(self, force: bool = False):
         last_checked = self.settings.app_settings.update_last_checked if not force else 0

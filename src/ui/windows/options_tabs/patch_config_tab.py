@@ -22,8 +22,8 @@ from stores import GameStore, game_store, get_store_helper, set_game_store
 from ui.shared_widgets import AutoWidthComboBox, GameComboBox
 from ui.utils import (
     find_game_path,
+    option_dialog_pick_from_options,
     prompt_path,
-    resolve_save_games_folder,
     restore_window_focus,
 )
 from utils.helpers import (
@@ -344,7 +344,7 @@ class GameUtilitiesTab(OptionsTab):
             log.warning("User cancelled location. Unable to show game folder.")
 
     def show_save_games_folder(self):
-        from patchers.save_patcher import SavePatcher
+        from patchers.saves import get_save_games_folders
 
         game = self.selected_game
 
@@ -352,13 +352,28 @@ class GameUtilitiesTab(OptionsTab):
             log.warning("No game selected. Unable to locate save games folder.")
             return
 
-        # Spawning an instance of the SavePatcher with a game immediately kicks of
-        # locating for known save games folder.
-        located = SavePatcher(game).save_games_folders
-        located.append("/Users/ralph/Applications")
-        picked = resolve_save_games_folder(game, located, font=self.ctx.font, parent=self.parent())
+        save_games_folders: list[Path] = get_save_games_folders(game)
+        log.info(f"Returned possible save games folders: {save_games_folders}", silent=True)
 
-        open_in_file_manager(picked)
+        options: list[tuple[str, Path, str]] = []
+        for path_option in save_games_folders:
+            options.append((str(path_option), path_option, ""))
+
+        # One folder is used without asking. Several: asks in a dialog over the options window
+        picked_save_games_folder = option_dialog_pick_from_options(
+            f"Pick {game} Save Games Folder",
+            "Pick save games folder to use for this game configuration.",
+            options,
+            parent=self.window(),
+        )
+
+        if picked_save_games_folder is None:
+            log.warning(f"No save games folder found or picked for {game}. Nothing to show.")
+            return
+
+        # Remembered, so it isn't asked again.
+        self.svc.settings.game(game).save_games_folder = picked_save_games_folder.as_posix()
+        open_in_file_manager(picked_save_games_folder)
 
     def delete_binary_backups(self):
         game = self.selected_game

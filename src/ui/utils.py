@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -32,6 +32,14 @@ from stores import get_store_helper
 from utils.platform import WAYLAND, X11
 
 log = logging.getLogger("UI UTILS")
+
+# Type of the value each picker option stands for (a Path, a store...)
+# Tells the editor what option_dialog_pick_from_options() returns: give (label, Path, description), get a Path back.
+OptionValue = TypeVar("OptionValue")
+
+if TYPE_CHECKING:
+    # For type hints only: importing it for real would be a circular import
+    from ui.windows.option_picker_dialog import PickerOption
 
 
 def set_icon_gray(icon: QIcon, size=(32, 32)):
@@ -501,56 +509,56 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
     return None
 
 
-def resolve_save_games_folder(
-    game: str, located: list[Path], font: QFont, parent: Optional[QWidget] = None
-) -> Optional[Path]:
+def option_dialog_pick_from_options(
+    title: str,
+    text: str,
+    options: list[tuple[str, OptionValue, str]],
+    font: Optional[QFont] = None,
+    parent: Optional[QWidget] = None,
+) -> Optional[OptionValue]:
     """
-    The save games folder to use for `game`.
+    Ask the user to pick one of `options`, each a (label, value, description) tuple. Returns the picked value.
 
-    1. Folder remember in settings if it still exists.
-    2. One of `located`, asking to pick one when more than one exists.
-
-    None when nothing was found or cancelled.
+    No options: None. One option: its value, without asking.
+    Several: shown in the `OptionPickerDialog`, None if cancelled. Without a running Qt application
+    (command line) there's no way to ask yet, so nothing is picked.
     """
 
-    # Circular imports.....
-    from ui.windows.option_picker_dialog import OptionPickerDialog, PickerOption
+    # Imported here: ui.windows would create circular import
+    from ui.windows.option_picker_dialog import OptionPickerDialog
 
-    game_settings = services().settings.game(game)
-
-    saved = game_settings.save_games_folder
-    if saved and Path(saved).is_dir():
-        log.info(f"Got save games folder from settings: {saved}", silent=True)
-        return Path(saved)
-
-    if not located:
-        log.warning(f"No save games folder found for {game}.")
+    if not options:
         return None
 
-    if len(located) == 1:
-        picked = located[0]
-    else:
-        options = []
-        for folder in located:
-            options.append(PickerOption(label=str(folder), value=folder))
+    if len(options) == 1:
+        _label, value, _description = options[0]
+        return value
 
-        window_icon = QIcon()
-        if parent:
-            window_icon = parent.windowIcon()
+    if QApplication.instance() is None:
+        # TODO: Ask in the terminal once the Patcher can run from the command line
+        log.warning(f"{title}: picking from the command line isn't supported yet.")
+        return None
 
-        picked = OptionPickerDialog.ask(
-            "Choose Save Games Folder",
-            f"More than one save game folder found for {game}. Pick one.",
-            options,
-            font=font,
-            window_icon=window_icon,
-            parent=parent,
-        )
+    window_icon = QIcon()
+    if parent:
+        window_icon = parent.windowIcon()
 
-    if picked:
-        game_settings.save_games_folder = picked.as_posix()
+    if font is None:
+        font = QFont()
 
-    return picked
+    picker_options: list[PickerOption] = _build_picker_options(options)
+    return OptionPickerDialog.ask(title, text, picker_options, font=font, window_icon=window_icon, parent=parent)
+
+
+def _build_picker_options(options: list[tuple[str, Any, str]]) -> list[PickerOption]:
+    from ui.windows.option_picker_dialog import PickerOption
+
+    picker_options: list[PickerOption] = []
+
+    for label, value, description in options:
+        picker_options.append(PickerOption(label=label, value=value, description=description))
+
+    return picker_options
 
 
 def prompt_path(
