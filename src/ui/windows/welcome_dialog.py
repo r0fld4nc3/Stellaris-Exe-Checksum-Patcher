@@ -181,7 +181,7 @@ class WelcomeDialog(QDialog):
                 <p>Patching the executable does <b>not</b> necessarily make an existing save eligible to receive achievements. These are two separate systems.</p>
                 <p>To restore the ability to gain achievements on an existing save game, use the <b>Fix Save</b> button next to the Patch button.</p>
                 <p>This prompts you to select a save game, then reads it and shows what it found: whether it's Ironman, whether it's flagged as cheated, and whether its achievements list is complete. Values that a fix can change are highlighted.</p>
-                <p>Tick the fixes you want and click <b>Apply Fixes</b>. <b>Update Achievements</b> is ticked for you when the list needs updating; the other fixes are always your choice. The save is only changed, and backed up first, when a fix actually changes something.</p>
+                <p>Tick the fixes you want and click <b>Apply Fixes</b>. <b>Update Achievements</b> is ticked for you when the list needs updating. The other fixes are always your choice. The save is only changed, and backed up first, when a fix actually changes something.</p>
                 <p>If all goes well, the save will have achievements enabled again, and loading it in-game should restore the ability to receive them.</p>
 
                 <p class="subheader">Save Backups</p>
