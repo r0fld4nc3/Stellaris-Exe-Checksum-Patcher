@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import platform
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 # ---------- OS Detection ----------
@@ -18,7 +18,7 @@ class OS_TYPE:
     DARWIN: str = "Darwin"
 
 
-@lru_cache(maxsize=1)
+@cache
 def system() -> str:
     return platform.system()
 

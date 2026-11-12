@@ -5,10 +5,10 @@ To show a new value: read it in `parse_save()` into a new `StellarisSave` field,
 To add a fix: write an `apply_*` function and a `needs_*` method, then add a `SaveFix` to `STELLARIS.fixes`.
 """
 
-import functools
 import logging
 import shutil
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 from typing import Optional
 
@@ -145,7 +145,7 @@ def pull_latest_achievements() -> tuple[str, str]:
         return load_local_achievements(), "local"
 
 
-@functools.cache
+@cache
 def latest_achievements() -> str:
     """The latest achievements list, downloaded once per app run (or the local copy). Empty if unavailable."""
     achievements, _source = pull_latest_achievements()
