@@ -68,7 +68,7 @@ class GameUtilitiesTab(OptionsTab):
         info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         patch_layout.addWidget(info_label)
 
-        desc_label = QLabel("Select what game to patch and is options")
+        desc_label = QLabel("Select what game to patch and its options")
         desc_label.setFont(font_header)
         desc_label.setWordWrap(True)
         patch_layout.addWidget(desc_label)
