@@ -5,7 +5,7 @@ Save analysis and fixes: open a save, show what it contains, and change what the
                    save games folders and backups.
     analysis.py    Findings, fixes and games: analyse_save(), apply_fixes() and fix_save().
     stellaris.py   Stellaris: the achievements list, StellarisSave (the values read from a save) and its fixes.
-    __main__.py    Dev tool: `python -m patchers.saves <save file>` prints what a save contains.
+    report.py    Dev tool: `python -m patchers.saves <save file>` prints what a save contains.
 
 Usage:
 
