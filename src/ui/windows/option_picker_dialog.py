@@ -141,11 +141,17 @@ class OptionPickerDialog(QDialog):
             return None
 
         picker = cls(title, text, options, font, window_icon, preselected_index=preselected_index, parent=parent)
-        if picker.exec() != QDialog.DialogCode.Accepted:
+        accepted = picker.exec() == QDialog.DialogCode.Accepted
+        picked_option = picker.selected_value()
+
+        # Parented to a window, so it would otherwise stay alive until the app closes. Every ask would add another one.
+        picker.deleteLater()
+
+        if not accepted:
             log.info(f"Option picker cancelled: {title}", silent=True)
             return None
 
-        return picker.selected_value()
+        return picked_option
 
     def selected_value(self) -> Optional[OptionValue]:
         """Value of the selected option. None when nothing is selected."""

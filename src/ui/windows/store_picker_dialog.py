@@ -112,10 +112,16 @@ class StorePickerDialog(QDialog):
     ) -> Optional[GameStore]:
         """Show the picker and wait. The picked store, or None if the user cancels."""
         store_picker = cls(game, preselected_store, font, window_icon, parent=parent)
-        if store_picker.exec() != QDialog.DialogCode.Accepted:
+        accepted = store_picker.exec() == QDialog.DialogCode.Accepted
+        picked_store = store_picker.selected_store()
+
+        # Parented to a window, so it would otherwise stay alive until the app closes. Every ask would add another one.
+        store_picker.deleteLater()
+
+        if not accepted:
             return None
 
-        return store_picker.selected_store()
+        return picked_store
 
     def selected_store(self) -> GameStore:
         """The store the user picked."""

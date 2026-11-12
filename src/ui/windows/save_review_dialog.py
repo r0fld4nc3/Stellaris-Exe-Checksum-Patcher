@@ -127,11 +127,18 @@ class FixSaveReviewDialog(QDialog):
     def ask(cls, analysis: SaveAnalysis, font: QFont, window_icon: QIcon, parent=None) -> Optional[list[SaveFix]]:
         """Show the dialog. The ticked fixes, in the game's order, or None if the user cancels."""
         dialog = cls(analysis, font, window_icon, parent=parent)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        accepted = dialog.exec() == QDialog.DialogCode.Accepted
+        picked_fixes = dialog.selected_fixes()
+
+        # Parented to the main window, so it would otherwise stay alive until the app closes, holding the whole save
+        # (tens of MB). Every Fix Save run would add another one.
+        dialog.deleteLater()
+
+        if not accepted:
             log.info("Fix Save cancelled.", silent=True)
             return None
 
-        return dialog.selected_fixes()
+        return picked_fixes
 
     def selected_fixes(self) -> list[SaveFix]:
         picked = []
