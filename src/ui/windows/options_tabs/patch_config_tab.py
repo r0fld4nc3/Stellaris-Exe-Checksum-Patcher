@@ -22,6 +22,7 @@ from stores import GameStore, game_store, get_store_helper, set_game_store
 from ui.shared_widgets import AutoWidthComboBox, GameComboBox
 from ui.utils import (
     find_game_path,
+    is_shift_held,
     option_dialog_pick_from_options,
     prompt_path,
     restore_window_focus,
@@ -140,6 +141,7 @@ class GameUtilitiesTab(OptionsTab):
         btn_show_save_games_folder = QPushButton("Show Save Games Folder")
         btn_show_save_games_folder.setFlat(False)
         btn_show_save_games_folder.setFont(font)
+        btn_show_save_games_folder.setToolTip("Shift-click to choose the save games folder.")
         btn_show_save_games_folder.clicked.connect(self.show_save_games_folder)
         # Stretch so the button takes the space the X doesn't need
         save_games_folder_buttons_layout.addWidget(btn_show_save_games_folder, 1)
@@ -372,17 +374,30 @@ class GameUtilitiesTab(OptionsTab):
         save_games_folders: list[Path] = get_save_games_folders(game)
         log.info(f"Returned possible save games folders: {save_games_folders}", silent=True)
 
-        options: list[tuple[str, Path, str]] = []
-        for path_option in save_games_folders:
-            options.append((str(path_option), path_option, ""))
+        if is_shift_held():
+            # Shift modifier pressed?
+            start_path = None
+            if save_games_folders:
+                start_path = save_games_folders[0]
 
-        # One folder is used without asking. Several: asks in a dialog over the options window
-        picked_save_games_folder = option_dialog_pick_from_options(
-            f"Pick {game} Save Games Folder",
-            "Pick save games folder to use for this game configuration.",
-            options,
-            parent=self.window(),
-        )
+            picked_save_games_folder = prompt_path(
+                self.window(),
+                caption=f"Choose {game} save games folder...",
+                pick_folder=True,
+                start_path=start_path,
+            )
+        else:
+            options: list[tuple[str, Path, str]] = []
+            for path_option in save_games_folders:
+                options.append((str(path_option), path_option, ""))
+
+            # One folder is used without asking. Several: asks in a dialog over the options window
+            picked_save_games_folder = option_dialog_pick_from_options(
+                f"Pick {game} Save Games Folder",
+                "Pick save games folder to use for this game configuration.",
+                options,
+                parent=self.window(),
+            )
 
         if picked_save_games_folder is None:
             log.warning(f"No save games folder found or picked for {game}. Nothing to show.")

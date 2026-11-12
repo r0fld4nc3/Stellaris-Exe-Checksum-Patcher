@@ -72,6 +72,7 @@ from .utils import (
     find_game_path,
     get_qt_platform,
     get_screen_info,
+    is_shift_held,
     option_dialog_pick_from_options,
     prompt_path,
 )
@@ -471,7 +472,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_patch_executable.setIcon(self.patch_icon)
         self.btn_patch_executable.setIconSize(QSize(64, 64))
         self.btn_patch_executable.setFont(QFont(self.app_font_bold, 14))
-        self.btn_patch_executable.setToolTip("Start Patch Game Binary")
+        self.btn_patch_executable.setToolTip("Start Patch Game Binary\nShift-click to choose the executable yourself.")
         # self.btn_patch_executable.setMaximumSize(QSize(80, 80))
 
         # --- Configure Button ---
@@ -684,6 +685,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         if self.is_patching:
             return
 
+        # Shift modifier pressed?
+        pick_binary_path = is_shift_held()
+
         self.terminal_display.clear()
 
         # Configuration
@@ -709,6 +713,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self._set_start_patching_state()
 
         self.patch_progress.emit(0, "")
+
+        if pick_binary_path:
+            # Shift-click: skip the saved and auto-located paths, the user picks the executable
+            log.info("Shift-click Modifier Active: asking for the game executable.", silent=True)
+            self._path_found_or_failed(None)  # Reuse with None to force dialog picker
+            return
 
         # Attempt to find and establish paths
         self.path_finder_thread = Threader(target=self._find_game_path_worker_thread)
@@ -1268,7 +1278,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.btn_patch_executable.clicked.connect(self.start_patch_game_executable_thread)
         self.btn_patch_executable.setText("")
-        self.btn_patch_executable.setToolTip("Start Patch Game Binary")
+        self.btn_patch_executable.setToolTip("Start Patch Game Binary\nShift-click to choose the executable yourself.")
         self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.LOCKED))
 
         log.info(

@@ -561,6 +561,11 @@ def _build_picker_options(options: list[tuple[str, Any, str]]) -> list[PickerOpt
     return picker_options
 
 
+def is_shift_held() -> bool:
+    """True while Shift is held."""
+    return bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ShiftModifier)
+
+
 def prompt_path(
     parent: QWidget, caption: str, pick_folder: bool = False, start_path: Optional[Path] = None
 ) -> Optional[Path]:
