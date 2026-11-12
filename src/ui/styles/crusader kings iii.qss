@@ -79,6 +79,12 @@ QCheckBox#StyledCheckbox1::indicator:checked:disabled {
     background-color: rgb(140, 140, 140);
 }
 
+/* Required patches are disabled but still readable, without the grey disabled box */
+QCheckBox#StyledCheckbox1:disabled {
+    background-color: transparent;
+    color: rgb(200, 200, 200);
+}
+
 QRadioButton {
     color: rgb(255, 255, 255);
     spacing: 10px;
@@ -129,6 +135,11 @@ QLabel#SectionTitle {
 /* WelcomeDialogTitleLabel */
 QLabel#WelcomeDialogTitleLabel {
     color: rgb(255, 179, 25);
+}
+
+/* Description item */
+QLabel#DescriptionLabel1 {
+    color: rgb(220, 220, 220);
 }
 
 /* Small explanatory text under a field */

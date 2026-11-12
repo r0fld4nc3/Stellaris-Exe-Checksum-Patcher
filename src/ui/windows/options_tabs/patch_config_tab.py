@@ -6,6 +6,7 @@ from PySide6.QtCore import QMargins, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QCheckBox,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -575,14 +576,36 @@ class GameUtilitiesTab(OptionsTab):
             name for name, patch in available_patches.items() if patch.enabled or patch.required
         ]
 
-        for patch_name, patch_info in available_patches.items():
+        # Descriptions in lighter font than patch names
+        description_font = QFont()
+        description_font.setBold(False)
+
+        # Grid layout for patches so it's all aligned.
+        # Single widget so clearing the layout above also deleted the whole grid
+        patches_grid = QWidget()
+        patches_grid_layout = QGridLayout(patches_grid)
+        patches_grid_layout.setContentsMargins(0, 0, 0, 0)
+        patches_grid_layout.setHorizontalSpacing(20)
+        patches_grid_layout.setColumnStretch(1, 1)
+
+        for row, (patch_name, patch_info) in enumerate(available_patches.items()):
             checkbox = QCheckBox(patch_info.display_name)
+            checkbox.setObjectName("StyledCheckbox1")
             checkbox.setToolTip(patch_info.description)
             checkbox.setFont(self.ctx.font)
             checkbox.setChecked(patch_info.required or patch_name in selected)
             checkbox.setDisabled(patch_info.required)  # Required patches can't be turned off
             checkbox.toggled.connect(lambda checked, name=patch_name: self._on_patch_toggled(name, checked))
-            self.patches_layout.addWidget(checkbox)
+
+            description_label = QLabel(patch_info.description)
+            description_label.setObjectName("DescriptionLabel1")
+            description_label.setFont(description_font)
+            description_label.setWordWrap(True)
+
+            patches_grid_layout.addWidget(checkbox, row, 0)
+            patches_grid_layout.addWidget(description_label, row, 1)
+
+        self.patches_layout.addWidget(patches_grid)
 
         # Selection is exactly what's ticked for this game/version/platform
         self.config.selected_patches = [
