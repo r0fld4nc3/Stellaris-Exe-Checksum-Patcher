@@ -61,7 +61,7 @@ class SaveFix:
     # Fixes search the current lines, because an earlier fix may have added or removed some.
     apply: Callable[[SaveFile, ParsedSave], bool]
 
-    conflicts_with: str = ""  # Id of a fix that can't be picked together with this one
+    exlcusive_group: str = ""  # Group name that can't be picked together. Empty: no group.
     pre_tick_when_needed: bool = False
     needs_disclaimer: bool = False  # Ask the user to accept the cheated save disclaimer first
 
@@ -121,10 +121,16 @@ def apply_fixes(analysis: SaveAnalysis, fixes: list[SaveFix]) -> SaveFixReport:
     To actually apply the changes, call `write_save()` afterwards.
     Raises ValueError if two of `fixes` conflict.
     """
-    picked_ids = {fix.id for fix in fixes}
+    picked_by_group: dict[str, SaveFix] = {}
     for fix in fixes:
-        if fix.conflicts_with in picked_ids:
-            raise ValueError(f"Fixes '{fix.id}' and '{fix.conflicts_with}' can't be picked together")
+        if not fix.exlcusive_group:
+            continue
+
+        already_picked = picked_by_group.get(fix.exlcusive_group)
+        if already_picked is not None:
+            raise ValueError(f"Fixes '{already_picked.id}' and '{fix.id}' can't be picked together")
+
+        picked_by_group[fix.exlcusive_group] = fix
 
     report = SaveFixReport()
     for fix in fixes:

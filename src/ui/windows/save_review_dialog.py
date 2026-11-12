@@ -197,12 +197,15 @@ class FixSaveReviewDialog(QDialog):
         layout.addWidget(hint_label, row, 1)
 
     def _on_fix_toggled(self, fix_id: str, checked: bool):
-        # Ticking a fix unticks the one it conflicts with (Convert to Ironman / Convert to Regular Save)
+        # Ticking a fix unticks the others in its group (Convert to Ironman / Convert to Regular Save)
         if checked:
             fix = self.game.fix(fix_id)
-            conflicting_checkbox = self.fix_checkboxes.get(fix.conflicts_with)
-            if conflicting_checkbox is not None:
-                conflicting_checkbox.setChecked(False)
+            if fix.exlcusive_group:
+                for other_fix in self.game.fixes:
+                    if other_fix.id == fix.id:
+                        continue
+                    if other_fix.exlcusive_group == fix.exlcusive_group:
+                        self.fix_checkboxes[other_fix.id].setChecked(False)
 
         self._update_apply_button()
 
