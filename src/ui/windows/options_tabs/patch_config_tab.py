@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QMargins, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -131,12 +131,29 @@ class GameUtilitiesTab(OptionsTab):
         show_x_folder_buttons_layout = QHBoxLayout()
         utilities_layout.addLayout(show_x_folder_buttons_layout)
 
+        # --- Save Games Folder Buttons Layout
+        save_games_folder_buttons_layout = QHBoxLayout()
+        save_games_folder_buttons_layout.setSpacing(0)
+        save_games_folder_buttons_layout.setContentsMargins(0, 0, 0, 0)
+
         # --- Show Save Games Folder Button ---
         btn_show_save_games_folder = QPushButton("Show Save Games Folder")
         btn_show_save_games_folder.setFlat(False)
         btn_show_save_games_folder.setFont(font)
         btn_show_save_games_folder.clicked.connect(self.show_save_games_folder)
-        show_x_folder_buttons_layout.addWidget(btn_show_save_games_folder)
+        # Stretch so the button takes the space the X doesn't need
+        save_games_folder_buttons_layout.addWidget(btn_show_save_games_folder, 1)
+
+        # --- Clear Save Games Folder ---
+        btn_clear_save_games_folder = QPushButton("X")
+        btn_clear_save_games_folder.setFlat(False)
+        btn_clear_save_games_folder.setFont(font)
+        btn_clear_save_games_folder.setToolTip("Clear Saved Games Folder")
+        btn_clear_save_games_folder.clicked.connect(self.clear_save_games_folder)
+        save_games_folder_buttons_layout.addWidget(btn_clear_save_games_folder)
+
+        # Equal stretch on both halves so the save-games pair is as wide as "Show Game Folder"
+        show_x_folder_buttons_layout.addLayout(save_games_folder_buttons_layout, 1)
 
         # --- Show Game Folder Button ---
         btn_show_game_folder = QPushButton("Show Game Folder")
@@ -144,7 +161,7 @@ class GameUtilitiesTab(OptionsTab):
         btn_show_game_folder.setFont(font)
         # Lambda drops the `checked` argument from clicked()
         btn_show_game_folder.clicked.connect(lambda: self.show_game_folder())
-        show_x_folder_buttons_layout.addWidget(btn_show_game_folder)
+        show_x_folder_buttons_layout.addWidget(btn_show_game_folder, 1)
 
         # ===========================================
 
@@ -374,6 +391,19 @@ class GameUtilitiesTab(OptionsTab):
         # Remembered, so it isn't asked again.
         self.svc.settings.game(game).save_games_folder = picked_save_games_folder.as_posix()
         open_in_file_manager(picked_save_games_folder)
+
+    def clear_save_games_folder(self):
+        game = self.selected_game
+
+        if not game:
+            return
+
+        saved_value = self.svc.settings.game(game).save_games_folder
+
+        # Clear it
+        self.svc.settings.game(game).save_games_folder = ""
+
+        log.info(f"Cleared saved games folder '{saved_value}' for game '{game}'")
 
     def delete_binary_backups(self):
         game = self.selected_game
