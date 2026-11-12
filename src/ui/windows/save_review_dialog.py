@@ -200,11 +200,11 @@ class FixSaveReviewDialog(QDialog):
         # Ticking a fix unticks the others in its group (Convert to Ironman / Convert to Regular Save)
         if checked:
             fix = self.game.fix(fix_id)
-            if fix.exlcusive_group:
+            if fix.exclusive_group:
                 for other_fix in self.game.fixes:
                     if other_fix.id == fix.id:
                         continue
-                    if other_fix.exlcusive_group == fix.exlcusive_group:
+                    if other_fix.exclusive_group == fix.exclusive_group:
                         self.fix_checkboxes[other_fix.id].setChecked(False)
 
         self._update_apply_button()

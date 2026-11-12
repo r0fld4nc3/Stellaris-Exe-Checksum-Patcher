@@ -461,7 +461,7 @@ STELLARIS = SaveGame(
             description="Turn Ironman on in the save. Adds the Ironman setting if the save doesn't have it.",
             is_needed=StellarisSave.needs_ironman_on,
             apply=apply_ironman_on,
-            exlcusive_group="ironman",
+            exclusive_group="ironman",
         ),
         SaveFix(
             id="ironman_off",
@@ -469,7 +469,7 @@ STELLARIS = SaveGame(
             description="Turn Ironman off, so the save becomes a regular save.",
             is_needed=StellarisSave.needs_ironman_off,
             apply=apply_ironman_off,
-            exlcusive_group="ironman",
+            exclusive_group="ironman",
         ),
         SaveFix(
             id="cheated_off",
