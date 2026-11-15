@@ -3,6 +3,7 @@ import shutil
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterable
 
 from PySide6.QtCore import QObject
 
@@ -62,3 +63,8 @@ def delete_fpaths(fpaths: list[Path]) -> tuple[list[Path], list[Path]]:
             failed.append(fp)
 
     return deleted, failed
+
+
+def spread_over_percent(total_count: int, index: int, start_percent: int, end_percent: int) -> int:
+    percent = start_percent + (end_percent - start_percent) * index // total_count
+    return percent

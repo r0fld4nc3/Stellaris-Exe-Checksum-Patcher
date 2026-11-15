@@ -20,8 +20,11 @@ from patchers.models import (
     PlatformConfig,
     PlatformConfigProperties,
 )
+from utils.helpers import spread_over_percent
 
 log = logging.getLogger("PDX Patchers")
+
+RESTORE_ORIGINAL_ADVICE = "restore the original executable (a backup or verifying the game files in Steam)"
 
 
 class GamePatcher:
@@ -72,9 +75,33 @@ class GamePatcher:
                     PatchPatternProperties.checksum_string, auto_patch.DEFAULT_CHECKSUM_STRING
                 ),
                 replace_call_with=patch_data[PatchPatternProperties.replace_call_with],
+                site_rule=auto_patch.SiteRule(
+                    near_strings=patch_data.get(PatchPatternProperties.near_strings, []),
+                    site_overrides=GamePatcher._parse_site_overrides(
+                        patch_name, patch_data.get(PatchPatternProperties.site_overrides, {})
+                    ),
+                    takes_unmatched_sites=patch_data.get(PatchPatternProperties.takes_unmatched_sites, False),
+                ),
             )
 
         return patches
+
+    @staticmethod
+    def _parse_site_overrides(patch_name: str, overrides_data: Dict) -> Dict[str, List[int]]:
+        """{build checksum: ["0x1ad54e", ...]} -> {build checksum: [0x1ad54e, ...]}. Invalid offsets are skipped."""
+        overrides = {}
+
+        for checksum, offsets in overrides_data.items():
+            overrides[checksum] = []
+            for offset in offsets:
+                try:
+                    overrides[checksum].append(int(offset, 16))
+                except TypeError, ValueError:
+                    log.warning(
+                        f"Skipping invalid site override '{offset}' of '{patch_name}'. Use hex, ex.: '0x1ad54e'."
+                    )
+
+        return overrides
 
     @staticmethod
     def _platform_or_current(platform: Optional[Platform]) -> Platform:
@@ -93,6 +120,16 @@ class GamePatcher:
         if platform_config:
             return platform_config.patches
         return {}
+
+    def _patches_by_patch_string(self, platform: Optional[Platform] = None) -> Dict[str, Dict[str, PatchPattern]]:
+        """
+        {checksum_string: {patch name: patch}} of `platform`'s patches.
+        Patches looking for the same string are found in one scan, and its checks are shared out between them.
+        """
+        groups = {}
+        for patch_name, patch in self.get_available_patches(platform).items():
+            groups.setdefault(patch.checksum_string, {})[patch_name] = patch
+        return groups
 
     def get_patch(self, patch_name: str, platform: Optional[Platform] = None) -> Optional[PatchPattern]:
         patch = self.get_available_patches(platform).get(patch_name)
@@ -321,7 +358,14 @@ class GamePatcher:
         if progress:
             progress(20, "Checking existing patches")
 
-        patches_to_apply, results = self._check_patches(file_path, patch_names, platform)
+        binary = self._resolve_binary(file_path, platform)
+        scans = self.scan_file(binary, platform)
+        for error in self._scan_errors(scans):
+            log.error(f"✗ Unable to patch '{binary}': {error}")
+
+        status = self._status_from(scans)
+        self._log_unselected_patched(status, patch_names, platform)
+        patches_to_apply, results = self._check_patches(scans, status, patch_names, platform)
 
         if not patches_to_apply:
             self._log_nothing_to_apply(results)
@@ -339,47 +383,66 @@ class GamePatcher:
                 self._log_patch_status(results)
                 return results
 
-        results.update(self._apply_patches_batch(file_path, patches_to_apply, platform, progress))
+        results.update(self._apply_patches_batch(binary, scans, patches_to_apply, progress))
+
+        if progress:
+            progress(95, "Checking the result")
+        self._confirm_patches(binary, results, platform)
 
         self._log_patch_status(results)
         return results
 
     def _check_patches(
         self,
-        file_path: Path,
+        scans: Dict[str, auto_patch.ScanResult],
+        status: Dict[str, bool],
         patch_names: List[str],
         platform: Platform,
-        progress: Optional[Callable[[int, str], None]] = None,
     ) -> Tuple[List[Tuple[str, PatchPattern]], Dict[str, bool]]:
         """
-        Sort `patch_names` into patches still to apply and patches already decided.
+        Sort `patch_names` into patches still to apply and patches already decided, using `scans` from
+        `scan_file()` and `status` from `_status_from()`.
 
-        Returns (patches to apply, {patch name: success}). Unknown patches have failed, already applied ones succeeded.
+        Returns (patches to apply, {patch name: success}). Unknown patches and patches whose scan failed have failed,
+        already applied ones succeeded.
         """
         patches_to_apply = []
         results = {}
 
-        for index, patch_name in enumerate(patch_names):
+        for patch_name in patch_names:
             patch = self.get_patch(patch_name, platform)
-
-            # Spread patches over 40-50%
-            percent = 40 + 10 * index // len(patch_names)
-            if progress:
-                progress(percent, patch_name)
 
             if not patch:
                 log.warning(f"Patch '{patch_name}' not found for platform {platform}")
                 results[patch_name] = False
                 continue
 
-            if self.is_patched(file_path, patch_name, platform):
-                log.info(f"File already patched with '{patch_name}'; skipping.")
+            # The reason was logged by `patch_file_multiple()`
+            if scans[patch_name].error:
+                results[patch_name] = False
+                continue
+
+            if status.get(patch_name):
+                log.info(f"File already patched with '{patch_name}'. Skipping.")
                 results[patch_name] = True
                 continue
 
             patches_to_apply.append((patch_name, patch))
 
         return patches_to_apply, results
+
+    def _log_unselected_patched(self, status: Dict[str, bool], patch_names: List[str], platform: Platform) -> None:
+        """Patches already in the file but not selected stay applied: patching never restores original code."""
+        for patch_name, patched in status.items():
+            if not patched or patch_name in patch_names:
+                continue
+
+            patch = self.get_patch(patch_name, platform)
+            display_name = patch.display_name if patch else patch_name
+            log.warning(
+                f"'{display_name}' is already patched and stays patched. To undo it, {RESTORE_ORIGINAL_ADVICE}, "
+                f"then patch again."
+            )
 
     @staticmethod
     def _log_nothing_to_apply(results: Dict[str, bool]) -> None:
@@ -411,43 +474,75 @@ class GamePatcher:
 
     def _apply_patches_batch(
         self,
-        file_path: Path,
+        binary: Path,
+        scans: Dict[str, auto_patch.ScanResult],
         patches: List[Tuple[str, PatchPattern]],
-        platform: Platform,
         progress: Optional[Callable[[int, str], None]] = None,
     ) -> Dict[str, bool]:
-        """Apply each patch to the file. Returns {patch name: success}."""
-        binary = self._resolve_binary(file_path, platform)
+        """
+        Write each patch's unpatched checksum checks, as found by `scan_file()` in `scans`, with that patch's own
+        `replace_call_with`. Returns {patch name: success}. See patchers.auto_patch.
+        """
         log.info(f"{binary=}", silent=True)
-
         results = {}
+        patches_length = len(patches)
 
         for index, (patch_name, patch) in enumerate(patches):
+
             if progress:
                 # Spread patches over 50-95%
-                percent = 50 + 45 * index // len(patches)
-                progress(percent, f"Applying {patch_name}")
+                percent = spread_over_percent(patches_length, index, 50, 95)
+                progress(percent, f"Applying {patch.display_name}")
 
-            results[patch_name] = self._apply_patch(binary, patch, patch_name)
+            result = scans[patch_name]
+            if not self._log_patch_sites(result, patch_name, patch):
+                results[patch_name] = False
+                continue
+
+            unpatched = [site for site in result.sites_of(patch_name) if not site.patched]
+            try:
+                auto_patch.patch_sites(binary, unpatched, patch.replacement_bytes)
+            except Exception as e:
+                log.error(f"✗ Error applying patch '{patch.display_name}': {e}")
+                results[patch_name] = False
+                continue
+
+            log.info(f"✓ Applied Patch: '{patch.display_name}' ({len(result.sites_of(patch_name))} checksum checks)")
+            results[patch_name] = True
 
         return results
 
-    def _apply_patch(self, binary: Path, patch: PatchPattern, patch_name: str) -> bool:
-        """Find every checksum comparison in `binary` and patch it. See patchers.auto_patch."""
-        log.info(f"Applying patch: {patch_name}")
-        try:
-            result = auto_patch.patch_file(binary, patch.checksum_string, patch.replacement_bytes)
-        except Exception as e:
-            log.error(f"✗ Error applying patch '{patch_name}': {e}")
+    def _confirm_patches(self, binary: Path, results: Dict[str, bool], platform: Platform) -> None:
+        """Scan `binary` again and set to failed, in `results`, the patches that didn't end up in the file."""
+        status = self.get_patch_status(binary, platform)
+
+        for patch_name, success in results.items():
+            if success and not status.get(patch_name):
+                log.error(f"✗ '{patch_name}' was written, but the executable doesn't show it as patched.")
+                results[patch_name] = False
+
+    @staticmethod
+    def _log_patch_sites(result: auto_patch.ScanResult, patch_name: str, patch: PatchPattern) -> bool:
+        """Log the checksum checks found for `patch_name` in `result`. Returns False, saying why, if there are none."""
+        sites = result.sites_of(patch_name)
+
+        if not sites and result.unconfirmed_of(patch_name):
+            # The scan couldn't confirm its calls go to the compare function. See auto_patch._pick_compare_function()
+            log.warning(
+                f"✗ The checksum checks of '{patch.display_name}' couldn't be confirmed, so they were left alone. "
+                f"If the executable is already patched, {RESTORE_ORIGINAL_ADVICE}, then patch with all desired patches."
+            )
             return False
 
-        if result.error:
-            log.error(f"✗ Failed to apply patch '{patch_name}': {result.error}")
+        if not sites:
+            log.warning(
+                f"✗ No checksum checks found for '{patch.display_name}'. If its strings changed in a game update, "
+                f"its checks were patched along with the required patch."
+            )
             return False
 
-        log.info(
-            f"✓ Applied Patch: '{patch_name}' ({len(result.sites)} checksum checks, official checksum {result.checksum})"
-        )
+        for site in sites:
+            log.info(f"  {site.call_offset:#x}: {site.matched_by}", silent=True)
         return True
 
     def patch_file(
@@ -456,20 +551,84 @@ class GamePatcher:
         """Apply a single patch to the specified file."""
         return self.patch_file_multiple(file_path, [patch_name], platform, create_backup).get(patch_name, False)
 
-    def is_patched(self, file_path: Path, patch_name: str, platform: Optional[Platform] = None) -> bool:
-        log.info(f"Checking if patched: {patch_name}")
+    def scan_data(self, data: bytes, platform: Optional[Platform] = None) -> Dict[str, auto_patch.ScanResult]:
+        """
+        Find the checksum checks of each of `platform`'s patches in executable `data`.
 
+        Returns {patch name: scan result}, empty if the platform has no patches. Check each result's `error`.
+        Every patch uses its own `checksum_string` and `replace_call_with`. Patches with the same `checksum_string`
+        share one scan result, in which each check is labelled with the patch it belongs to.
+        """
         platform = self._platform_or_current(platform)
-        patch = self.get_patch(patch_name, platform)
-        if not patch:
-            return False
+        scans = {}
 
+        for checksum_string, patches in self._patches_by_patch_string(platform).items():
+            replacements = [patch.replacement_bytes for patch in patches.values()]
+            rules = {}
+            for patch_name, patch in patches.items():
+                rules[patch_name] = patch.site_rule
+
+            result = auto_patch.scan(data, checksum_string, replacements)
+            auto_patch.label_sites(data, result, rules)
+            self._mark_patched(data, result, patches)
+
+            for patch_name in patches:
+                scans[patch_name] = result
+
+        return scans
+
+    @staticmethod
+    def _mark_patched(data: bytes, result: auto_patch.ScanResult, patches: Dict[str, PatchPattern]) -> None:
+        """
+        A check is patched when it holds the replacement bytes of the patch it belongs to.
+        The scan only knows it holds one of the replacements, which may be another patch's.
+        """
+        for site in result.sites:
+            patch = patches.get(site.patch_name)
+            if patch:
+                site_bytes = data[site.call_offset : site.call_offset + auto_patch.CALL_LENGTH]
+                site.patched = site_bytes == patch.replacement_bytes
+
+    def scan_file(self, binary: Path, platform: Optional[Platform] = None) -> Dict[str, auto_patch.ScanResult]:
+        """`scan_data()` for the executable at `binary`. Check each result's `error`."""
         try:
-            data = self._resolve_binary(Path(file_path), platform).read_bytes()
-            return auto_patch.scan(data, patch.checksum_string, patch.replacement_bytes).fully_patched
-        except Exception as e:
-            log.error(f"Error checking patch status: {e}")
-            return False
+            data = Path(binary).read_bytes()
+        except OSError as e:
+            unreadable = auto_patch.ScanResult(error=f"Unable to read '{binary}': {e}")
+            return dict.fromkeys(self.get_available_patches(platform), unreadable)
+        return self.scan_data(data, platform)
+
+    @staticmethod
+    def _scan_errors(scans: Dict[str, auto_patch.ScanResult]) -> List[str]:
+        """Each different error in `scans`, once. Patches sharing a scan share its error."""
+        errors = []
+        for result in scans.values():
+            if result.error and result.error not in errors:
+                errors.append(result.error)
+        return errors
+
+    def get_patch_status(self, file_path: Path, platform: Optional[Platform] = None) -> Dict[str, bool]:
+        """
+        {patch name: applied} for every patch of `platform`, from scanning the file.
+        A patch is applied when it has checksum checks and all of them are patched.
+        """
+        platform = self._platform_or_current(platform)
+        scans = self.scan_file(self._resolve_binary(Path(file_path), platform), platform)
+        for error in self._scan_errors(scans):
+            log.error(f"Error checking patch status: {error}")
+
+        status = self._status_from(scans)
+        log.debug(f"Patch status of '{file_path}': {status}")
+        return status
+
+    @staticmethod
+    def _status_from(scans: Dict[str, auto_patch.ScanResult]) -> Dict[str, bool]:
+        """{patch name: applied} for each patch in `scans`. False if its scan failed."""
+        status = {}
+        for patch_name, result in scans.items():
+            sites = result.sites_of(patch_name)
+            status[patch_name] = bool(sites) and all(site.patched for site in sites)
+        return status
 
 
 class MultiGamePatcher:

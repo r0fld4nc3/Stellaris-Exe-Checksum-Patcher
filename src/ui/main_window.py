@@ -5,7 +5,7 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 from PySide6.QtCore import QDeadlineTimer, QSize, Qt, QThreadPool, Signal, Slot
 from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
@@ -667,8 +667,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             else:
                 log.warning(f"Failed patch: {patch}")
 
+        # Keep the selection even if a patch failed, so it stays ticked for the next try
         if applied:
-            self.settings.game(self.configuration.game).patches = applied
+            self.settings.game(self.configuration.game).patches = patches_to_apply
 
         return results
 
@@ -1042,7 +1043,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
             if not self.configuration.selected_patches:
                 self.configuration.selected_patches = list(self.settings.game(self.configuration.game).patches)
-            # Patches are only saved to settings after a successful patch (see patch worker)
+            # Remembered as soon as they're picked, so the dialog shows them again after a restart
+            self.settings.game(self.configuration.game).patches = list(self.configuration.selected_patches)
             self.settings.game(self.configuration.game).patched_version = self.configuration.version
 
             available_patches = self.multi_game_patcher.get_available_patches_for_game(
@@ -1223,10 +1225,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         patched_check_thread.signals.result.connect(self._on_patched_check_finished)
         self.start_thread(patched_check_thread)
 
-    def _is_game_patched_worker(self) -> Optional[bool]:
+    def _is_game_patched_worker(self) -> Optional[Dict[str, bool]]:
         """
-        WORKER FUNCTION: Scans the executable for the enabled/required patches.
-        Returns None when there is no saved executable to check.
+        WORKER FUNCTION: Scans the executable for each patch.
+        Returns {patch display name: applied}, or None when there is no saved executable to check.
         """
         game = self.configuration.game
 
@@ -1246,22 +1248,30 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         platform = patcher.detect_platform(Path(binary_path)) or configured_platform
 
-        patch_names = [
-            name for name, patch in patcher.get_available_patches(platform).items() if patch.enabled or patch.required
-        ]
-        if not patch_names:
+        available_patches = patcher.get_available_patches(platform)
+        if not available_patches:
             return None
 
-        return all(patcher.is_patched(Path(binary_path), name, platform) for name in patch_names)
+        status = {}
+        for name, applied in patcher.get_patch_status(Path(binary_path), platform).items():
+            status[available_patches[name].display_name] = applied
+        return status
 
     @Slot(object)
-    def _on_patched_check_finished(self, patched: Optional[bool]):
-        game = self.configuration.game
+    def _on_patched_check_finished(self, status: Optional[Dict[str, bool]]):
+        if status is None:
+            return
 
-        if patched:
-            log.info(f"{game} is already patched.")
-        elif patched is False:
+        game = self.configuration.game
+        applied = [name for name, is_applied in status.items() if is_applied]
+        not_applied = [name for name, is_applied in status.items() if not is_applied]
+
+        if not applied:
             log.info(f"{game} has not been patched yet.")
+        elif not not_applied:
+            log.info(f"{game} is already patched.")
+        else:
+            log.info(f"{game} is patched with: {', '.join(applied)}. Not patched: {', '.join(not_applied)}.")
 
     def swap_btn_patch_to_patch_binary(self):
         log.info(
@@ -1316,6 +1326,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         )
 
     def launch_game(self):
+        if is_shift_held():
+            log.info("Shift held in launch button, switching to Patch mode again.")
+            self.swap_btn_patch_to_patch_binary()
+            self.start_patch_game_executable_thread()
+            return
+
         game = self.configuration.game
         store_helper = get_store_helper(game)
         if not store_helper:

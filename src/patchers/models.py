@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from core.paths import OS_TYPE, os_windows, system
-from patchers.auto_patch import FILE_FORMAT
+from patchers.auto_patch import FILE_FORMAT, SiteRule
 
 log = logging.getLogger("Patcher Models")
 
@@ -19,11 +19,9 @@ class TRANSLATION_LAYER_ENUM(str, Enum):
 
 class Platform(str, Enum):
     """
-    Platform values for the application's own data. These values can be
-    similar to `OS_TYPE` but their similarity is coincidental.
+    Platform values for the application's own data. These values can be similar to `OS_TYPE` but their similarity is coincidental.
 
-    These values are mapped against `OS_TYPE` returns to correctly
-    pull required data from the patters file.
+    These values are mapped against `OS_TYPE` returns to correctly pull required data from the patters file.
     """
 
     WINDOWS = "windows"
@@ -58,7 +56,6 @@ class Platform(str, Enum):
             return None
 
 
-@dataclass
 class PatchPatternProperties:
     """
     Represents properties that can be obtained from the `PatchPattern` class.
@@ -75,6 +72,7 @@ class PatchPatternProperties:
             PatchPatternProperties.checksum_string, auto_patch.DEFAULT_CHECKSUM_STRING
         ),
         replace_call_with=patch_data[PatchPatternProperties.replace_call_with],
+        site_rule=SiteRule(near_strings=patch_data.get(PatchPatternProperties.near_strings, [])),
     )
     ```
     """
@@ -85,6 +83,9 @@ class PatchPatternProperties:
     enabled: str = "enabled"
     checksum_string: str = "checksum_string"
     replace_call_with: str = "replace_call_with"
+    near_strings: str = "near_strings"
+    site_overrides: str = "site_overrides"
+    takes_unmatched_sites: str = "takes_unmatched_sites"
 
 
 @dataclass
@@ -92,8 +93,12 @@ class PatchPattern:
     """
     One patch from patterns.json. See patchers.auto_patch for how it is applied.
 
-    checksum_string:   Regex for the official checksum string stored in the executable.
-    replace_call_with: Hex bytes written over each `CALL strcmp` that uses that string (must be 5 bytes).
+    checksum_string:       Regex for the official checksum string stored in the executable.
+    replace_call_with:     Hex bytes written over each `CALL strcmp` that uses that string (must be 5 bytes).
+    site_rule:             How to tell this patch's checks apart from the others'. See `auto_patch.label_sites()`.
+        near_strings:          Game strings close to this patch's checksum checks. Used to tell the checks apart.
+        site_overrides:        {build checksum: [call offsets]}. Fallback sites for that exact build, when strings fail.
+        takes_unmatched_sites: Also patch checks that no other patch's strings or overrides match.
     """
 
     display_name: str
@@ -102,6 +107,7 @@ class PatchPattern:
     enabled: bool
     checksum_string: str
     replace_call_with: str
+    site_rule: SiteRule = field(default_factory=SiteRule)
 
     @property
     def replacement_bytes(self) -> bytes:
@@ -136,7 +142,6 @@ class PatchConfiguration:
         return cls(game=selected_game)
 
 
-@dataclass
 class PlatformConfigProperties:
     """
     Represents properties that can be obtained from the `PlatformConfig` class.
