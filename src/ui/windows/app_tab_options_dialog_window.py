@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from core import services
-from patchers import MultiGamePatcher, PatchConfiguration
+from patchers import PatchConfiguration, Patcher
 from ui.utils import adapt_to_parent_size, centre_on_parent
 
 from .options_tabs import GameUtilitiesTab, UtilitiesTab
@@ -85,7 +85,7 @@ class TabOptionsDialog(QDialog):
 
     def __init__(
         self,
-        patcher: MultiGamePatcher,
+        patcher: Patcher,
         configuration: PatchConfiguration,
         font: QFont,
         window_icon: QIcon,

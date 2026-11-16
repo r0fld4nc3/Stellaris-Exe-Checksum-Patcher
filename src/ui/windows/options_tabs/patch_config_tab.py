@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.paths import os_darwin, os_linux
-from patchers import GamePatcher, PatchConfiguration
+from patchers import PatchConfiguration
 from patchers import models as patcher_models
 from stores import GameStore, game_store, get_store_helper, set_game_store
 from ui.shared_widgets import AutoWidthComboBox, GameComboBox
@@ -332,12 +332,10 @@ class GameUtilitiesTab(OptionsTab):
                     break
 
         if saved_path:
-            # A binary inside a bundle (ex.: macOS .app): show the bundle instead
-            patcher = self._get_game_patcher(game)
-            if patcher:
-                bundle_root = patcher.find_bundle_root(saved_path)
-                if bundle_root:
-                    saved_path = bundle_root
+            # A binary inside a bundle (macOS .app): show the bundle instead
+            bundle_root = self.ctx.patcher.find_bundle_root(self.config, saved_path)
+            if bundle_root:
+                saved_path = bundle_root
 
             log.info(f"Opening game folder: '{saved_path}'", silent=False)
             open_in_file_manager(saved_path)
@@ -438,8 +436,8 @@ class GameUtilitiesTab(OptionsTab):
             )
             return
 
-        patcher = self._get_game_patcher(game)
-        if not patcher:
+        if game not in self.ctx.patcher.get_available_games():
+            log.warning(f"No patch configuration for {game}.")
             self._show_message(
                 "No Patch Configuration",
                 f"Couldn't load the patch configuration for {game}. Unable to look for backups.",
@@ -447,7 +445,10 @@ class GameUtilitiesTab(OptionsTab):
             )
             return
 
-        backups = sorted({b for path in binary_paths for b in patcher.find_binary_backups(path)})
+        backups = set()
+        for path in binary_paths:
+            backups.update(self.ctx.patcher.find_binary_backups(self.config, path))
+        backups = sorted(backups)
 
         if not backups:
             log.info(f"No executable backups found for {game}.")
@@ -512,13 +513,6 @@ class GameUtilitiesTab(OptionsTab):
         msgbox.setText(text)
         msgbox.exec()
 
-    def _get_game_patcher(self, game: str) -> Optional[GamePatcher]:
-        """Patcher for `game` at the version selected in this tab. None if the patterns have nothing for it."""
-        patcher = self.ctx.patcher.get_game_patcher(game, self.config.version)
-        if not patcher:
-            log.warning(f"No game patcher for {game}.")
-        return patcher
-
     def _is_valid(self, config: Optional[PatchConfiguration]) -> bool:
         return bool(config and config.version and config.game in self.ctx.patcher.get_available_games())
 
@@ -565,11 +559,10 @@ class GameUtilitiesTab(OptionsTab):
             if child.widget():
                 child.widget().deleteLater()
 
-        patcher = self.ctx.patcher.get_game_patcher(self.config.game, self.config.version)
-        if not patcher:
+        if self.config.game not in self.ctx.patcher.get_available_games():
             return
 
-        available_patches = patcher.get_available_patches(platform=self.config.platform)
+        available_patches = self.ctx.patcher.get_available_patches(self.config)
 
         # No selection yet (e.g. game just changed): start from the defaults
         selected = self.config.selected_patches or [

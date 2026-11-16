@@ -68,8 +68,8 @@ class PatchPatternProperties:
         description=patch_data.get(PatchPatternProperties.description, "N/A"),
         required=patch_data.get(PatchPatternProperties.required, False),
         enabled=patch_data.get(PatchPatternProperties.enabled, False),
-        checksum_string=patch_data.get(
-            PatchPatternProperties.checksum_string, auto_patch.DEFAULT_CHECKSUM_STRING
+        target_string=patch_data.get(
+            PatchPatternProperties.target_string, auto_patch.DEFAULT_TARGET_STRING
         ),
         replace_call_with=patch_data[PatchPatternProperties.replace_call_with],
         site_rule=SiteRule(near_strings=patch_data.get(PatchPatternProperties.near_strings, [])),
@@ -81,7 +81,7 @@ class PatchPatternProperties:
     description: str = "description"
     required: str = "required"
     enabled: str = "enabled"
-    checksum_string: str = "checksum_string"
+    target_string: str = "target_string"
     replace_call_with: str = "replace_call_with"
     near_strings: str = "near_strings"
     site_overrides: str = "site_overrides"
@@ -93,9 +93,9 @@ class PatchPattern:
     """
     One patch from patterns.json. See patchers.auto_patch for how it is applied.
 
-    checksum_string:       Regex for the official checksum string stored in the executable.
-    replace_call_with:     Hex bytes written over each `CALL strcmp` that uses that string (must be 5 bytes).
-    site_rule:             How to tell this patch's checks apart from the others'. See `auto_patch.label_sites()`.
+    target_string:             Regex for the string whose comparisons are patched (the official checksum in Stellaris).
+    replace_call_with:         Hex bytes written over each `CALL strcmp` that uses that string (must be 5 bytes).
+    site_rule:                 How to tell this patch's checks apart from the others'. See `auto_patch.label_sites()`.
         near_strings:          Game strings close to this patch's checksum checks. Used to tell the checks apart.
         site_overrides:        {build checksum: [call offsets]}. Fallback sites for that exact build, when strings fail.
         takes_unmatched_sites: Also patch checks that no other patch's strings or overrides match.
@@ -105,7 +105,7 @@ class PatchPattern:
     description: str
     required: bool
     enabled: bool
-    checksum_string: str
+    target_string: str
     replace_call_with: str
     site_rule: SiteRule = field(default_factory=SiteRule)
 
@@ -142,29 +142,17 @@ class PatchConfiguration:
         return cls(game=selected_game)
 
 
-class PlatformConfigProperties:
-    """
-    Represents properties that can be obtained from the `PlatformConfig` class.
+@dataclass
+class PatchOutcome:
+    """What `Patcher.patch_game()` did."""
 
-    Usage example:
+    platform: Platform  # Platform the executable was patched for, read from the file
+    patches_to_apply: List[str] = field(default_factory=list)  # Patch names that were applied. Empty if none.
+    results: Dict[str, bool] = field(default_factory=dict)  # {patch name: success}. Empty if nothing was tried
 
-    ```
-    for platform_key, platform_data in self.config.items():
-        platforms[platform_key] = PlatformConfig(
-            platform_name=platform_key,
-            description=platform_data.get(PlatformConfigProperties.description, "N/A"),
-            exe_filename=platform_data.get(PlatformConfigProperties.exe_filename, ""),
-            path_postfix=platform_data.get(PlatformConfigProperties.path_postfix, ""),
-            patches=self._parse_patches(platform_key, platform_data.get(PlatformConfigProperties.patches, {})),
-        )
-    ```
-    """
-
-    platform_name: str = "platform_name"
-    description: str = "description"
-    exe_filename: str = "exe_filename"
-    path_postfix: str = "path_postfix"
-    patches: str = "patches"
+    @property
+    def any_applied(self) -> bool:
+        return any(self.results.values())
 
 
 @dataclass
@@ -199,6 +187,31 @@ class PlatformConfig:
             return None
 
         return bundle_root
+
+
+class PlatformConfigProperties:
+    """
+    Represents properties that can be obtained from the `PlatformConfig` class.
+
+    Usage example:
+
+    ```
+    for platform_key, platform_data in self.config.items():
+        platforms[platform_key] = PlatformConfig(
+            platform_name=platform_key,
+            description=platform_data.get(PlatformConfigProperties.description, "N/A"),
+            exe_filename=platform_data.get(PlatformConfigProperties.exe_filename, ""),
+            path_postfix=platform_data.get(PlatformConfigProperties.path_postfix, ""),
+            patches=self._parse_patches(platform_key, platform_data.get(PlatformConfigProperties.patches, {})),
+        )
+    ```
+    """
+
+    platform_name: str = "platform_name"
+    description: str = "description"
+    exe_filename: str = "exe_filename"
+    path_postfix: str = "path_postfix"
+    patches: str = "patches"
 
 
 @dataclass

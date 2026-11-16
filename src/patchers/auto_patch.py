@@ -21,7 +21,7 @@ So every check sees "checksum matches", no matter how the compiler arranged the 
 
 How we find the calls
 ---------------------
-1. Find the official checksum string: a standalone string matching `checksum_string` (from patterns.json).
+1. Find the target string (the official checksum): a standalone string matching `target_string` (from patterns.json).
 2. Find every instruction in the code that loads that string's address.
 3. Take the first CALL right after each of those instructions.
 4. Safety check: all those calls must go to the same function (strcmp). Calls elsewhere are skipped.
@@ -57,7 +57,7 @@ from typing import Dict, List, Optional, Tuple
 
 log = logging.getLogger("Auto Patch")
 
-DEFAULT_CHECKSUM_STRING = "[0-9a-f]{32}"
+DEFAULT_TARGET_STRING = "[0-9a-f]{32}"
 DEFAULT_REPLACEMENT = "31C00F1F00"  # XOR EAX,EAX + 3-byte NOP
 
 CALL_OPCODE = 0xE8  # CALL rel32, always 5 bytes long
@@ -79,7 +79,7 @@ MOV_LENGTH = 5  # In bytes
 #   [44] 8B C8..F8    MOV reg32, EAX (the other way to write it)
 RESULT_CHECK_PATTERN = re.compile(rb"\x85\xc0|\x41?\x89[\xc0-\xc7]|\x44?\x8b[\xc8\xd0\xd8\xe0\xe8\xf0\xf8]")
 
-# Where to look for `near_strings` around the instruction that loads the checksum string,
+# Where to look for `near_strings` around the instruction that loads the target string,
 # when the function holding it is unknown. Otherwise the whole function is searched
 NEAR_STRINGS_BEFORE = 0x200  # In bytes
 NEAR_STRINGS_AFTER = 0x400  # In bytes
@@ -303,10 +303,10 @@ def detect_format(path: Path) -> Optional[str]:
 
 
 @dataclass
-class ChecksumSite:
-    """One place in the code that compares against the official checksum."""
+class TargetSite:
+    """One place in the code that compares against the target string."""
 
-    reference_offset: int  # Instruction that loads the checksum string's address
+    reference_offset: int  # Instruction that loads the target string's address
     call_offset: int  # The CALL strcmp we replace (or already replaced)
     patched: bool  # True if replacement bytes are already there
     patch_name: Optional[str] = None  # Patch this site belongs to, set by `label_sites()`
@@ -317,35 +317,35 @@ class ChecksumSite:
 class ScanResult:
     """Everything `scan()` found. Check `error` first."""
 
-    checksum: Optional[str] = None
+    target_text: Optional[str] = None  # The string that matched `target_string`, e.g. the official checksum
     compare_function: Optional[int] = None
-    sites: List[ChecksumSite] = field(default_factory=list)
+    sites: List[TargetSite] = field(default_factory=list)
     skipped: List[int] = field(default_factory=list)  # String references with no CALL after them
     # CALLs after a string reference that don't go to the compare function, or can't be shown to. Never patched.
-    unconfirmed: List[ChecksumSite] = field(default_factory=list)
+    unconfirmed: List[TargetSite] = field(default_factory=list)
     error: Optional[str] = None
 
     @property
-    def unpatched(self) -> List[ChecksumSite]:
+    def unpatched(self) -> List[TargetSite]:
         return [s for s in self.sites if not s.patched]
 
     @property
     def fully_patched(self) -> bool:
         return bool(self.sites) and not self.unpatched
 
-    def sites_of(self, patch_name: str) -> List[ChecksumSite]:
+    def sites_of(self, patch_name: str) -> List[TargetSite]:
         """Sites `label_sites()` gave to `patch_name`."""
         return [s for s in self.sites if s.patch_name == patch_name]
 
-    def unconfirmed_of(self, patch_name: str) -> List[ChecksumSite]:
+    def unconfirmed_of(self, patch_name: str) -> List[TargetSite]:
         """Unconfirmed sites `label_sites()` gave to `patch_name`."""
         return [s for s in self.unconfirmed if s.patch_name == patch_name]
 
 
-def _find_checksum_strings(exe: Executable, checksum_string: str) -> Dict[int, str]:
-    """Return {address: text} for every standalone string fully matching `checksum_string`."""
+def _find_target_strings(exe: Executable, target_string: str) -> Dict[int, str]:
+    """Return {address: text} for every standalone string fully matching `target_string`."""
     # Must be surrounded by NULL bytes, so the checksum inside a longer string (e.g. the version banner) is ignored
-    pattern = re.compile(b"(?<=\x00)(?:" + checksum_string.encode() + b")(?=\x00)")
+    pattern = re.compile(b"(?<=\x00)(?:" + target_string.encode() + b")(?=\x00)")
     found = {}
     for match in pattern.finditer(exe.data):
         address = exe.address_of(match.start())
@@ -431,10 +431,10 @@ def _pick_compare_function(
 
 
 def scan(
-    data: bytes, checksum_string: str = DEFAULT_CHECKSUM_STRING, replacements: Optional[List[bytes]] = None
+    data: bytes, target_string: str = DEFAULT_TARGET_STRING, replacements: Optional[List[bytes]] = None
 ) -> ScanResult:
     """
-    Find every checksum comparison in an executable. Does not modify anything.
+    Find every comparison against the target string in an executable. Does not modify anything.
 
     `replacements` are the bytes patches write over a CALL. A site holding one of them counts as patched.
     """
@@ -447,16 +447,16 @@ def scan(
         result.error = "Unsupported executable format (only Windows PE and Linux ELF 64-bit are supported)."
         return result
 
-    # 1. The official checksum string
-    strings = _find_checksum_strings(exe, checksum_string)
+    # 1. The target string
+    strings = _find_target_strings(exe, target_string)
     unique_strings = sorted(set(strings.values()))
     if not unique_strings:
-        result.error = f"No checksum string matching '{checksum_string}' found."
+        result.error = f"No target string matching '{target_string}' found."
         return result
     if len(unique_strings) > 1:
-        result.error = f"Found more than one possible checksum string: {unique_strings}"
+        result.error = f"Found more than one possible target string: {unique_strings}"
         return result
-    result.checksum = unique_strings[0]
+    result.target_text = unique_strings[0]
 
     # 2 + 3. Code referencing the string, and the first CALL (or already patched bytes) after each reference
     candidates = []  # (reference offset, call offset, call target) of each unpatched CALL
@@ -466,7 +466,7 @@ def scan(
         if call_offset is None:
             result.skipped.append(reference_offset)
         elif data[call_offset : call_offset + CALL_LENGTH] in replacements:
-            result.sites.append(ChecksumSite(reference_offset, call_offset, patched=True))
+            result.sites.append(TargetSite(reference_offset, call_offset, patched=True))
         else:
             candidates.append((reference_offset, call_offset, exe.call_target(call_offset)))
 
@@ -477,13 +477,13 @@ def scan(
         # A call whose target is unknown can't be shown to call the compare function.
         # Without this check it would match when there is no compare function, as both are None.
         if target is not None and target == result.compare_function:
-            result.sites.append(ChecksumSite(reference_offset, call_offset, patched=False))
+            result.sites.append(TargetSite(reference_offset, call_offset, patched=False))
         else:
-            result.unconfirmed.append(ChecksumSite(reference_offset, call_offset, patched=False))
+            result.unconfirmed.append(TargetSite(reference_offset, call_offset, patched=False))
 
     result.sites.sort(key=lambda s: s.call_offset)
     if not result.sites:
-        result.error = "Found the checksum string, but no comparisons using it."
+        result.error = "Found the target string, but no comparisons using it."
     return result
 
 
@@ -576,7 +576,7 @@ def _match_near_strings(exe: Executable, offset: int, patches_by_string: Dict[st
     return None
 
 
-def _find_callers(exe: Executable, sites: List[ChecksumSite]) -> Dict[int, List[int]]:
+def _find_callers(exe: Executable, sites: List[TargetSite]) -> Dict[int, List[int]]:
     """
     {site call offset: [offsets of CALLs to the function holding that site]}.
     Sites whose function is unknown get no callers.
@@ -644,7 +644,7 @@ def label_sites(data: bytes, result: ScanResult, rules: Dict[str, SiteRule]) -> 
 
     # 1. Overrides for this exact build
     for patch_name, rule in rules.items():
-        for call_offset in rule.site_overrides.get(result.checksum, []):
+        for call_offset in rule.site_overrides.get(result.target_text, []):
             site = sites_by_offset.get(call_offset)
             if site is None:
                 log.warning(f"Override {call_offset:#x} for '{patch_name}' is not a checksum check. Ignoring it.")
@@ -691,7 +691,7 @@ def label_sites(data: bytes, result: ScanResult, rules: Dict[str, SiteRule]) -> 
 # ============================================================================
 
 
-def patch_sites(path: Path, sites: List[ChecksumSite], replacement: bytes) -> None:
+def patch_sites(path: Path, sites: List[TargetSite], replacement: bytes) -> None:
     """Overwrite the CALL at each of `sites` (from `scan()`) in place. Only the 5 bytes at each site are written."""
     if len(replacement) != CALL_LENGTH:
         raise ValueError(f"Replacement must be exactly {CALL_LENGTH} bytes, got {len(replacement)}")

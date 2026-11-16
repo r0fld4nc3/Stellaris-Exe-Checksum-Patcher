@@ -363,7 +363,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.message: Message | None = None
 
         # --- Cache Configuration ---
-        self.multi_game_patcher = pdx_patchers.MultiGamePatcher(local_patterns_file())
+        self.patcher = pdx_patchers.Patcher(local_patterns_file())
 
         self.configuration = patcher_models.PatchConfiguration(
             game="",
@@ -586,92 +586,38 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
     def patch_game_executable(self, game_binary_path: Path) -> dict[str, bool]:
         """
-        Attemps to perform all necessary steps to patch the given game binary.
+        WORKER FUNCTION: Patches the given game binary with the current configuration and saves what was patched.
+        Returns {patch name: success}, empty if nothing could be patched.
         """
-
-        log.info(f"Proceeding to patch executable: {game_binary_path}")
-
-        # Configuration
         if not self.configuration:
             log.error("No configuration available.")
             return {}
 
-        log.info(f"Using configuration: {self.configuration}", silent=True)
-
-        # Check for empty game
-        if not self.configuration.game:
-            log.error("Configuration game is empty")
-            return {}
-
-        # Get patcher
-        patcher: pdx_patchers.GamePatcher = self.multi_game_patcher.get_game_patcher(
-            self.configuration.game, self.configuration.version
+        outcome = self.patcher.patch_game(
+            self.configuration,
+            game_binary_path,
+            # Nothing saved or picked yet (patches are only saved after patching): use the defaults
+            use_default_patches=not self.tab_options_dialog,
+            max_backups=self.settings.app_settings.max_allowed_binary_backups,
+            progress=self.patch_progress.emit,
         )
 
-        if not patcher:
-            log.error(f"Failed to initialise patcher for {self.configuration.game}")
+        if not outcome.patches_to_apply:
             return {}
-
-        # --- Determine platform ---
-        # The Native/Proton choice, kept in settings to restore the UI next time
-        configured_platform = self.configuration.platform
-
-        # Patch for whatever the selected binary actually is (ex.: Linux binary patched from macOS)
-        platform = patcher.detect_platform(game_binary_path) or configured_platform
-        if platform != configured_platform:
-            log.info(f"Selected binary is a {platform.value} executable. Using {platform.value} patches.")
-
-        available_patches = self.multi_game_patcher.get_available_patches_for_game(
-            self.configuration.game, self.configuration.version, platform=platform
-        )
-
-        # Ignore saved patch names that no longer exist (e.g. from an older patterns.json)
-        patches_to_apply = [name for name in self.configuration.selected_patches if name in available_patches]
-        outdated_patches = [name for name in self.configuration.selected_patches if name not in available_patches]
-        if outdated_patches:
-            log.info(f"Ignoring saved patches that no longer exist: {outdated_patches}", silent=True)
-
-        # Nothing saved or picked yet (patches are only saved after patching): use the defaults
-        if not patches_to_apply and not self.tab_options_dialog:
-            patches_to_apply = [name for name, patch in available_patches.items() if patch.enabled]
-            log.info(f"No saved patch selection. Using default patches for '{self.configuration.version}'.")
-
-        # Required patches are always applied, even if not in the selection
-        for name, patch in available_patches.items():
-            if patch.required and name not in patches_to_apply:
-                patches_to_apply.append(name)
-
-        if not patches_to_apply:
-            log.error(
-                f"No patches available for {self.configuration.game} '{self.configuration.version}' on {platform}."
-            )
-            return {}
-
-        self.settings.game(self.configuration.game).patched_platform = configured_platform
-        self.settings.game(self.configuration.game).patched_version = self.configuration.version
-
-        log.info(f"Patches to apply: {patches_to_apply}", silent=True)
-
-        self.patch_progress.emit(10, "Preparing patches")
-
-        results = patcher.patch_file_multiple(
-            game_binary_path, patches_to_apply, platform=platform, progress=self.patch_progress.emit
-        )
 
         self.terminal_progress.emit(" ")
 
-        applied: list = []
-        for patch, success in results.items():
-            if success:
-                applied.append(patch)
-            else:
-                log.warning(f"Failed patch: {patch}")
+        game_settings = self.settings.game(self.configuration.game)
+
+        # The Native/Proton choice, kept in settings to restore the UI next time
+        game_settings.patched_platform = self.configuration.platform
+        game_settings.patched_version = self.configuration.version
 
         # Keep the selection even if a patch failed, so it stays ticked for the next try
-        if applied:
-            self.settings.game(self.configuration.game).patches = patches_to_apply
+        if outcome.any_applied:
+            game_settings.patches = outcome.patches_to_apply
 
-        return results
+        return outcome.results
 
     def _find_game_path_worker_thread(self) -> Optional[Path]:
         """
@@ -679,7 +625,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         Returns the path if found, otherwise None.
         """
 
-        return find_game_path(self.multi_game_patcher, self.configuration)
+        return find_game_path(self.patcher, self.configuration)
 
     @Slot()
     def start_patch_game_executable_thread(self):
@@ -994,11 +940,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     def open_configure_patch_options_window(self):
         log.info("Opening patch configuration window", silent=True)
 
-        # Important: Work in a copy of the configuration to retain
-        # selections whether user clicks Cancel or Ok in the
-        # configuration window.
-        # This gives us flexibility of only applying the new config
-        # when the user accepts the dialog.
+        # Important: Work in a copy of the configuration to retain selections whether user
+        # clicks Cancel or Ok in the configuration window.
+        # This gives us flexibility of only applying the new config when the user accepts the dialog.
         _is_new_dialog = self.tab_options_dialog is None
 
         # Store original config for comparison
@@ -1007,7 +951,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         if not self.tab_options_dialog:
             # Pass a copy of the config
             self.tab_options_dialog = TabOptionsDialog(
-                patcher=self.multi_game_patcher,
+                patcher=self.patcher,
                 configuration=copy.deepcopy(self.configuration),
                 font=QFont(self.app_font_bold, 12),
                 window_icon=self.windowIcon(),
@@ -1047,9 +991,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             self.settings.game(self.configuration.game).patches = list(self.configuration.selected_patches)
             self.settings.game(self.configuration.game).patched_version = self.configuration.version
 
-            available_patches = self.multi_game_patcher.get_available_patches_for_game(
-                self.configuration.game, self.configuration.version, platform=self.configuration.platform
-            )
+            available_patches = self.patcher.get_available_patches(self.configuration)
             selected_patches_str = ", ".join(
                 [v.display_name for k, v in available_patches.items() if k in self.configuration.selected_patches]
             )
@@ -1192,7 +1134,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             else:
                 get_patterns_config_local()
 
-        self.multi_game_patcher.reload_patterns()
+        self.patcher.reload_patterns()
 
         # Fallback if still empty
         precached_game = self.configuration.game or self.settings.app_settings.selected_game or SUPPORTED_GAMES[0]
@@ -1201,9 +1143,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # Keep the saved version if it has patches, otherwise let the patcher choose
         fallback_version = self.configuration.version or patcher_models.KEY_VERSION_LATEST
-        selected_version = self.multi_game_patcher.pick_version(
-            precached_game, platform=platform, preferred=fallback_version
-        )
+        selected_version = self.patcher.pick_version(precached_game, platform=platform, preferred=fallback_version)
         if not selected_version:
             selected_version = fallback_version
             log.warning(
@@ -1232,7 +1172,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         """
         game = self.configuration.game
 
-        configured_platform = self.configuration.platform
         if self.configuration.is_proton:
             binary_path = self.settings.game(game).proton_install_path
         else:
@@ -1242,18 +1181,17 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.info(f"No saved {game} executable to check yet: '{binary_path}'", silent=True)
             return None
 
-        patcher = self.multi_game_patcher.get_game_patcher(game, self.configuration.version)
-        if not patcher:
+        if game not in self.patcher.get_available_games():
             return None
 
-        platform = patcher.detect_platform(Path(binary_path)) or configured_platform
+        platform = self.patcher.platform_of(self.configuration, Path(binary_path))
 
-        available_patches = patcher.get_available_patches(platform)
+        available_patches = self.patcher.get_available_patches(self.configuration, platform)
         if not available_patches:
             return None
 
         status = {}
-        for name, applied in patcher.get_patch_status(Path(binary_path), platform).items():
+        for name, applied in self.patcher.get_patch_status(self.configuration, Path(binary_path)).items():
             status[available_patches[name].display_name] = applied
         return status
 

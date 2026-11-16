@@ -1,157 +1,199 @@
 # Original regex pattern patching credit: Melechtna Antelecht
+"""
+`Patcher`: reads the patterns file and patches game executables with it.
 
-import datetime
+    patcher = Patcher(patterns_file)
+    patcher.get_available_games()
+    patcher.get_available_patches(configuration)
+    patcher.patch_game(configuration, binary_path)
+
+Methods about one game take the `PatchConfiguration` (game, version, platform).
+
+Methods that are given the executable use the platform that file was built for, see `platform_of()`.
+"""
+
 import json
 import logging
-import re
-import shutil
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
-from core import services
 from core.paths import FILE_EXTENSION
-from patchers import auto_patch
+from patchers import auto_patch, backups
 from patchers.models import (
     KEY_VERSION_LATEST,
     GameExecutable,
+    PatchConfiguration,
+    PatchOutcome,
     PatchPattern,
-    PatchPatternProperties,
     Platform,
     PlatformConfig,
-    PlatformConfigProperties,
 )
+from patchers.patterns_parser import ParsedPatterns, parse_patterns
 from utils.helpers import spread_over_percent
 
 log = logging.getLogger("PDX Patchers")
 
 RESTORE_ORIGINAL_ADVICE = "restore the original executable (a backup or verifying the game files in Steam)"
 
+# {patch name: patch} and {patch name: the scan its checks were found in}
+Patches = Dict[str, PatchPattern]
+Scans = Dict[str, auto_patch.ScanResult]
 
-class GamePatcher:
-    """Patches the executable of a game version, using that version's config from the patterns file."""
 
-    def __init__(self, game_name: str, version_config: Dict):
-        self.game_name: str = game_name
-        self.config: dict = version_config
-        self.platforms: Dict[Platform, PlatformConfig] = self._parse_platforms()
-        self.exe_info: Optional[GameExecutable] = None
+class Patcher:
+    """Patches game executables, using the games, versions and patches listed in the patterns file."""
+
+    def __init__(self, patterns_file: Path):
+        self._patterns_file = Path(patterns_file)
+        self.patterns: ParsedPatterns = {}
+        self._load_patterns()
+
+    @property
+    def patterns_file(self) -> Path:
+        return self._patterns_file
+
+    @patterns_file.setter
+    def patterns_file(self, value: Path) -> None:
+        old = self._patterns_file
+        self._patterns_file = Path(value)
+        try:
+            self.reload_patterns()
+        except Exception as e:
+            self._patterns_file = old
+            raise
 
     # ------------------------------------------------------------------------
-    # Patterns config
+    # Patterns file: games, versions and patches
     # ------------------------------------------------------------------------
 
-    def _parse_platforms(self) -> Dict[Platform, PlatformConfig]:
-        """Parse platform configurations from config"""
-        platforms = {}
+    def _load_patterns(self) -> None:
+        """Load the patterns file. If it's missing, the patterns already loaded are kept."""
+        if not self.patterns_file.exists():
+            log.warning(f"Patterns file not found: {self.patterns_file}", silent=True)
+            return
 
-        for platform_key, platform_data in self.config.items():
-            platforms[platform_key] = PlatformConfig(
-                platform_name=platform_key,
-                description=platform_data.get(PlatformConfigProperties.description, "N/A"),
-                exe_filename=platform_data.get(PlatformConfigProperties.exe_filename, ""),
-                path_postfix=platform_data.get(PlatformConfigProperties.path_postfix, ""),
-                patches=self._parse_patches(platform_key, platform_data.get(PlatformConfigProperties.patches, {})),
-            )
+        log.info(f"Loading patterns file: {self.patterns_file}", silent=True)
 
-        log.debug(f"{platforms=}")
-        return platforms
+        patterns_data = json.loads(self.patterns_file.read_bytes())
+        self.patterns = parse_patterns(patterns_data)
 
-    @staticmethod
-    def _parse_patches(platform_key: str, patches_data: Dict) -> Dict[str, PatchPattern]:
-        patches = {}
+        log.info(f"Loaded patterns: {json.dumps(patterns_data, indent=2)}", silent=True)
 
-        for patch_name, patch_data in patches_data.items():
-            if "replace_call_with" not in patch_data:
-                # Entry from the old regex-based patterns.json. "Update Patterns" fetches the new format
-                log.warning(f"Skipping '{patch_name}' ({platform_key}): outdated patterns file format.")
-                continue
+    def reload_patterns(self) -> None:
+        log.info("Reload Patterns...", silent=True)
+        self._load_patterns()
 
-            patches[patch_name] = PatchPattern(
-                display_name=patch_data.get(PatchPatternProperties.display_name, "N/A"),
-                description=patch_data.get(PatchPatternProperties.description, "N/A"),
-                required=patch_data.get(PatchPatternProperties.required, False),
-                enabled=patch_data.get(PatchPatternProperties.enabled, False),
-                checksum_string=patch_data.get(
-                    PatchPatternProperties.checksum_string, auto_patch.DEFAULT_CHECKSUM_STRING
-                ),
-                replace_call_with=patch_data[PatchPatternProperties.replace_call_with],
-                site_rule=auto_patch.SiteRule(
-                    near_strings=patch_data.get(PatchPatternProperties.near_strings, []),
-                    site_overrides=GamePatcher._parse_site_overrides(
-                        patch_name, patch_data.get(PatchPatternProperties.site_overrides, {})
-                    ),
-                    takes_unmatched_sites=patch_data.get(PatchPatternProperties.takes_unmatched_sites, False),
-                ),
-            )
+    def get_available_games(self) -> List[str]:
+        games = list(self.patterns)
+        log.debug(f"Available games: {games}", silent=True)
+        return games
 
-        return patches
+    def get_available_versions(self, game: str) -> List[str]:
+        """Versions of `game` in the patterns file, in file order."""
+        versions = list(self.patterns.get(game, {}))
+        log.debug(f"Available versions for '{game}': {versions}", silent=True)
+        return versions
 
-    @staticmethod
-    def _parse_site_overrides(patch_name: str, overrides_data: Dict) -> Dict[str, List[int]]:
-        """{build checksum: ["0x1ad54e", ...]} -> {build checksum: [0x1ad54e, ...]}. Invalid offsets are skipped."""
-        overrides = {}
+    def get_versions_with_patches(self, game: str, platform: Optional[Platform] = None) -> List[str]:
+        """Versions of `game` that have at least one patch for `platform`, in patterns-file order."""
+        versions = []
+        for version in self.get_available_versions(game):
+            if self._patches_of(game, version, platform):
+                versions.append(version)
+        return versions
 
-        for checksum, offsets in overrides_data.items():
-            overrides[checksum] = []
-            for offset in offsets:
-                try:
-                    overrides[checksum].append(int(offset, 16))
-                except TypeError, ValueError:
-                    log.warning(
-                        f"Skipping invalid site override '{offset}' of '{patch_name}'. Use hex, ex.: '0x1ad54e'."
-                    )
+    def pick_version(
+        self, game: str, platform: Optional[Platform] = None, preferred: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        Choose which version of `game` to select.
 
-        return overrides
+        Order: `preferred` (saved version), then 'latest', then the first version with patches.
+        Only versions with patches for `platform` are considered. Returns None if there are none.
+        """
+        candidates = self.get_versions_with_patches(game, platform)
 
-    @staticmethod
-    def _platform_or_current(platform: Optional[Platform]) -> Platform:
+        for version in (preferred, KEY_VERSION_LATEST):
+            if version and version in candidates:
+                return version
+
+        if candidates:
+            return candidates[0]
+        return None
+
+    def get_available_patches(self, configuration: PatchConfiguration, platform: Optional[Platform] = None) -> Patches:
+        """
+        {patch name: patch} for the configuration's game and version.
+        For the configuration's platform, unless another `platform` is given (ex.: from `platform_of()`).
+        """
         if platform is None:
-            return Platform.detect_current()
-        return platform
+            platform = configuration.platform
+        return self._patches_of(configuration.game, configuration.version, platform)
 
-    def get_platform_config(self, platform: Platform) -> Optional[PlatformConfig]:
-        return self.platforms.get(platform)
+    def get_executable_info(
+        self, configuration: PatchConfiguration, platform: Optional[Platform] = None
+    ) -> Optional[GameExecutable]:
+        """
+        File name of the game's executable, and where it is inside a macOS bundle.
+        """
+        if platform is None:
+            platform = configuration.platform
 
-    def get_available_patches(self, platform: Optional[Union[Platform, str]] = None) -> Dict[str, PatchPattern]:
+        platform_config = self._platform_config(configuration.game, configuration.version, platform)
+        if not platform_config:
+            return None
+
+        return GameExecutable(filename=platform_config.exe_filename, path_postfix=platform_config.path_postfix)
+
+    def _platform_configs(self, game: str, version: str) -> Dict[str, PlatformConfig]:
+        """
+        {platform: config} of `game` at `version`.
+        A version that isn't in the patterns file falls back to the game's first version. Empty if there is none.
+        """
+        if game not in self.patterns:
+            log.error(f"Game '{game}' not found in patterns.")
+            return {}
+
+        versions = self.patterns[game]
+        platform_configs = versions.get(version)
+
+        # Fall back to the first version in the patterns file
+        if not platform_configs:
+            log.error(f"Version '{version}' not found for game '{game}'. Using fallback.")
+            available_versions = list(versions)
+            if available_versions:
+                log.info(f"Got available versions for '{game}': {available_versions}")
+                version = available_versions[0]
+                platform_configs = versions[version]
+
+        if not platform_configs:
+            log.error(f"Version '{version}' not found for game '{game}'.")
+            return {}
+
+        return platform_configs
+
+    def _platform_config(self, game: str, version: str, platform: Optional[Platform]) -> Optional[PlatformConfig]:
+        """Config of one platform. None if the platform is unknown or the patterns have nothing for it."""
         # Unknown platforms give None, so no patches, rather than another platform's patches
-        platform = Platform.parse(self._platform_or_current(platform))
+        platform = Platform.parse(platform)
+        return self._platform_configs(game, version).get(platform)
 
-        platform_config = self.get_platform_config(platform)
+    def _patches_of(self, game: str, version: str, platform: Optional[Platform]) -> Patches:
+        """{patch name: patch} of `game` at `version` for `platform` (this computer's platform if None)."""
+        if platform is None:
+            platform = Platform.detect_current()
+
+        platform_config = self._platform_config(game, version, platform)
         if platform_config:
             return platform_config.patches
         return {}
 
-    def _patches_by_patch_string(self, platform: Optional[Platform] = None) -> Dict[str, Dict[str, PatchPattern]]:
-        """
-        {checksum_string: {patch name: patch}} of `platform`'s patches.
-        Patches looking for the same string are found in one scan, and its checks are shared out between them.
-        """
-        groups = {}
-        for patch_name, patch in self.get_available_patches(platform).items():
-            groups.setdefault(patch.checksum_string, {})[patch_name] = patch
-        return groups
-
-    def get_patch(self, patch_name: str, platform: Optional[Platform] = None) -> Optional[PatchPattern]:
-        patch = self.get_available_patches(platform).get(patch_name)
-        log.info(f"{patch=}", silent=True)
-        return patch
-
-    def get_executable_info(self, platform: Optional[Platform] = None) -> Optional[GameExecutable]:
-        """Executable info for `platform`. Also remembered in `exe_info` for `locate_game_install()`."""
-        platform_config = self.get_platform_config(self._platform_or_current(platform))
-
-        if not platform_config:
-            self.exe_info = None
-            return None
-
-        self.exe_info = GameExecutable(filename=platform_config.exe_filename, path_postfix=platform_config.path_postfix)
-        return self.exe_info
-
     # ------------------------------------------------------------------------
-    # Locating the executable
+    # The executable: the platform and where it is
     # ------------------------------------------------------------------------
 
-    def detect_platform(self, file_path: Path) -> Optional[Platform]:
+    @staticmethod
+    def detect_platform(file_path: Path) -> Optional[Platform]:
         """Platform the executable was built for, read from its file format. None if unknown."""
         file_path = Path(file_path)
 
@@ -166,11 +208,22 @@ class GamePatcher:
 
         return Platform.from_file_format(file_format)
 
-    def locate_game_install(self, game_install_path: Optional[Path]) -> Optional[Path]:
+    def platform_of(self, configuration: PatchConfiguration, file_path: Path) -> Platform:
         """
-        Returns path to game executable inside `game_install_path`, the game's install folder.
+        Platform to patch `file_path` for.
+        The one the file was built for (ex.: a Linux binary patched from macOS).
+        The configuration's platform (the Native/Proton choice) if the file doesn't tell.
+        """
+        detected_platform = self.detect_platform(file_path)
+        if detected_platform:
+            return detected_platform
+        return configuration.platform
 
-        Call `get_executable_info()` first, as it sets which executable to look for.
+    @staticmethod
+    def locate_game_install(game_install_path: Optional[Path], exe_filename: str) -> Optional[Path]:
+        """
+        Returns path to the game executable named `exe_filename` (from `get_executable_info()`) inside
+        `game_install_path`, the game's install folder. None if it isn't there.
         """
         log.info("Locating game install...")
         log.debug(f"{game_install_path=}")
@@ -178,48 +231,52 @@ class GamePatcher:
         if not game_install_path or not game_install_path.exists():
             return None
 
-        if not self.exe_info:
-            log.error(f"No executable info: {self.exe_info=}")
-            return None
-
         # The install folder is the executable itself (ex.: a macOS .app bundle from GOG)
-        if game_install_path.name.lower() == self.exe_info.filename.lower():
+        if game_install_path.name.lower() == exe_filename.lower():
             log.info(f"Auto-located path: '{game_install_path}'")
             return game_install_path
 
-        expected_exe_path = game_install_path / self.exe_info.filename
+        expected_exe_path = game_install_path / exe_filename
         if expected_exe_path.is_file():
             log.info(f"Auto-located path: '{expected_exe_path}'")
             return expected_exe_path
 
         # Not where we expected it, search the whole install folder
         for item in game_install_path.rglob("*"):
-            if item.name == self.exe_info.filename:
+            if item.name == exe_filename:
                 log.info(f"Auto-located path: '{item}'")
                 return item.resolve()
 
         log.warning("Unable to auto-locate game binary. Automatic path detection failed.")
         return None
 
-    def _resolve_binary(self, file_path: Path, platform: Optional[Platform] = None) -> Path:
+    def find_bundle_root(self, configuration: PatchConfiguration, binary_path: Path) -> Optional[Path]:
+        """The bundle (ex.: macOS .app) holding `binary_path`, using each platform's `path_postfix`. None if not in one."""
+        for platform_config in self._platform_configs(configuration.game, configuration.version).values():
+            bundle_root = platform_config.bundle_root(binary_path)
+            if bundle_root:
+                return bundle_root
+        return None
+
+    def find_binary_backups(self, configuration: PatchConfiguration, binary_path: Union[Path, str]) -> List[Path]:
+        """Backups the Patcher made of the game binary at `binary_path`, oldest first."""
+        binary_path = Path(binary_path)
+        return backups.find_backups(binary_path, self.find_bundle_root(configuration, binary_path))
+
+    def _resolve_binary(self, configuration: PatchConfiguration, file_path: Path, platform: Platform) -> Path:
         """For macOS .app bundles, return the actual binary inside the bundle."""
         if file_path.suffix.lower() == FILE_EXTENSION.APP and file_path.is_dir():
-            platform_config = self.get_platform_config(self._platform_or_current(platform))
+            platform_config = self._platform_config(configuration.game, configuration.version, platform)
             if platform_config and platform_config.path_postfix:
                 return file_path / platform_config.path_postfix
         return file_path
 
-    # ------------------------------------------------------------------------
-    # Backups
-    # ------------------------------------------------------------------------
-
-    def _backup_target(self, file_path: Path, platform: Platform) -> Path:
+    def _backup_target(self, configuration: PatchConfiguration, file_path: Path, platform: Platform) -> Path:
         """
         What to back up before patching `file_path`.
         The whole bundle (ex.: macOS .app) if it's inside one.
         """
-
-        platform_config = self.get_platform_config(platform)
+        platform_config = self._platform_config(configuration.game, configuration.version, platform)
         if not platform_config:
             # Unknown platform
             return file_path
@@ -231,177 +288,152 @@ class GamePatcher:
 
         return file_path
 
-    def _create_backup(self, file_path: Path) -> bool:
-        """Create a timestamped backup next to `file_path`, removing the oldest backups over the limit."""
-        max_allowed_backups = services().settings.app_settings.max_allowed_binary_backups
-
-        # If max is 0, don't create or delete any backups
-        if max_allowed_backups <= 0:
-            log.info(f"Backup creation disabled (max_allowed_binary_backups = {max_allowed_backups})", silent=True)
-            return True
-
-        self._delete_old_backups(file_path, max_allowed_backups)
-
-        timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-        backup_path = Path(f"{file_path}-{timestamp_str}.orig")
-
-        try:
-            # macOS .app bundles are folders
-            if file_path.is_dir():
-                if backup_path.exists():
-                    shutil.rmtree(backup_path)
-                shutil.copytree(file_path, backup_path)
-            else:
-                shutil.copy2(file_path, backup_path)
-
-            log.info(f"Create backup: {backup_path}")
-            return True
-        except Exception as e:
-            log.error(f"Failed to create backup: {e}")
-            return False
-
-    def find_bundle_root(self, binary_path: Path) -> Optional[Path]:
-        """The bundle (ex.: macOS .app) holding `binary_path`, using each platform's `path_postfix`. None if not in one."""
-        for platform_config in self.platforms.values():
-            bundle_root = platform_config.bundle_root(binary_path)
-            if bundle_root:
-                return bundle_root
-        return None
-
-    def find_binary_backups(self, binary_path: Union[Path, str]) -> List[Path]:
-        """
-        Backups the Patcher made of the game binary at `binary_path`, oldest first.
-
-        Backups sit next to what was backed up and are named after it:
-        `<name>-<timestamp>.orig` now, `<name>_<timestamp>.orig` or `<name>.orig` in older versions.
-        If the binary is inside a bundle (ex.: macOS .app), the whole bundle is backed up, so its backups are included too.
-        """
-        binary_path = Path(binary_path)
-
-        targets = [binary_path]
-        bundle_root = self.find_bundle_root(binary_path)
-        if bundle_root:
-            targets.append(bundle_root)
-
-        backups: List[Path] = []
-        for target in targets:
-            folder = target.parent
-            if not folder.is_dir():
-                continue
-
-            pattern = re.compile(rf"^{re.escape(target.name)}([-_].+)?\.orig$", re.IGNORECASE)
-            try:
-                for item in folder.iterdir():
-                    if pattern.match(item.name):
-                        backups.append(item)
-            except OSError as e:
-                log.warning(f"Unable to list backups in '{folder}': {e}")
-
-        backups = sorted(set(backups), key=lambda item: item.stat().st_mtime)
-        log.debug(f"Binary backups of '{binary_path}': {backups}")
-        return backups
-
-    def _delete_old_backups(self, backup_target: Path, max_allowed_backups: int) -> None:
-        """Delete the oldest backups of `backup_target` so there is room for one more within `max_allowed_backups`."""
-        log.info(f"Deleting backups if reached or over max allowance: {max_allowed_backups}", silent=True)
-        log.info(f"Processing backups of: {backup_target}", silent=True)
-
-        # Only backups of this target, so backups of other files in the folder keep their own limit
-        backups = self.find_binary_backups(backup_target)
-
-        if len(backups) < max_allowed_backups:
-            log.info(f"No backups to delete, found {len(backups)}/{max_allowed_backups}")
-            return
-
-        log.info(f"Sorted backups: {backups}", silent=True)
-
-        num_to_keep = max_allowed_backups - 1
-        num_to_delete = len(backups) - num_to_keep
-        log.info(f"Keep {num_to_keep}, Delete {num_to_delete}", silent=True)
-
-        for backup_item in backups[:num_to_delete]:
-            log.info(f"Remove: '{backup_item}", silent=True)
-            try:
-                # macOS .app backups are folders
-                if backup_item.is_dir():
-                    shutil.rmtree(backup_item)
-                else:
-                    backup_item.unlink()
-            except Exception as e:
-                log.warning(f"Failed to delete backup: '{backup_item}': {e}")
-
     # ------------------------------------------------------------------------
     # Patching
     # ------------------------------------------------------------------------
 
-    def patch_file_multiple(
+    def patch_game(
         self,
+        configuration: PatchConfiguration,
+        file_path: Path,
+        use_default_patches: bool = False,
+        max_backups: int = backups.DEFAULT_MAX_BACKUPS,
+        progress: Optional[Callable[[int, str], None]] = None,
+    ) -> PatchOutcome:
+        """
+        Patch the game executable at `file_path` with the configuration's selected patches.
+        Picks the platform and the patches, backs up and patches.
+        """
+        file_path = Path(file_path)
+        log.info(f"Proceeding to patch executable: {file_path}")
+        log.info(f"Using configuration: {configuration}", silent=True)
+
+        if not configuration.game:
+            log.error("Configuration game is empty")
+            return PatchOutcome(platform=configuration.platform)
+
+        # Patch for whatever the selected binary actually is (ex.: Linux binary patched from macOS)
+        platform = self.platform_of(configuration, file_path)
+        if platform != configuration.platform:
+            log.info(f"Selected binary is a {platform.value} executable. Using {platform.value} patches.")
+
+        outcome = PatchOutcome(platform=platform)
+        outcome.patches_to_apply = self.pick_patches(configuration, platform, use_default_patches)
+
+        if not outcome.patches_to_apply:
+            log.error(f"No patches available for {configuration.game} '{configuration.version}' on {platform}.")
+            return outcome
+
+        log.info(f"Patches to apply: {outcome.patches_to_apply}", silent=True)
+
+        if progress:
+            progress(10, "Preparing patches")
+
+        outcome.results = self.apply_patches_to_file(
+            configuration, file_path, outcome.patches_to_apply, max_backups=max_backups, progress=progress
+        )
+
+        for patch_name, success in outcome.results.items():
+            if not success:
+                log.warning(f"Failed patch: {patch_name}")
+
+        return outcome
+
+    def pick_patches(
+        self, configuration: PatchConfiguration, platform: Platform, use_default_patches: bool = False
+    ) -> List[str]:
+        """
+        Pick names of the patches to apply for `platform`. Prioritises `configuration`'s selected patches that
+        still exist plus every required patch.
+
+        The Patches on a non-first run and applied to `configuration` on startup or load, so even if the user
+        doesn't open the patch configuration window, the selected patches they had applied previously
+        will still apply on subsequent runs.
+
+        `use_default_patches`: when none of the selected patches exist (nothing was picked yet or an empty
+        `configuration` of patches is present), start from the patches that are enabled by default.
+        """
+        available_patches = self.get_available_patches(configuration, platform)
+
+        # Ignore saved patch names that no longer exist
+        patch_names = [name for name in configuration.selected_patches if name in available_patches]
+        outdated_patches = [name for name in configuration.selected_patches if name not in available_patches]
+        if outdated_patches:
+            log.info(f"Ignoring saved patches that no longer exist: {outdated_patches}", silent=True)
+
+        if not patch_names and use_default_patches:
+            patch_names = [name for name, patch in available_patches.items() if patch.enabled]
+            log.info(f"No saved patch selection. Using default patches for '{configuration.version}'.")
+
+        # Required patches are always applied, even if not in the selection
+        for name, patch in available_patches.items():
+            if patch.required and name not in patch_names:
+                patch_names.append(name)
+
+        return patch_names
+
+    def apply_patches_to_file(
+        self,
+        configuration: PatchConfiguration,
         file_path: Path,
         patch_names: List[str],
-        platform: Optional[Platform] = None,
-        create_backup: bool = True,
+        max_backups: int = backups.DEFAULT_MAX_BACKUPS,
         progress: Optional[Callable[[int, str], None]] = None,
     ) -> Dict[str, bool]:
         """
-        Apply multiple patches to a file in a single operation.
+        Apply the patches named `patch_names` to the game executable at `file_path`.
 
-        `progress` is called with (percent, text) before each step, if provided.
-
-        Returns:
-            dict: where `key` is patch name and `value` is `bool` status whether it succeeded or failed to apply.
+        Returns {patch name: success}.
         """
-        platform = self._platform_or_current(platform)
         file_path = Path(file_path)
+        platform = self.platform_of(configuration, file_path)
+        patches = self.get_available_patches(configuration, platform)
 
         log.info(f"Attempting to apply {len(patch_names)} patches: {patch_names}")
 
         if progress:
             progress(20, "Checking existing patches")
 
-        binary = self._resolve_binary(file_path, platform)
-        scans = self.scan_file(binary, platform)
+        binary = self._resolve_binary(configuration, file_path, platform)
+        scans = self._scan_file(binary, patches)
         for error in self._scan_errors(scans):
             log.error(f"✗ Unable to patch '{binary}': {error}")
 
         status = self._status_from(scans)
-        self._log_unselected_patched(status, patch_names, platform)
-        patches_to_apply, results = self._check_patches(scans, status, patch_names, platform)
+        self._log_unselected_patched(status, patch_names, patches)
+        patches_to_apply, results = self._check_patches(scans, status, patch_names, patches, platform)
 
         if not patches_to_apply:
             self._log_nothing_to_apply(results)
             self._log_patch_status(results)
             return results
 
-        if create_backup:
-            if progress:
-                progress(40, "Creating backup")
+        if progress:
+            progress(40, "Creating backup")
 
-            if not self._create_backup(self._backup_target(file_path, platform)):
-                log.error("Failed to create backup, aborting all patches")
-                for patch_name, _ in patches_to_apply:
-                    results[patch_name] = False
-                self._log_patch_status(results)
-                return results
+        if not backups.create_backup(self._backup_target(configuration, file_path, platform), max_backups):
+            log.error("Failed to create backup, aborting all patches")
+            for patch_name, _ in patches_to_apply:
+                results[patch_name] = False
+            self._log_patch_status(results)
+            return results
 
         results.update(self._apply_patches_batch(binary, scans, patches_to_apply, progress))
 
         if progress:
             progress(95, "Checking the result")
-        self._confirm_patches(binary, results, platform)
+        self._confirm_patches(binary, results, patches)
 
         self._log_patch_status(results)
         return results
 
+    @staticmethod
     def _check_patches(
-        self,
-        scans: Dict[str, auto_patch.ScanResult],
-        status: Dict[str, bool],
-        patch_names: List[str],
-        platform: Platform,
+        scans: Scans, status: Dict[str, bool], patch_names: List[str], patches: Patches, platform: Platform
     ) -> Tuple[List[Tuple[str, PatchPattern]], Dict[str, bool]]:
         """
         Sort `patch_names` into patches still to apply and patches already decided, using `scans` from
-        `scan_file()` and `status` from `_status_from()`.
+        `_scan_file()` and `status` from `_status_from()`.
 
         Returns (patches to apply, {patch name: success}). Unknown patches and patches whose scan failed have failed,
         already applied ones succeeded.
@@ -410,14 +442,15 @@ class GamePatcher:
         results = {}
 
         for patch_name in patch_names:
-            patch = self.get_patch(patch_name, platform)
+            patch = patches.get(patch_name)
+            log.info(f"{patch=}", silent=True)
 
             if not patch:
                 log.warning(f"Patch '{patch_name}' not found for platform {platform}")
                 results[patch_name] = False
                 continue
 
-            # The reason was logged by `patch_file_multiple()`
+            # The reason was logged in `apply_patches_to_file()`
             if scans[patch_name].error:
                 results[patch_name] = False
                 continue
@@ -431,17 +464,19 @@ class GamePatcher:
 
         return patches_to_apply, results
 
-    def _log_unselected_patched(self, status: Dict[str, bool], patch_names: List[str], platform: Platform) -> None:
-        """Patches already in the file but not selected stay applied: patching never restores original code."""
+    @staticmethod
+    def _log_unselected_patched(status: Dict[str, bool], patch_names: List[str], patches: Patches) -> None:
+        """
+        Patches already in the file but not selected stay applied.
+        Patching never restores original code.
+        """
         for patch_name, patched in status.items():
             if not patched or patch_name in patch_names:
                 continue
 
-            patch = self.get_patch(patch_name, platform)
-            display_name = patch.display_name if patch else patch_name
             log.warning(
-                f"'{display_name}' is already patched and stays patched. To undo it, {RESTORE_ORIGINAL_ADVICE}, "
-                f"then patch again."
+                f"'{patches[patch_name].display_name}' is already patched and stays patched. To undo this, "
+                f"{RESTORE_ORIGINAL_ADVICE}, then patch again."
             )
 
     @staticmethod
@@ -475,19 +510,20 @@ class GamePatcher:
     def _apply_patches_batch(
         self,
         binary: Path,
-        scans: Dict[str, auto_patch.ScanResult],
-        patches: List[Tuple[str, PatchPattern]],
+        scans: Scans,
+        patches_to_apply: List[Tuple[str, PatchPattern]],
         progress: Optional[Callable[[int, str], None]] = None,
     ) -> Dict[str, bool]:
         """
-        Write each patch's unpatched checksum checks, as found by `scan_file()` in `scans`, with that patch's own
-        `replace_call_with`. Returns {patch name: success}. See patchers.auto_patch.
+        Write each patch's unpatched checksum checks.
+
+        Returns {patch name: success}.
         """
         log.info(f"{binary=}", silent=True)
         results = {}
-        patches_length = len(patches)
+        patches_length = len(patches_to_apply)
 
-        for index, (patch_name, patch) in enumerate(patches):
+        for index, (patch_name, patch) in enumerate(patches_to_apply):
 
             if progress:
                 # Spread patches over 50-95%
@@ -512,9 +548,9 @@ class GamePatcher:
 
         return results
 
-    def _confirm_patches(self, binary: Path, results: Dict[str, bool], platform: Platform) -> None:
+    def _confirm_patches(self, binary: Path, results: Dict[str, bool], patches: Patches) -> None:
         """Scan `binary` again and set to failed, in `results`, the patches that didn't end up in the file."""
-        status = self.get_patch_status(binary, platform)
+        status = self._patch_status(binary, patches)
 
         for patch_name, success in results.items():
             if success and not status.get(patch_name):
@@ -545,43 +581,96 @@ class GamePatcher:
             log.info(f"  {site.call_offset:#x}: {site.matched_by}", silent=True)
         return True
 
-    def patch_file(
-        self, file_path: Path, patch_name: str, platform: Optional[Platform] = None, create_backup: bool = True
-    ) -> bool:
-        """Apply a single patch to the specified file."""
-        return self.patch_file_multiple(file_path, [patch_name], platform, create_backup).get(patch_name, False)
+    # ------------------------------------------------------------------------
+    # Scanning: which checks an executable has, and which are patched
+    # ------------------------------------------------------------------------
 
-    def scan_data(self, data: bytes, platform: Optional[Platform] = None) -> Dict[str, auto_patch.ScanResult]:
+    def get_patch_status(self, configuration: PatchConfiguration, file_path: Path) -> Dict[str, bool]:
         """
-        Find the checksum checks of each of `platform`'s patches in executable `data`.
+        {patch name: applied} for every patch the game executable at `file_path` can get, from scanning the file.
+        A patch is applied when it has checksum checks and all of them are patched.
+        """
+        file_path = Path(file_path)
+        platform = self.platform_of(configuration, file_path)
+        patches = self.get_available_patches(configuration, platform)
+
+        binary = self._resolve_binary(configuration, file_path, platform)
+        return self._patch_status(binary, patches)
+
+    def scan_data(self, configuration: PatchConfiguration, data: bytes, platform: Optional[Platform] = None) -> Scans:
+        """
+        Find the checksum checks of each patch in executable `data`. Used by and in report tool.
 
         Returns {patch name: scan result}, empty if the platform has no patches. Check each result's `error`.
-        Every patch uses its own `checksum_string` and `replace_call_with`. Patches with the same `checksum_string`
-        share one scan result, in which each check is labelled with the patch it belongs to.
         """
-        platform = self._platform_or_current(platform)
+        return self._scan(data, self.get_available_patches(configuration, platform))
+
+    def _patch_status(self, binary: Path, patches: Patches) -> Dict[str, bool]:
+        """{patch name: applied} for each of `patches`, from scanning `binary`."""
+        scans = self._scan_file(binary, patches)
+        for error in self._scan_errors(scans):
+            log.error(f"Error checking patch status: {error}")
+
+        status = self._status_from(scans)
+        log.debug(f"Patch status of '{binary}': {status}")
+        return status
+
+    def _scan_file(self, binary: Path, patches: Patches) -> Scans:
+        """`_scan()` for the executable at `binary`. Check each result's `error`."""
+        try:
+            data = Path(binary).read_bytes()
+        except OSError as e:
+            unreadable = auto_patch.ScanResult(error=f"Unable to read '{binary}': {e}")
+            return dict.fromkeys(patches, unreadable)
+        return self._scan(data, patches)
+
+    def _scan(self, data: bytes, patches: Patches) -> Scans:
+        """
+        Find the checksum checks of each of `patches` in executable `data`.
+
+        Returns {patch name: scan result}. Check each result's `error`.
+        Every patch uses its own `target_string` and `replace_call_with`.
+        Patches with the same `target_string` share one scan result, in which each
+        check is labelled with the patch it belongs to.
+        """
         scans = {}
 
-        for checksum_string, patches in self._patches_by_patch_string(platform).items():
-            replacements = [patch.replacement_bytes for patch in patches.values()]
+        for target_string, patches_of_string in self._patches_by_target_string(patches).items():
+            replacements = [patch.replacement_bytes for patch in patches_of_string.values()]
             rules = {}
-            for patch_name, patch in patches.items():
+            for patch_name, patch in patches_of_string.items():
                 rules[patch_name] = patch.site_rule
 
-            result = auto_patch.scan(data, checksum_string, replacements)
+            result = auto_patch.scan(data, target_string, replacements)
             auto_patch.label_sites(data, result, rules)
-            self._mark_patched(data, result, patches)
+            self._mark_patched(data, result, patches_of_string)
 
-            for patch_name in patches:
+            for patch_name in patches_of_string:
                 scans[patch_name] = result
 
         return scans
 
     @staticmethod
-    def _mark_patched(data: bytes, result: auto_patch.ScanResult, patches: Dict[str, PatchPattern]) -> None:
+    def _patches_by_target_string(patches: Patches) -> Dict[str, Patches]:
+        """
+        {
+            target_string: {
+                patch name: patch
+            }
+        }
+
+        Patches looking for the same string are found in one scan, and its checks are shared out between them.
+        """
+        groups = {}
+        for patch_name, patch in patches.items():
+            groups.setdefault(patch.target_string, {})[patch_name] = patch
+        return groups
+
+    @staticmethod
+    def _mark_patched(data: bytes, result: auto_patch.ScanResult, patches: Patches) -> None:
         """
         A check is patched when it holds the replacement bytes of the patch it belongs to.
-        The scan only knows it holds one of the replacements, which may be another patch's.
+        The scan only knows it holds one of the replacements, which can be another patch's.
         """
         for site in result.sites:
             patch = patches.get(site.patch_name)
@@ -589,144 +678,20 @@ class GamePatcher:
                 site_bytes = data[site.call_offset : site.call_offset + auto_patch.CALL_LENGTH]
                 site.patched = site_bytes == patch.replacement_bytes
 
-    def scan_file(self, binary: Path, platform: Optional[Platform] = None) -> Dict[str, auto_patch.ScanResult]:
-        """`scan_data()` for the executable at `binary`. Check each result's `error`."""
-        try:
-            data = Path(binary).read_bytes()
-        except OSError as e:
-            unreadable = auto_patch.ScanResult(error=f"Unable to read '{binary}': {e}")
-            return dict.fromkeys(self.get_available_patches(platform), unreadable)
-        return self.scan_data(data, platform)
-
     @staticmethod
-    def _scan_errors(scans: Dict[str, auto_patch.ScanResult]) -> List[str]:
-        """Each different error in `scans`, once. Patches sharing a scan share its error."""
+    def _scan_errors(scans: Scans) -> List[str]:
+        """Each different error in `scans`, once. Error is shared for patches that share a scan."""
         errors = []
         for result in scans.values():
             if result.error and result.error not in errors:
                 errors.append(result.error)
         return errors
 
-    def get_patch_status(self, file_path: Path, platform: Optional[Platform] = None) -> Dict[str, bool]:
-        """
-        {patch name: applied} for every patch of `platform`, from scanning the file.
-        A patch is applied when it has checksum checks and all of them are patched.
-        """
-        platform = self._platform_or_current(platform)
-        scans = self.scan_file(self._resolve_binary(Path(file_path), platform), platform)
-        for error in self._scan_errors(scans):
-            log.error(f"Error checking patch status: {error}")
-
-        status = self._status_from(scans)
-        log.debug(f"Patch status of '{file_path}': {status}")
-        return status
-
     @staticmethod
-    def _status_from(scans: Dict[str, auto_patch.ScanResult]) -> Dict[str, bool]:
+    def _status_from(scans: Scans) -> Dict[str, bool]:
         """{patch name: applied} for each patch in `scans`. False if its scan failed."""
         status = {}
         for patch_name, result in scans.items():
             sites = result.sites_of(patch_name)
             status[patch_name] = bool(sites) and all(site.patched for site in sites)
         return status
-
-
-class MultiGamePatcher:
-    """Main class used for patching the binary. Used to determine and return a `GamePatcher` instance."""
-
-    def __init__(self, patterns_file: Path):
-        self.patterns_file = Path(patterns_file)
-        self.patterns_config: Dict = {}
-        self.games: List[str] = []
-        self._load_patterns()
-
-    def _load_patterns(self) -> Dict:
-        """Load the patterns file. If it's missing, the patterns already loaded are kept."""
-        if not self.patterns_file.exists():
-            log.warning(f"Patterns file not found: {self.patterns_file}", silent=True)
-            return {}
-
-        log.info(f"Loading patterns file: {self.patterns_file}", silent=True)
-
-        self.patterns_config = json.loads(self.patterns_file.read_bytes())
-        self.games = list(self.patterns_config.keys())
-
-        log.info(f"Loaded patterns: {json.dumps(self.patterns_config, indent=2)}", silent=True)
-        return self.patterns_config
-
-    def reload_patterns(self) -> Dict:
-        log.info("Reload Patterns...", silent=True)
-        return self._load_patterns()
-
-    def get_available_games(self) -> List[str]:
-        log.debug(f"Available games: {self.games}", silent=True)
-        return self.games
-
-    def get_available_versions(self, game_name: str) -> List[str]:
-        """Get available versions for a specific game"""
-        game_config = self.patterns_config.get(game_name) or {}
-        versions = list(game_config.keys())
-        log.debug(f"Available versions for '{game_name}': {versions}", silent=True)
-        return versions
-
-    def get_game_patcher(self, game_name: str, version: str = KEY_VERSION_LATEST) -> Optional[GamePatcher]:
-        log.debug(f"Get game patcher for game: '{game_name}': '{version}'", silent=True)
-
-        if game_name not in self.games:
-            log.error(f"Game '{game_name}' not found in patterns.")
-            return None
-
-        game_config: dict = self.patterns_config.get(game_name, {})
-        version_config = game_config.get(version)
-
-        # Fall back to the first version in the patterns file
-        if not version_config:
-            log.error(f"Version '{version}' not found for game '{game_name}'. Using fallback.")
-            versions = self.get_available_versions(game_name)
-            if versions:
-                log.info(f"Got available versions for '{game_name}': {versions}")
-                version = versions[0]
-                version_config = game_config.get(version)
-
-        if not version_config:
-            log.error(f"Version '{version}' not found for game '{game_name}'.")
-            return None
-
-        log.debug(f"Got version '{version}' config.", silent=True)
-        log.debug(json.dumps(version_config, indent=2), silent=True)
-        return GamePatcher(game_name=game_name, version_config=version_config)
-
-    def get_available_patches_for_game(
-        self, game_name: str, version: str = KEY_VERSION_LATEST, platform: Optional[Platform] = None
-    ) -> Dict[str, PatchPattern]:
-        log.debug(f"Getting available patches for '{game_name}': '{version}' on platform: {platform}", silent=True)
-
-        patcher = self.get_game_patcher(game_name, version=version)
-        if patcher:
-            return patcher.get_available_patches(platform)
-        return {}
-
-    def get_versions_with_patches(self, game_name: str, platform: Optional[Platform] = None) -> List[str]:
-        """Versions of `game_name` that have at least one patch for `platform`, in patterns-file order."""
-        return [
-            version
-            for version in self.get_available_versions(game_name)
-            if self.get_available_patches_for_game(game_name, version, platform)
-        ]
-
-    def pick_version(
-        self, game_name: str, platform: Optional[Platform] = None, preferred: Optional[str] = None
-    ) -> Optional[str]:
-        """
-        Choose which version of `game_name` to select.
-
-        Order: `preferred` (ex.: the saved version), then 'latest', then the first version with patches.
-        Only versions with patches for `platform` are considered. Returns None if there are none.
-        """
-        candidates = self.get_versions_with_patches(game_name, platform)
-
-        for version in (preferred, KEY_VERSION_LATEST):
-            if version and version in candidates:
-                return version
-
-        return candidates[0] if candidates else None

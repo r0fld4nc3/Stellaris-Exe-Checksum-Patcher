@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 
 from core import services
 from core.paths import os_darwin, os_linux
-from patchers import MultiGamePatcher
+from patchers import Patcher
 from patchers import models as patcher_models
 from stores import get_store_helper
 from utils.platform import WAYLAND, X11
@@ -440,7 +440,7 @@ def is_qt_platform_backend_x11() -> bool:
     return get_qt_platform() == X11
 
 
-def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.PatchConfiguration) -> Optional[Path]:
+def find_game_path(patcher: Patcher, configuration: patcher_models.PatchConfiguration) -> Optional[Path]:
     """
     Utility function to find the game path automatically.
 
@@ -449,22 +449,24 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
     2. Auto-locating through the game's store
 
     Args:
-        patcher: The multi-game patcher instance
+        patcher: The patcher instance
         configuraiton: Patch Configuration
 
     Returns:
         Path to game executable if found, otherwise None
     """
 
-    game_patcher = patcher.get_game_patcher(configuration.game, configuration.version)
+    # Determine platform and executable info
+    if configuration.is_proton:
+        platform = patcher_models.Platform.WINDOWS
+    else:
+        platform = patcher_models.Platform.detect_current()
 
-    if not game_patcher:
-        log.error(f"Failed to get patcher for {configuration.game} version {configuration.version}")
+    exe_info = patcher.get_executable_info(configuration, platform)
+    if not exe_info:
+        log.error(f"No executable info for {configuration.game} version {configuration.version} on {platform}")
         return None
 
-    # Determine platform and executable info
-    platform = patcher_models.Platform.WINDOWS if configuration.is_proton else None
-    exe_info = game_patcher.get_executable_info(platform)
     path_postfix = exe_info.path_postfix
     log.info(f"{exe_info=}", silent=True)
     log.info(f"Platform: {platform}", silent=True)
@@ -495,7 +497,7 @@ def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.Patc
 
     log.info("Attempting to auto-locate game installation.")
     game_install_path = store_helper.get_game_install_path(configuration.game)
-    auto_located_path = game_patcher.locate_game_install(game_install_path)
+    auto_located_path = patcher.locate_game_install(game_install_path, exe_info.filename)
 
     # macOS: point inside the .app bundle at the actual binary
     if auto_located_path and os_darwin() and not configuration.is_proton and path_postfix:

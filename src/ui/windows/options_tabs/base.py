@@ -5,7 +5,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget
 
 from core import services
-from patchers import MultiGamePatcher, PatchConfiguration
+from patchers import PatchConfiguration, Patcher
 from patchers.models import KEY_VERSION_LATEST
 from utils.threads import Threader
 
@@ -23,7 +23,7 @@ class OptionsContext(QObject):
     # Ask dialog to reload every tab
     reload_requested = Signal()
 
-    def __init__(self, patcher: MultiGamePatcher, configuration: PatchConfiguration, font: QFont, parent=None):
+    def __init__(self, patcher: Patcher, configuration: PatchConfiguration, font: QFont, parent=None):
         super().__init__(parent)
         self.patcher = patcher
         self.configuration = configuration
