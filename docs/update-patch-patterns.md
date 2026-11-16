@@ -46,7 +46,7 @@ It uses the bundled `patterns_v2.json`. To try changes to another patterns file,
 Example output (4.5.4):
 
 ```
-Checksum string:   4394a9a4797b27029182f9dba4431b4f
+Target string (Checksum):     4394a9a4797b27029182f9dba4431b4f
 Compare function:  0x1420463d0
 Sites:             4 (4 unpatched)
 
@@ -63,7 +63,7 @@ Tooltip           1 site(s)
 
 Things to look for:
 
-- **It finds a checksum string and some sites.** If so, patching works.
+- **It finds a target string and some sites.** If so, patching works.
 - **Every patch has at least one site.** If so, the update needs nothing.
 - **`matched by` says `unmatched`**: that check matched none of the patches' strings and went to Checksum.
   Look at its nearby strings and see the next section.
@@ -84,16 +84,16 @@ Settings the app downloads from GitHub, so they can change without an app releas
 
 | Field | Meaning |
 |---|---|
-| `checksum_string` | Regex for the official checksum string in the executable. Default `[0-9a-f]{32}` (an MD5). |
+| `target_string` | Regex for the string whose comparisons are patched: the official checksum string in the executable. Default `[0-9a-f]{32}` (an MD5). |
 | `replace_call_with` | Hex bytes written over each `CALL strcmp`. Must be exactly 5 bytes. |
 | `required` / `enabled` | Whether the patch is forced on / on by default in the UI. |
 | `near_strings` | Game strings loaded in the same function as this patch's checks. Used to tell the checks apart. |
 | `takes_unmatched_sites` | Also patch checks no other patch matches. Set on the required Checksum patch. |
 | `site_overrides` | `{"<build checksum>": ["0x1ad54e"]}`: call offsets (from the report) to use for that exact build. For emergencies, strings are preferred. |
 
-Every patch uses its own `checksum_string` and `replace_call_with`, so one patch can be changed without touching
-the others. Patches with the same `checksum_string` are found in one scan, and its checks are shared out between
-them. A patch with a different `checksum_string` gets its own scan: if that one fails, the other patches still apply.
+Every patch uses its own `target_string` and `replace_call_with`, so one patch can be changed without touching
+the others. Patches with the same `target_string` are found in one scan, and its checks are shared out between
+them. A patch with a different `target_string` gets its own scan: if that one fails, the other patches still apply.
 
 A check counts as patched when it holds its own patch's `replace_call_with`. If you change a patch's
 `replace_call_with`, executables patched with the old bytes are no longer recognised: restore the original first.
@@ -107,10 +107,10 @@ Add a new version key (next to `latest`) only if a specific game version needs d
 
 ## If it stops working
 
-- **"No checksum string found"**: the game changed how it stores the checksum. Open the exe in Ghidra, look for
+- **"No target string found"**: the game changed how it stores the checksum. Open the exe in Ghidra, look for
   the `checksum_manifest.txt` string, follow it to the checksum code, and see what the official checksum looks like
-  now. Update `checksum_string` if it's just a different format.
-- **"More than one possible checksum string"**: make `checksum_string` more specific.
+  now. Update `target_string` if it's just a different format.
+- **"More than one possible target string"**: make `target_string` more specific.
 - **Sites are missing or skipped**: the code between the string and the `CALL` changed. See `MAX_CALL_DISTANCE`
   in [auto_patch.py](../src/patchers/auto_patch.py), or compare in Ghidra.
 - **Background**: https://steamcommunity.com/sharedfiles/filedetails/?id=2460079052
