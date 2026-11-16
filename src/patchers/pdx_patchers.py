@@ -29,6 +29,7 @@ from patchers.models import (
     PlatformConfig,
 )
 from patchers.patterns_parser import ParsedPatterns, parse_patterns
+from utils.characters import CHAR_CHECKMARK, CHAR_CROSS
 from utils.helpers import spread_over_percent
 
 log = logging.getLogger("PDX Patchers")
@@ -491,10 +492,10 @@ class Patcher:
         for patch_name, success in results.items():
             if success:
                 applied.append(patch_name)
-                log.info(f"✓ {patch_name} already applied.")
+                log.info(f"{CHAR_CHECKMARK} {patch_name} already applied.")
             else:
                 failed.append(patch_name)
-                log.info(f"x {patch_name} failed to apply.")
+                log.info(f"{CHAR_CROSS} {patch_name} failed to apply.")
 
         if applied and not failed:
             log.info("No patches to apply (all already applied).")
@@ -543,7 +544,9 @@ class Patcher:
                 results[patch_name] = False
                 continue
 
-            log.info(f"✓ Applied Patch: '{patch.display_name}' ({len(result.sites_of(patch_name))} checksum checks)")
+            log.info(
+                f"{CHAR_CHECKMARK} Applied Patch: '{patch.display_name}' ({len(result.sites_of(patch_name))} checksum checks)"
+            )
             results[patch_name] = True
 
         return results
