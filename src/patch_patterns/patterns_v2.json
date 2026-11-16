@@ -11,7 +11,7 @@
                         "description": "Achievements can be earned with mods. Includes Crash Reporter fix.",
                         "required": true,
                         "enabled": true,
-                        "checksum_string": "[0-9a-f]{32}",
+                        "target_string": "[0-9a-f]{32}",
                         "replace_call_with": "31C00F1F00",
                         "near_strings": [
                             "common/achievements.txt",
@@ -24,7 +24,7 @@
                         "description": "Hide the yellow version text shown when the checksum is modified.",
                         "required": false,
                         "enabled": true,
-                        "checksum_string": "[0-9a-f]{32}",
+                        "target_string": "[0-9a-f]{32}",
                         "replace_call_with": "31C00F1F00",
                         "near_strings": [
                             "version_text_box",
@@ -36,7 +36,7 @@
                         "description": "Show the normal checksum tooltip instead of the modified-checksum one.",
                         "required": false,
                         "enabled": false,
-                        "checksum_string": "[0-9a-f]{32}",
+                        "target_string": "[0-9a-f]{32}",
                         "replace_call_with": "31C00F1F00",
                         "near_strings": [
                             "ACHIEVEMENT_TOOLTIP_CHECKSUM"
@@ -54,7 +54,7 @@
                         "description": "Achievements can be earned with mods. Includes Crash Reporter fix.",
                         "required": true,
                         "enabled": true,
-                        "checksum_string": "[0-9a-f]{32}",
+                        "target_string": "[0-9a-f]{32}",
                         "replace_call_with": "31C00F1F00",
                         "near_strings": [
                             "common/achievements.txt",
@@ -67,7 +67,7 @@
                         "description": "Hide the yellow version text shown when the checksum is modified.",
                         "required": false,
                         "enabled": true,
-                        "checksum_string": "[0-9a-f]{32}",
+                        "target_string": "[0-9a-f]{32}",
                         "replace_call_with": "31C00F1F00",
                         "near_strings": [
                             "version_text_box",
@@ -79,7 +79,7 @@
                         "description": "Show the normal checksum tooltip instead of the modified-checksum one.",
                         "required": false,
                         "enabled": false,
-                        "checksum_string": "[0-9a-f]{32}",
+                        "target_string": "[0-9a-f]{32}",
                         "replace_call_with": "31C00F1F00",
                         "near_strings": [
                             "ACHIEVEMENT_TOOLTIP_CHECKSUM"
