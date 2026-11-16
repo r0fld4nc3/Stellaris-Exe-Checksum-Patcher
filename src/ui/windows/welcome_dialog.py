@@ -141,9 +141,9 @@ class WelcomeDialog(QDialog):
 
                 <p>To start the patch process, click the patch button indicated by the greyed-out image of an achievement.</p>
 
-                <p>Patching requires some base information to identify the correct sites to patch. The patcher should now be much more robust as it automatically tries to find the sites to patch based off of checksum information and some byte regex rules.</p>
+                <p>Patching requires some base information to identify the correct sites to patch. The Patcher finds the game's checksum checks by itself from the game executable, and tells them apart by the surrounding game text found around each one. This should help make it more robust to game updates.</p>
 
-                <p>These rules are found in a patterns file that comes bundled with the application, whoever, the default behaviour is to always check online and update this local file with one from the remote repository. In case something needs to change, the patterns and regex rules can be updated without requiring an update to the Patcher application itself.</p>
+                <p>These rules are found in a patterns file that comes bundled with the application, however, the default behaviour is to always check online and update this local file with one from the remote repository. In case something needs to change, the patterns can be updated without requiring an update to the Patcher application itself.</p>
 
                 <p>Once patching is complete, the button turns into a <b>Launch</b> button, so <b>you can launch the game directly from the Patcher.</b> If every patch applied, its achievement icon also becomes coloured.</p>
 
@@ -166,7 +166,16 @@ class WelcomeDialog(QDialog):
 
                 <p>Under <b>Patch Configuration</b> you can choose which game to patch, which version of the patch configuration to use and, on Linux and macOS, whether you're patching the native game or the Windows version running through <b>Proton</b>.</p>
 
-                <p>Below that, you can see the patches that will be applied. The defaults are all you need, so you technically don't <i>need</i> to change anything here, but I would rather give you options than restrict them.</p>
+                <p>Below that, you can pick the patches to apply, each with a short description:</p>
+                <ul>
+                    <li><b>Checksum</b> is always applied. It lets you earn achievements with mods and stops the crash reporter from flagging the game as modified.</li>
+                    <li><b>Warning</b> hides the yellow version text shown when the game is modified.</li>
+                    <li><b>Tooltip</b> shows the normal checksum tooltip instead of the modified-checksum one.</li>
+                </ul>
+
+                <p>The defaults are all you need, so you technically don't <i>need</i> to change anything here, but I would rather give you options than restrict them.</p>
+
+                <p>To remove patches, restore the original executable (from a backup or with <b>Validate Integrity of Game Files</b if available) and patch again.</p>
 
                 <p>This tab also has buttons to <b>Show Game Folder</b> and <b>Show Save Games Folder</b>, to <b>Validate Integrity of Game Files</b> through your game's store, and to <b>Delete Backups</b> of the game executable made when patching.</p>
 
