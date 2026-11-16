@@ -13,7 +13,7 @@ It comes with the flagship feature of a complete rewrite of how patching works, 
 - **Patch from any OS.** The Patcher works out whether your game is the Windows or Linux version, so you can even patch it from a different system. macOS application support has been increased, though patching the macOS binary is still not reliable.
 - **Easier cleanup.** Clear out old game backups with **Delete Backups**, and old save backups with **Manage Save Backups**. These were generated files from the given operations, available if something were to go wrong.
 
-## Better all round
+## Better all around
 
 - A progress bar shows what the Patcher is doing while it works.
 - The options window is tidier, with **General Utilities** for the Patcher itself and **Game Utilities** for the respective game. **Cancel** to undoes all the changes.
