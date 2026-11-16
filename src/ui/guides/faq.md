@@ -14,6 +14,15 @@ Just press **Patch**. If the game is already patched, the Patcher says so and le
 
 The patch stays in place until the game is updated or its files are verified or repaired (by Steam, GOG Galaxy or your launcher). After that, patch again.
 
+## Changing or removing patches
+
+Pick your patches in **Game Utilities**. 
+**Checksum** is always applied, but **Warning** (_optional, enabled) and **Tooltip** (_optional, disabled) are up to you.
+
+Patches can be applied to an executable that has already been patched.
+
+Removing a patch needs a clean copy of the game first. Restore the original executable (from a backup, or with **Validate Integrity of Game Files** if available), configure desired patches and press **Patch** again.
+
 ## The Patcher can't find my game
 
 If the game isn't found automatically, you'll be asked to select its executable (for example **stellaris.exe** on Windows or **stellaris** on Linux). The Patcher remembers it for next time.
