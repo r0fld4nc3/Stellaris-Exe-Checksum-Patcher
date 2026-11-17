@@ -59,13 +59,13 @@ QCheckBox#StyledCheckbox1 {
     margin: 3px 0;
 }
 
+/* Round: border-radius is half the full size (width + 2 × border). Checked dot is a radial gradient */
 QCheckBox#StyledCheckbox1::indicator {
-    width: 18px;
-    height: 18px;
-    padding: 2px;
+    width: 22px;
+    height: 22px;
     border: 1px solid rgb(67, 144, 134);
+    border-radius: 12px;
     background-color: rgba(22, 59, 56, 100);
-    background-clip: content;
 }
 
 QCheckBox#StyledCheckbox1::indicator:hover {
@@ -74,7 +74,12 @@ QCheckBox#StyledCheckbox1::indicator:hover {
 
 QCheckBox#StyledCheckbox1::indicator:checked {
     border-color: rgb(255, 179, 25);
-    background-color: rgb(255, 179, 25);
+    /* background-color: rgb(255, 179, 25); */
+    background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5, fx: 0.5, fy: 0.5,
+        stop: 0 rgb(255, 179, 25),
+        stop: 0.45 rgb(255, 179, 25),
+        stop: 0.55 rgba(22, 59, 56, 100)
+    );
 }
 
 QCheckBox#StyledCheckbox1::indicator:disabled {
@@ -83,7 +88,12 @@ QCheckBox#StyledCheckbox1::indicator:disabled {
 
 QCheckBox#StyledCheckbox1::indicator:checked:disabled {
     border-color: rgb(140, 140, 140);
-    background-color: rgb(140, 140, 140);
+    /* background-color: rgb(140, 140, 140); */
+    background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5, fx: 0.5, fy: 0.5,
+        stop: 0 rgb(140, 140, 140),
+        stop: 0.45 rgb(140, 140, 140),
+        stop: 0.55 rgba(22, 59, 56, 100)
+    );
 }
 
 /* Required patches are disabled but still readable, without the grey disabled box */
@@ -315,7 +325,7 @@ QProgressBar#PatchProgressBar {
 }
 
 QProgressBar#PatchProgressBar::chunk {
-    background-color: rgba(255, 179, 25, 150);  /* Orange fill */
+    background-color: rgba(255, 179, 25, 200);  /* Orange fill */
 }
 
 /* Markdown text: message, FAQ */
