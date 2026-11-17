@@ -23,8 +23,8 @@ This app makes a small, automatic change to the game's executable so that achiev
 </p>
 
 <p align="center">
-<img src="media/stellaris-checksum-patcher-08-03.png" width="49%" alt="Stellaris Checksum Patcher General Utilities">
 <img src="media/stellaris-checksum-patcher-08-04.png" width="49%" alt="Stellaris Checksum Patcher Game Utilities">
+<img src="media/stellaris-checksum-patcher-08-03.png" width="49%" alt="Stellaris Checksum Patcher General Utilities">
 </p>
 
 > [!IMPORTANT]
@@ -73,8 +73,22 @@ Before changing anything, the app saves a backup of your original game executabl
 - Finds the game's checksum checks by itself, directly in the game executable, so game updates shouldn't need a new version of the app.
 - Looks for Stellaris through your game's store (Steam or GOG Galaxy). If it can't find it, it asks you to select the game's executable.
 - Creates a versioned backup of your current game executable.
-- Applies the selected patches (or the default ones if you haven't chosen any).
+- Applies the patches you picked (see [Choose your patches](#choose-your-patches)).
 - Remembers the game's location for next time.
+
+### Choose your patches
+
+Open the options (cogwheel at the top right) and go to **Game Utilities** to pick the patches:
+
+| Patch | What it does |
+|---|---|
+| **Checksum** | Lets you earn achievements with mods. Always applied. |
+| **Warning** | Hides the yellow version text the game shows when it's modified. |
+| **Tooltip** | Shows the normal checksum tooltip instead of the modified-checksum one. |
+
+All three are on by default. Untick **Warning** or **Tooltip** if you'd like to keep that reminder that the game is modified.
+
+You can add a patch to an already patched game by ticking it and clicking **Patch** again. To remove one, restore the original game file first (see [How do I restore the original game file?](#how-do-i-restore-the-original-game-file)), then patch again.
 
 ### Game stores
 
@@ -121,10 +135,10 @@ This is the fix most people need.
 **How to use it:**
 
 1. Click **Fix Save**.
-2. Choose which fixes you want to apply.
-3. Select the save file to work on.
-4. The app saves a backup of your save in its configuration folder, under "save games".
-5. The app applies the fixes you selected.
+2. Select the save file to work on. The picker opens in your save games folder.
+3. The app reads the save and shows what it found: whether it's Ironman, whether it's flagged as cheated, and whether its achievements list is complete.
+4. Tick the fixes you want and click **Apply Fixes**. **Update Achievements** is ticked for you when the list needs it.
+5. If a fix changes something, the app first saves a backup of your save in its configuration folder, under "saves_backup", then applies the fixes and shows what changed.
 
 If something doesn't look right afterwards, restore your save from that backup. To clean up old save backups, use **Manage Save Backups** in the options, under **General Utilities**.
 
@@ -164,7 +178,7 @@ Each time you patch, the app saves a backup copy of your original game executabl
 1. Open the app's options (cogwheel at the top right) and go to **Game Utilities**.
 2. Click **Show Game Folder**.
 3. Delete the patched executable: `stellaris.exe` on Windows, `stellaris` on Linux.
-4. Rename the backup copy to the original name: `stellaris.exe` on Windows, `stellaris` on Linux.
+4. Rename the backup copy (it ends in `.orig`, for example `stellaris.exe-2026-11-17 16-06-08.orig`) to the original name: `stellaris.exe` on Windows, `stellaris` on Linux.
 
 Old backups can be cleaned up with **Delete Backups**, also in **Game Utilities**.
 
