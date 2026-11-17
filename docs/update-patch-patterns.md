@@ -38,10 +38,10 @@ patched.
 From the `src` folder:
 
 ```bash
-uv run python -m patchers.report "/path/to/stellaris.exe"
+uv run python -m app.report "/path/to/stellaris.exe"
 ```
 
-It uses the bundled `patterns_v2.json`. To try changes to another patterns file, pass it as a second argument.
+It uses the bundled `patterns-v2.json`. To try changes to another patterns file, pass it as a second argument.
 
 Example output (4.5.4):
 
@@ -73,12 +73,12 @@ Things to look for:
 
 1. In the report, find the site that went `unmatched` and pick one of its nearby strings that names what it is
    (a GUI name, localisation key or file path, not a version number).
-2. Add it to that patch's `near_strings` in `patterns_v2.json`, for both `windows` and `linux`.
+2. Add it to that patch's `near_strings` in `patterns-v2.json`, for both `windows` and `linux`.
 3. Run the report again with the edited file, then push it. Users get it without an app release.
 
 In a hurry, add a `site_overrides` entry instead (see below), and replace it with a string later.
 
-## patterns_v2.json
+## patterns-v2.json
 
 Settings the app downloads from GitHub, so they can change without an app release:
 
