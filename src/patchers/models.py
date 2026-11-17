@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import ClassVar, Dict, List, Optional
 
 from core.paths import OS_TYPE, os_windows, system
 from patchers.auto_patch import FILE_FORMAT, SiteRule
@@ -56,38 +56,6 @@ class Platform(str, Enum):
             return None
 
 
-class PatchPatternProperties:
-    """
-    Represents properties that can be obtained from the `PatchPattern` class.
-
-    Usage example:
-
-    ```
-    patches[patch_name] = PatchPattern(
-        display_name=patch_data.get(PatchPatternProperties.display_name, "N/A"),
-        description=patch_data.get(PatchPatternProperties.description, "N/A"),
-        required=patch_data.get(PatchPatternProperties.required, False),
-        enabled=patch_data.get(PatchPatternProperties.enabled, False),
-        target_string=patch_data.get(
-            PatchPatternProperties.target_string, auto_patch.DEFAULT_TARGET_STRING
-        ),
-        replace_call_with=patch_data[PatchPatternProperties.replace_call_with],
-        site_rule=SiteRule(near_strings=patch_data.get(PatchPatternProperties.near_strings, [])),
-    )
-    ```
-    """
-
-    display_name: str = "display_name"
-    description: str = "description"
-    required: str = "required"
-    enabled: str = "enabled"
-    target_string: str = "target_string"
-    replace_call_with: str = "replace_call_with"
-    near_strings: str = "near_strings"
-    site_overrides: str = "site_overrides"
-    takes_unmatched_sites: str = "takes_unmatched_sites"
-
-
 @dataclass
 class PatchPattern:
     """
@@ -102,11 +70,28 @@ class PatchPattern:
     """
 
     display_name: str
+    display_name_key: ClassVar[str] = "display_name"
+
     description: str
+    description_key: ClassVar[str] = "description"
+
     required: bool
+    required_key: ClassVar[str] = "required"
+
     enabled: bool
+    enabled_key: ClassVar[str] = "enabled"
+
     target_string: str
+    target_string_key: ClassVar[str] = "target_string"
+
     replace_call_with: str
+    replace_call_with_key: ClassVar[str] = "replace_call_with"
+
+    # Keys of `site_rule`'s fields. They sit at the top level of each patch in the patterns file
+    near_strings_key: ClassVar[str] = "near_strings"
+    site_overrides_key: ClassVar[str] = "site_overrides"
+    takes_unmatched_sites_key: ClassVar[str] = "takes_unmatched_sites"
+
     site_rule: SiteRule = field(default_factory=SiteRule)
 
     @property
@@ -159,11 +144,19 @@ class PatchOutcome:
 class PlatformConfig:
     """Represents platform-specific configuration"""
 
-    platform_name: str
+    platform_name: str  # The platform's key in the patterns file (ex.: "windows"), not a value inside it
+
     description: str
+    description_key: ClassVar[str] = "description"
+
     exe_filename: str
+    exe_filename_key: ClassVar[str] = "exe_filename"
+
     path_postfix: str
+    path_postfix_key: ClassVar[str] = "path_postfix"
+
     patches: Dict[str, PatchPattern]
+    patches_key: ClassVar[str] = "patches"
 
     def bundle_root(self, binary_path: Path) -> Optional[Path]:
         """
@@ -187,31 +180,6 @@ class PlatformConfig:
             return None
 
         return bundle_root
-
-
-class PlatformConfigProperties:
-    """
-    Represents properties that can be obtained from the `PlatformConfig` class.
-
-    Usage example:
-
-    ```
-    for platform_key, platform_data in self.config.items():
-        platforms[platform_key] = PlatformConfig(
-            platform_name=platform_key,
-            description=platform_data.get(PlatformConfigProperties.description, "N/A"),
-            exe_filename=platform_data.get(PlatformConfigProperties.exe_filename, ""),
-            path_postfix=platform_data.get(PlatformConfigProperties.path_postfix, ""),
-            patches=self._parse_patches(platform_key, platform_data.get(PlatformConfigProperties.patches, {})),
-        )
-    ```
-    """
-
-    platform_name: str = "platform_name"
-    description: str = "description"
-    exe_filename: str = "exe_filename"
-    path_postfix: str = "path_postfix"
-    patches: str = "patches"
 
 
 @dataclass

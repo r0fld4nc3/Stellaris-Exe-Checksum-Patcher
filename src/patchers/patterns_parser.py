@@ -21,9 +21,7 @@ from typing import Dict, List
 from patchers import auto_patch
 from patchers.models import (
     PatchPattern,
-    PatchPatternProperties,
     PlatformConfig,
-    PlatformConfigProperties,
 )
 
 log = logging.getLogger("Patterns Parser")
@@ -56,10 +54,10 @@ def _parse_platforms(platforms_data: Dict) -> Dict[str, PlatformConfig]:
     for platform_key, platform_data in platforms_data.items():
         platforms[platform_key] = PlatformConfig(
             platform_name=platform_key,
-            description=platform_data.get(PlatformConfigProperties.description, "N/A"),
-            exe_filename=platform_data.get(PlatformConfigProperties.exe_filename, ""),
-            path_postfix=platform_data.get(PlatformConfigProperties.path_postfix, ""),
-            patches=_parse_patches(platform_key, platform_data.get(PlatformConfigProperties.patches, {})),
+            description=platform_data.get(PlatformConfig.description_key, "N/A"),
+            exe_filename=platform_data.get(PlatformConfig.exe_filename_key, ""),
+            path_postfix=platform_data.get(PlatformConfig.path_postfix_key, ""),
+            patches=_parse_patches(platform_key, platform_data.get(PlatformConfig.patches_key, {})),
         )
 
     log.debug(f"{platforms=}")
@@ -70,24 +68,22 @@ def _parse_patches(platform_key: str, patches_data: Dict) -> Dict[str, PatchPatt
     patches = {}
 
     for patch_name, patch_data in patches_data.items():
-        if "replace_call_with" not in patch_data:
+        if PatchPattern.replace_call_with_key not in patch_data:
             # Entry from the old regex-based patterns.json. "Update Patterns" fetches the new format
             log.warning(f"Skipping '{patch_name}' ({platform_key}): outdated patterns file format.")
             continue
 
         patches[patch_name] = PatchPattern(
-            display_name=patch_data.get(PatchPatternProperties.display_name, "N/A"),
-            description=patch_data.get(PatchPatternProperties.description, "N/A"),
-            required=patch_data.get(PatchPatternProperties.required, False),
-            enabled=patch_data.get(PatchPatternProperties.enabled, False),
-            target_string=patch_data.get(PatchPatternProperties.target_string, auto_patch.DEFAULT_TARGET_STRING),
-            replace_call_with=patch_data[PatchPatternProperties.replace_call_with],
+            display_name=patch_data.get(PatchPattern.display_name_key, "N/A"),
+            description=patch_data.get(PatchPattern.description_key, "N/A"),
+            required=patch_data.get(PatchPattern.required_key, False),
+            enabled=patch_data.get(PatchPattern.enabled_key, False),
+            target_string=patch_data.get(PatchPattern.target_string_key, auto_patch.DEFAULT_TARGET_STRING),
+            replace_call_with=patch_data[PatchPattern.replace_call_with_key],
             site_rule=auto_patch.SiteRule(
-                near_strings=patch_data.get(PatchPatternProperties.near_strings, []),
-                site_overrides=_parse_site_overrides(
-                    patch_name, patch_data.get(PatchPatternProperties.site_overrides, {})
-                ),
-                takes_unmatched_sites=patch_data.get(PatchPatternProperties.takes_unmatched_sites, False),
+                near_strings=patch_data.get(PatchPattern.near_strings_key, []),
+                site_overrides=_parse_site_overrides(patch_name, patch_data.get(PatchPattern.site_overrides_key, {})),
+                takes_unmatched_sites=patch_data.get(PatchPattern.takes_unmatched_sites_key, False),
             ),
         )
 
