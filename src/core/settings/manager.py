@@ -33,6 +33,7 @@ from .models import AppSettings, GameSettings
 
 log = logging.getLogger("Settings")
 
+GAMES_KEY = "games"  # Name of the `AppSettings.games` field and its key in the settings file
 SETTINGS_FILE_NAME = "stellaris-checksum-patcher-settings-v2.json"
 
 
@@ -148,7 +149,7 @@ class SettingsManager:
         """Build AppSettings from a dict, one field at a time. A bad value only resets that field."""
         settings = _dataclass_from_dict(AppSettings, data)
 
-        games_data = data.get("games", {})
+        games_data = data.get(GAMES_KEY, {})
         if not isinstance(games_data, dict):
             log.warning(f"Ignoring invalid 'games' value in settings: {games_data!r}")
             games_data = {}
@@ -204,7 +205,7 @@ class SettingsManager:
     def _to_dict(self) -> dict:
         """Turn settings into a plain dict for JSON. Call while holding the lock."""
         data = _dataclass_to_dict(self.app_settings)
-        data["games"] = {name: _dataclass_to_dict(game) for name, game in self.app_settings.games.items()}
+        data[GAMES_KEY] = {name: _dataclass_to_dict(game) for name, game in self.app_settings.games.items()}
         return data
 
     def _write_text_atomic(self, fp: Path, text: str) -> bool:
@@ -311,7 +312,7 @@ def _dataclass_from_dict(cls, data: dict):
             continue
         known.add(f.name)
 
-        if f.name == "games" or f.name not in data:
+        if f.name == GAMES_KEY or f.name not in data:
             continue  # games are handled by the caller
 
         if cls._is_locked_field(f.name):
@@ -334,7 +335,7 @@ def _dataclass_to_dict(obj) -> dict:
     """Public fields of a settings dataclass, plus any unknown keys we read from the file."""
     data = dict(obj._unknown)
     for f in fields(obj):
-        if not f.name.startswith("_") and f.name != "games":
+        if not f.name.startswith("_") and f.name != GAMES_KEY:
             value = getattr(obj, f.name)
             data[f.name] = list(value) if isinstance(value, list) else value
     return data
