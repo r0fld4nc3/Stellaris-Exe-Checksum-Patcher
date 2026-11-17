@@ -35,7 +35,7 @@
                         "display_name": "Tooltip",
                         "description": "Show the normal checksum tooltip instead of the modified-checksum one.",
                         "required": false,
-                        "enabled": false,
+                        "enabled": true,
                         "target_string": "[0-9a-f]{32}",
                         "replace_call_with": "31C00F1F00",
                         "near_strings": [
@@ -78,7 +78,7 @@
                         "display_name": "Tooltip",
                         "description": "Show the normal checksum tooltip instead of the modified-checksum one.",
                         "required": false,
-                        "enabled": false,
+                        "enabled": true,
                         "target_string": "[0-9a-f]{32}",
                         "replace_call_with": "31C00F1F00",
                         "near_strings": [
