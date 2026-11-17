@@ -26,9 +26,9 @@ RELEASE_DRAFT_KEY = "draft"
 
 
 class Updater:
-    def __init__(self, user: str = "github_username", repo_name: str = "you_repo_url"):
+    def __init__(self, github_user: str = "", repository_name: str = ""):
         # Sets the repo user, repo path and repo api url
-        self.user, self.repo, self.api = self.set_github_repo(user, repo_name)
+        self.user, self.repo, self.api = self.set_github_repo(github_user, repository_name)
 
         self.pulled_releases: list[dict] = []
         self._releases_max_fill = 10  # Used to just fill the last 10 releases. -1 unlimited
