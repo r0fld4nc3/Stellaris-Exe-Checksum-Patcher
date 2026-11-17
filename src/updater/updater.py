@@ -14,6 +14,16 @@ log = logging.getLogger("Updater")
 
 _REVISION_PATTERN = re.compile(r"\.rev(\d+)$")
 
+API_RELEASES = "/releases"
+RELEASE_NAME_KEY = "name"
+RELEASE_TAG_KEY = "tag_name"
+RELEASE_PRERELEASE_KEY = "prerelease"
+RELEASE_DRAFT_KEY = "draft"
+
+# API_RELEASES_LATEST = "/releases/latest"
+# ASSETS_KEY = "assets"
+# DOWNLOAD_URL_KEY = "browser_download_url"
+
 
 class Updater:
     def __init__(self, user: str = "github_username", repo_name: str = "you_repo_url"):
@@ -21,13 +31,7 @@ class Updater:
         self.user, self.repo, self.api = self.set_github_repo(user, repo_name)
 
         self.pulled_releases: list[dict] = []
-        self._api_releases = "/releases"
         self._releases_max_fill = 10  # Used to just fill the last 10 releases. -1 unlimited
-        self._api_releases_latest = "/releases/latest"
-        self._release_name = "name"
-        self._release_tag = "tag_name"
-        self._assets_tag = "assets"
-        self._download_url = "browser_download_url"
 
         self.last_checked_timestamp: int = 0
 
@@ -75,7 +79,7 @@ class Updater:
             return releases
 
         try:
-            api_call = f"{self.api}{self._api_releases}"
+            api_call = f"{self.api}{API_RELEASES}"
             log.info(f"CALL {api_call}", silent=True)
             response = requests.get(api_call, timeout=60, verify=certifi.where())
         except requests.RequestException as request_err:
@@ -115,12 +119,12 @@ class Updater:
         log.info(f"Getting newest {kind} from {len(releases)} supplied releases.", silent=True)
 
         for i, release in enumerate(releases):
-            name = release.get("name")
-            tag = release.get("tag_name")
-            if release.get("draft"):
+            name = release.get(RELEASE_NAME_KEY)
+            tag = release.get(RELEASE_TAG_KEY)
+            if release.get(RELEASE_DRAFT_KEY):
                 log.info(f"Release number {i} {name} ({tag}) is a draft. Skipping.", silent=True)
                 continue
-            if release.get("prerelease") and not include_prereleases:
+            if release.get(RELEASE_PRERELEASE_KEY) and not include_prereleases:
                 log.info(f"Release number {i} {name} ({tag}) is a pre-release. Skipping.", silent=True)
                 continue
 
@@ -136,13 +140,13 @@ class Updater:
         log.info(f"Local version: {current}{' (pre-release)' if current_is_prerelease else ''}", silent=True)
         log.info(f"Local revision: {self.local_revision}", silent=True)
 
-        remote_release = remote.get(self._release_name)
-        remote_tag = remote.get(self._release_tag)
+        remote_release = remote.get(RELEASE_NAME_KEY)
+        remote_tag = remote.get(RELEASE_TAG_KEY)
 
         remote_release_version: list[int] = self.construct_version_list_from_str(self.strip_revision(remote_release))
         remote_release_tag: list[int] = self.construct_version_list_from_str(self.strip_revision(remote_tag))
         remote_revision: int = self.get_revision(remote_tag)
-        remote_is_prerelease: bool = bool(remote.get("prerelease"))
+        remote_is_prerelease: bool = bool(remote.get(RELEASE_PRERELEASE_KEY))
 
         compare_iters = [remote_release_version, remote_release_tag]
 
