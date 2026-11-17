@@ -21,18 +21,17 @@ Not in place:
 Only assignments are noticed and saved.
 """
 
-from dataclasses import dataclass, field
+import json
+from contextlib import AbstractContextManager
+from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import Optional, Protocol
 
 from ..definitions import APP_IS_PRERELEASE, APP_REVISION, APP_VERSION_STR
 
-# TYPE_CHECKING used to restore IntelliSense auto-completion
-if TYPE_CHECKING:
-    from .manager import SettingsManager
-
 _MEMORY = "MEMORY"
 _LOCKED = "LOCKED"
+GAMES_KEY = "games"  # Name of the `AppSettings.games` field and its key in the settings file
 
 
 def memory(default, locked: bool = False):
@@ -44,11 +43,29 @@ def memory(default, locked: bool = False):
     return field(default=default, metadata={_MEMORY: True, _LOCKED: locked})
 
 
+class SettingsOwner(Protocol):
+    """
+    What a settings object needs from whoever owns it. `SettingsManager` in manager.py.
+
+    Defined here so the models don't import the manager (which imports the models).
+    """
+
+    lock: AbstractContextManager  # Held while a field changes and while saving
+
+    def _on_change(self, save_now: bool) -> None:
+        """
+        A field changed.
+
+        `save_now`: save right away. Otherwise a memory() field.
+        """
+        ...
+
+
 @dataclass
 class AutoSaveHookedSettingsClass:
     """Base class with manager."""
 
-    _manager: Optional["SettingsManager"] = field(default=None, init=False, repr=False, compare=False)
+    _manager: Optional[SettingsOwner] = field(default=None, init=False, repr=False, compare=False)
     # Keys found in the file that this version doesn't know about. Written back unchanged
     # Running an older/newer version of the app doesn't throw them away.
     _unknown: dict = field(default_factory=dict, init=False, repr=False, compare=False)
@@ -82,6 +99,19 @@ class AutoSaveHookedSettingsClass:
         f = cls.__dataclass_fields__.get(name)
         return f is not None and f.metadata.get(flag, False)
 
+    def dump(self) -> dict:
+        values = {}
+        for settings_field in fields(self):
+            if settings_field.name.startswith("_"):
+                continue
+
+            values[settings_field.name] = getattr(self, settings_field.name)
+        return values
+
+    def dump_json(self) -> str:
+        """`dump()` as indented JSON text."""
+        return json.dumps(self.dump(), indent=2, default=str)
+
 
 @dataclass
 class GameSettings(AutoSaveHookedSettingsClass):
@@ -104,6 +134,19 @@ class GameSettings(AutoSaveHookedSettingsClass):
                 binary_paths.append(Path(path_str))
 
         return binary_paths
+
+    def binary_path(self, is_proton: bool) -> str:
+        """Saved executable for the native game, or the Windows one run through Proton. Empty if not set."""
+        if is_proton:
+            return self.proton_install_path
+        return self.install_path
+
+    def set_binary_path(self, is_proton: bool, path: str) -> None:
+        """Save the executable for the native game, or the Windows one run through Proton."""
+        if is_proton:
+            self.proton_install_path = path
+        else:
+            self.install_path = path
 
 
 @dataclass
@@ -137,3 +180,13 @@ class AppSettings(AutoSaveHookedSettingsClass):
     patch_patterns_update_last_checked: int = memory(0)
     message_last_checked: int = memory(0)
     max_allowed_binary_backups: int = memory(1)
+
+    def dump(self) -> dict:
+        values = super().dump()
+
+        games = {}
+        for game, game_settings in self.games.items():
+            games[game] = game_settings.dump()
+        values[GAMES_KEY] = games
+
+        return values

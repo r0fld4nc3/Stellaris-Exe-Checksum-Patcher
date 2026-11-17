@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from core import services
+from core.services import services
 from patchers import PatchConfiguration, Patcher
 from ui.utils import adapt_to_parent_size, centre_on_parent
 
@@ -24,8 +24,8 @@ log = logging.getLogger("Patch Config")
 
 # Tabs shown in the Configure Application Options dialog, in display order.
 APP_OPTIONS_TABS = [
-    UtilitiesTab,
     GameUtilitiesTab,
+    UtilitiesTab,
 ]
 
 

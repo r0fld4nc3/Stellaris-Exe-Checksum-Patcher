@@ -7,8 +7,8 @@ from typing import Optional
 import certifi
 import requests
 
-from core import services
 from core.definitions import APP_IS_PRERELEASE, APP_REVISION, APP_VERSION_STR
+from core.services import services
 
 log = logging.getLogger("Updater")
 

@@ -12,8 +12,8 @@ import shlex
 from pathlib import Path
 from typing import Optional
 
-from core import services
 from core.paths import FILE_EXTENSION, os_darwin, os_windows
+from core.services import services
 
 from .base import StoreHelperBase
 

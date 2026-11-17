@@ -32,8 +32,8 @@ from typing import Optional
 
 import chardet
 
-from core import services
 from core.paths import os_darwin, os_linux, os_windows
+from core.services import services
 from utils.helpers import get_fpath_size
 
 # Same logger as the old save patcher, which the main window shows on the information screen

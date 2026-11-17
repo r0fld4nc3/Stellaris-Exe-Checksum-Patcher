@@ -7,12 +7,12 @@ from pathlib import Path
 import certifi
 import requests
 
-from core import services
 from core.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
+from core.services import services
 
 log = logging.getLogger("Patterns")  # isort: skip
 
-PATTERNS_FILE_NAME = "patterns_v2.json"
+PATTERNS_FILE_NAME = "patterns-v2.json"
 PATTERNS_URL = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/refs/heads/{REPO_BRANCH}/src/patch_patterns/{PATTERNS_FILE_NAME}"
 PATTERNS_DISTRIBUTED_FILE = Path(__file__).parent / PATTERNS_FILE_NAME
 
@@ -38,17 +38,15 @@ def get_patterns_config_remote() -> dict:
 
     last_checked = settings.app_settings.patch_patterns_update_last_checked
     now = int(time.time())
-    check_delta = now - last_checked
+    elapsed_since_last_check = now - last_checked
+    time_remaining = config.update_check_cooldown - elapsed_since_last_check
 
-    if not last_checked:
-        settings.app_settings.patch_patterns_update_last_checked = now
-
-    if check_delta < config.update_check_cooldown:
-        log.info(f"Update cooldown still in effect: {check_delta} seconds remaining")
+    if elapsed_since_last_check < config.update_check_cooldown:
+        log.info(f"Update cooldown still in effect: {time_remaining} seconds remaining")
         # Return local file
         return get_patterns_config_local()
-    else:
-        settings.app_settings.patch_patterns_update_last_checked = now
+
+    settings.app_settings.patch_patterns_update_last_checked = now
 
     try:
         response = requests.get(PATTERNS_URL, timeout=10, verify=certifi.where())

@@ -1,17 +1,10 @@
 import logging
 from pathlib import Path
 
+from app import bootstrap
 from cli import parse_args
-from core import bootstrap
-from core.definitions import (
-    APP_REVISION,
-    APP_VERSION,
-    REPO_BRANCH,
-    VISUAL_BRANCH,
-)
-from core.paths import system
 
-log = logging.getLogger("Entry_Point")
+log = logging.getLogger("Entry Point")
 
 
 def show_message_box(title: str, msg: str):
@@ -42,14 +35,7 @@ def main():
 
     log.info("[INIT] Running Application.")
 
-    log.info(f"Debug:                  {config.debug}")
-    log.info(f"App Version:            {APP_VERSION}")
-    log.info(f"App Revision:           {APP_REVISION}")
-    log.info(f"Repo Branch:            {REPO_BRANCH}")
-    log.info(f"Tracking Branch:        {VISUAL_BRANCH}")
-    log.info(f"Target System:          {system()}")
-    log.info(f"AppConfig:              {config}")
-    log.info(f"AppSettings:            {app_services.settings.app_settings}")
+    bootstrap.dump_app_info()
 
     try:
         from ui import StellarisChecksumPatcherGUI

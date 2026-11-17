@@ -28,14 +28,21 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from core import services
+from app.game_location import (
+    find_game_executable,
+    save_game_executable,
+    saved_game_executable,
+)
 from core.definitions import (
     APP_REVISION_STR,
     APP_VERSION_STR,
+    REPO_NAME,
+    REPO_OWNER,
     SUPPORTED_GAMES,
     VISUAL_BRANCH,
 )
 from core.paths import os_linux, os_windows
+from core.services import services
 
 # Patch Patterns
 from patch_patterns.patterns import (
@@ -63,17 +70,16 @@ from stores import (
     has_picked_store,
     set_game_store,
 )
+from updater import Updater
 from utils.platform import WAYLAND, X11
 from utils.threads import Threader
 
 from .resources import AppFont, AppIcon, IconAchievementState, ResourceManager
 from .utils import (
     EventFilterMoveResize,
-    find_game_path,
     get_qt_platform,
     get_screen_info,
     is_shift_held,
-    option_dialog_pick_from_options,
     prompt_path,
 )
 from .windows import (
@@ -84,6 +90,7 @@ from .windows import (
     StorePickerDialog,
     TabOptionsDialog,
     WelcomeDialog,
+    option_dialog_pick_from_options,
 )
 
 # Tabs shown in the Configure Application Options dialog, in display order.
@@ -118,7 +125,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.app_config = services().config
         self.settings = services().settings
-        self.updater = services().updater
+        self.updater = Updater(REPO_OWNER, REPO_NAME)  # Owned here: only the main window checks for updates
 
         qt_platform = get_qt_platform()
         log.info(f"Qt Platform: {qt_platform}")
@@ -625,7 +632,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         Returns the path if found, otherwise None.
         """
 
-        return find_game_path(self.patcher, self.configuration)
+        return find_game_executable(self.patcher, self.configuration)
 
     @Slot()
     def start_patch_game_executable_thread(self):
@@ -703,16 +710,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # Automatic search failed
             log.info("Asking for user-provided game executable path.")
 
-            game_settings = self.settings.game(self.configuration.game)
-            if self.configuration.is_proton:
-                saved_path = game_settings.proton_install_path
-            else:
-                saved_path = game_settings.install_path
-
             user_selected_path = prompt_path(
                 self,
                 caption=f"Choose {self.configuration.game} executable binary...",
-                start_path=Path(saved_path) if saved_path else None,
+                start_path=saved_game_executable(self.configuration),
             )
 
             if user_selected_path:
@@ -724,13 +725,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 self.hide_progress_bar()
                 return
 
-        game_binary_path_posix = game_binary_path.resolve().as_posix()
-
         if game_binary_path:
-            if self.configuration.is_proton:
-                self.settings.game(self.configuration.game).proton_install_path = game_binary_path_posix
-            else:
-                self.settings.game(self.configuration.game).install_path = game_binary_path_posix
+            save_game_executable(self.configuration, game_binary_path)
             self._run_patcher_worker_thread(game_binary_path)
 
     def _run_patcher_worker_thread(self, game_binary_path: Path):
@@ -1172,26 +1168,23 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         """
         game = self.configuration.game
 
-        if self.configuration.is_proton:
-            binary_path = self.settings.game(game).proton_install_path
-        else:
-            binary_path = self.settings.game(game).install_path
+        binary_path = saved_game_executable(self.configuration)
 
-        if not binary_path or not Path(binary_path).exists():
+        if not binary_path or not binary_path.exists():
             log.info(f"No saved {game} executable to check yet: '{binary_path}'", silent=True)
             return None
 
         if game not in self.patcher.get_available_games():
             return None
 
-        platform = self.patcher.platform_of(self.configuration, Path(binary_path))
+        platform = self.patcher.platform_of(self.configuration, binary_path)
 
         available_patches = self.patcher.get_available_patches(self.configuration, platform)
         if not available_patches:
             return None
 
         status = {}
-        for name, applied in self.patcher.get_patch_status(self.configuration, Path(binary_path)).items():
+        for name, applied in self.patcher.get_patch_status(self.configuration, binary_path).items():
             status[available_patches[name].display_name] = applied
         return status
 
@@ -1276,20 +1269,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.error(f"Unable to launch {game}.")
             return
 
-        store_helper.launch_game(game, self._saved_binary_path(game))
-
-    def _saved_binary_path(self, game: str) -> Optional[Path]:
-        """Saved executable for the binary being patched (native or Proton). None if none is saved yet."""
-        game_settings = self.settings.game(game)
-        if self.configuration.is_proton:
-            binary_path = game_settings.proton_install_path
-        else:
-            binary_path = game_settings.install_path
-
-        if not binary_path:
-            return None
-
-        return Path(binary_path)
+        store_helper.launch_game(game, saved_game_executable(self.configuration))
 
     def show_welcome_dialog(self):
         has_accepted_dialog = self.settings.app_settings.accepted_welcome_dialog

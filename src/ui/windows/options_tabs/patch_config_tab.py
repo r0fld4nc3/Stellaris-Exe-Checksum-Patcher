@@ -16,15 +16,21 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.game_location import (
+    find_game_executable,
+    find_game_folder,
+    game_folder_for,
+    save_game_executable,
+    saved_game_executable,
+)
 from core.paths import os_darwin, os_linux
 from patchers import PatchConfiguration
 from patchers import models as patcher_models
+from patchers.saves import get_save_games_folders
 from stores import GameStore, game_store, get_store_helper, set_game_store
 from ui.shared_widgets import AutoWidthComboBox, GameComboBox
 from ui.utils import (
-    find_game_path,
     is_shift_held,
-    option_dialog_pick_from_options,
     prompt_path,
     restore_window_focus,
 )
@@ -37,6 +43,7 @@ from utils.helpers import (
 from utils.platform import open_in_file_manager
 from utils.threads import Threader
 
+from ..option_picker_dialog import option_dialog_pick_from_options
 from .base import OptionsContext, OptionsTab
 
 log = logging.getLogger("Patch Config")
@@ -277,10 +284,7 @@ class GameUtilitiesTab(OptionsTab):
             log.error(f"Unable to validate game files for '{game}'.")
             return
 
-        install_path = self._saved_install_path(game)
-        binary_path = Path(install_path) if install_path else None
-
-        if not store_helper.validate_game_files(game, binary_path):
+        if not store_helper.validate_game_files(game, saved_game_executable(self.config)):
             return
 
         # The store can't validate on its own.
@@ -302,43 +306,17 @@ class GameUtilitiesTab(OptionsTab):
             log.warning("No game selected. Unable to locate game folder.")
             return
 
-        saved_path = None
-
-        # Prioritise auto_located_path
+        # Prioritise auto_located_path, and save it for next time
         if auto_located_path and auto_located_path.exists():
-            saved_path = auto_located_path
-            log.info(f"Using auto-located: {saved_path}", silent=True)
-
-            # Save the path for next time
-            saved_path_posix = saved_path.resolve().as_posix()
-            log.info(f"Save: '{saved_path_posix}'")
-
-            if self.config.is_proton:
-                self.svc.settings.game(game).proton_install_path = saved_path_posix
-            else:
-                self.svc.settings.game(game).install_path = saved_path_posix
-
+            log.info(f"Using auto-located: {auto_located_path}", silent=True)
+            save_game_executable(self.config, auto_located_path)
+            game_folder = game_folder_for(self.ctx.patcher, self.config, auto_located_path)
         else:
-            # Use the first saved path (or its folder) that exists
-            for path in self.svc.settings.game(game).saved_binary_paths():
-                if path.exists():
-                    saved_path = path
-                    log.info(f"Saved path: '{saved_path}'", silent=True)
-                    break
+            game_folder = find_game_folder(self.ctx.patcher, self.config)
 
-                if path.parent.exists():
-                    saved_path = path.parent
-                    log.info(f"Derived Game Folder: {saved_path}", silent=True)
-                    break
-
-        if saved_path:
-            # A binary inside a bundle (macOS .app): show the bundle instead
-            bundle_root = self.ctx.patcher.find_bundle_root(self.config, saved_path)
-            if bundle_root:
-                saved_path = bundle_root
-
-            log.info(f"Opening game folder: '{saved_path}'", silent=False)
-            open_in_file_manager(saved_path)
+        if game_folder:
+            log.info(f"Opening game folder: '{game_folder}'", silent=False)
+            open_in_file_manager(game_folder)
             return
 
         log.warning(f"Unable to determine game folder for '{game}'.")
@@ -362,8 +340,6 @@ class GameUtilitiesTab(OptionsTab):
             log.warning("User cancelled location. Unable to show game folder.")
 
     def show_save_games_folder(self):
-        from patchers.saves import get_save_games_folders
-
         game = self.selected_game
 
         if not game:
@@ -492,7 +468,7 @@ class GameUtilitiesTab(OptionsTab):
         Keep `game` executable paths for `old_store`, and put back the ones `new_store` had earlier in the run.
         Empty when `new_store` had none, so it auto-detects the game again.
         """
-        store_paths = self.svc.config.store_paths
+        store_paths = self.ctx.store_paths
         game_settings = self.svc.settings.game(game)
 
         store_paths[(game, old_store)] = (game_settings.install_path, game_settings.proton_install_path)
@@ -611,14 +587,9 @@ class GameUtilitiesTab(OptionsTab):
             silent=True,
         )
 
-    def _saved_install_path(self, game: str) -> Optional[str]:
-        """Saved game binary path for the selected binary type (native or Proton)."""
-        game_settings = self.svc.settings.game(game)
-        return game_settings.proton_install_path if self.config.is_proton else game_settings.install_path
-
     def _find_game_path_worker_thread(self) -> Optional[Path]:
         """
         WORKER FUNCTION: Tries to find the game path automatically.
         Returns the path if found, otherwise None.
         """
-        return find_game_path(self.ctx.patcher, self.config)
+        return find_game_executable(self.ctx.patcher, self.config)

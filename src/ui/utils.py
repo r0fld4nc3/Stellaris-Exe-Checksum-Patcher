@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from typing import Optional
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -11,7 +11,7 @@ from PySide6.QtCore import (
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QColor, QFont, QIcon, QMouseEvent, QPainter, QPixmap
+from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -24,22 +24,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from core import services
-from core.paths import os_darwin, os_linux
-from patchers import Patcher
-from patchers import models as patcher_models
-from stores import get_store_helper
+from core.paths import os_linux
 from utils.platform import WAYLAND, X11
 
 log = logging.getLogger("UI UTILS")
-
-# Type of the value each picker option stands for (a Path, a store...)
-# Tells the editor what option_dialog_pick_from_options() returns: give (label, Path, description), get a Path back.
-OptionValue = TypeVar("OptionValue")
-
-if TYPE_CHECKING:
-    # For type hints only: importing it for real would be a circular import
-    from ui.windows.option_picker_dialog import PickerOption
 
 
 def set_icon_gray(icon: QIcon, size=(32, 32)):
@@ -438,129 +426,6 @@ def is_qt_platform_backend_wayland() -> bool:
 
 def is_qt_platform_backend_x11() -> bool:
     return get_qt_platform() == X11
-
-
-def find_game_path(patcher: Patcher, configuration: patcher_models.PatchConfiguration) -> Optional[Path]:
-    """
-    Utility function to find the game path automatically.
-
-    Attemps to find the game executable by:
-    1. Checking saved path in settings
-    2. Auto-locating through the game's store
-
-    Args:
-        patcher: The patcher instance
-        configuraiton: Patch Configuration
-
-    Returns:
-        Path to game executable if found, otherwise None
-    """
-
-    # Determine platform and executable info
-    if configuration.is_proton:
-        platform = patcher_models.Platform.WINDOWS
-    else:
-        platform = patcher_models.Platform.detect_current()
-
-    exe_info = patcher.get_executable_info(configuration, platform)
-    if not exe_info:
-        log.error(f"No executable info for {configuration.game} version {configuration.version} on {platform}")
-        return None
-
-    path_postfix = exe_info.path_postfix
-    log.info(f"{exe_info=}", silent=True)
-    log.info(f"Platform: {platform}", silent=True)
-    log.info(f"Is Proton: {configuration.is_proton}", silent=True)
-
-    # Check saved path in settings
-    saved_path_str = (
-        services().settings.game(configuration.game).proton_install_path
-        if configuration.is_proton
-        else services().settings.game(configuration.game).install_path
-    )
-
-    log.info(f"Retrieved saved path from settings: '{saved_path_str}'", silent=True)
-
-    if saved_path_str:
-        saved_path = Path(saved_path_str)
-        if saved_path.exists() and saved_path.is_file():
-            log.info(f"Retrieved game executable from settings: {saved_path}", silent=True)
-            return saved_path
-        else:
-            log.warning("Saved game path found, but executable is invalid.")
-
-    # Auto-locate
-    store_helper = get_store_helper(configuration.game)
-    if not store_helper:
-        log.error(f"Failed to locate {configuration.game} installation.")
-        return None
-
-    log.info("Attempting to auto-locate game installation.")
-    game_install_path = store_helper.get_game_install_path(configuration.game)
-    auto_located_path = patcher.locate_game_install(game_install_path, exe_info.filename)
-
-    # macOS: point inside the .app bundle at the actual binary
-    if auto_located_path and os_darwin() and not configuration.is_proton and path_postfix:
-        auto_located_path = auto_located_path / path_postfix
-
-    if auto_located_path:
-        log.info(f"Auto-located path: {auto_located_path}")
-        return auto_located_path
-
-    log.error(f"Failed to locate {configuration.game} installation.")
-    return None
-
-
-def option_dialog_pick_from_options(
-    title: str,
-    text: str,
-    options: list[tuple[str, OptionValue, str]],
-    font: Optional[QFont] = None,
-    parent: Optional[QWidget] = None,
-) -> Optional[OptionValue]:
-    """
-    Ask the user to pick one of `options`, each a (label, value, description) tuple. Returns the picked value.
-
-    No options: None. One option: its value, without asking.
-    Several: shown in the `OptionPickerDialog`, None if cancelled. Without a running Qt application
-    (command line) there's no way to ask yet, so nothing is picked.
-    """
-
-    # Imported here: ui.windows would create circular import
-    from ui.windows.option_picker_dialog import OptionPickerDialog
-
-    if not options:
-        return None
-
-    if len(options) == 1:
-        _label, value, _description = options[0]
-        return value
-
-    if QApplication.instance() is None:
-        # TODO: Ask in the terminal once the Patcher can run from the command line
-        log.warning(f"{title}: picking from the command line isn't supported yet.")
-        return None
-
-    window_icon = QIcon()
-    if parent:
-        window_icon = parent.windowIcon()
-
-    if font is None:
-        font = QFont()
-
-    picker_options: list[PickerOption] = _build_picker_options(options)
-    return OptionPickerDialog.ask(title, text, picker_options, font=font, window_icon=window_icon, parent=parent)
-
-
-def _build_picker_options(options: list[tuple[str, Any, str]]) -> list[PickerOption]:
-    from ui.windows.option_picker_dialog import PickerOption
-
-    picker_options: list[PickerOption] = []
-
-    for label, value, description in options:
-        picker_options.append(PickerOption(label=label, value=value, description=description))
-
-    return picker_options
 
 
 def is_shift_held() -> bool:

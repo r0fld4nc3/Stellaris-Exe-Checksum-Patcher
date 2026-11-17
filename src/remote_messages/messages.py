@@ -25,8 +25,8 @@ from pathlib import Path
 import certifi
 import requests
 
-from core import services
 from core.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
+from core.services import services
 
 log = logging.getLogger("Messages")
 
@@ -99,8 +99,10 @@ def fetch_message() -> Message:
         return read_cached_message(status_if_missing=MessageStatus.NETWORK_BLOCKED)
 
     seconds_since_check = int(time.time()) - settings.message_last_checked
+    time_remaining = config.update_check_cooldown - seconds_since_check
+
     if seconds_since_check < config.update_check_cooldown:
-        log.info(f"Message check cooldown still in effect ({seconds_since_check})s since. Using cached message.")
+        log.info(f"Message check cooldown still in effect: {time_remaining} seconds remaining. Using cached message.")
         return read_cached_message()
 
     log.info(f"Fetching message from remote: {MESSAGE_URL}")

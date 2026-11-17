@@ -159,13 +159,13 @@ class ResourceManager:
 
     def cache_startup(self):
         """Cache resources for the current game at startup."""
-        _load_achievement_icons(self._current_game)
+        _load_achievement_icons(self._current_game.lower())
 
     def set_game(self, game: str):
         if self._current_game != game:
             log.info(f"Switching game context from {self._current_game} to {game}")
             self._current_game = game
-            _load_achievement_icons(game)
+            _load_achievement_icons(game.lower())
 
     def get_icon(self, icon: AppIcon, game: Optional[str] = None) -> QIcon:
         """

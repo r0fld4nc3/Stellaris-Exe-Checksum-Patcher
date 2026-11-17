@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from core import services
+from core.services import services
 from ui.utils import EventFilterMoveResize, adapt_to_parent_size
 
 log = logging.getLogger("Welcome Dialog")

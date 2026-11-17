@@ -15,8 +15,8 @@ from typing import Optional
 import certifi
 import requests
 
-from core import services
 from core.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
+from core.services import services
 
 from .analysis import (
     FindingStatus,

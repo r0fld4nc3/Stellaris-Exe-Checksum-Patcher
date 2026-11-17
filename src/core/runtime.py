@@ -3,20 +3,19 @@ This run of the app: how it was started (folders, build type, command line flags
 and what it learns while running.
 
 Kept in memory only, never saved, lost on quit. For the user's choices, use settings.
-Built by `bootstrap.start()`. Reach it through `services().config`.
+Built by `app.bootstrap.start()`. Reach it through `services().config`.
+
+State of one window or dialog doesn't belong here, it belongs to that window (ex.: `OptionsContext.store_paths`).
 """
 
+import json
 import logging
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, fields
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from .paths import get_os_env_config_folder
-
-# TYPE_CHECKING used to restore IntelliSense auto-completion without importing stores at startup
-if TYPE_CHECKING:
-    from stores import GameStore
 
 
 @dataclass
@@ -34,10 +33,20 @@ class AppConfig:
     update_check_cooldown: int = 60
     use_local_patterns: bool = False  # Force use of only local patterns file. If True will override user choice.
 
-    # --- Dynamic ---
-    # Executable paths of each store a game was switched away from: (game, store) -> (install_path, proton_install_path).
-    # Lets a store switch auto-detect again without losing saved paths if switched back by the user.
-    store_paths: dict[tuple[str, "GameStore"], tuple[str, str]] = field(default_factory=dict)
+    def dump(self) -> dict:
+        values = {}
+
+        for class_field in fields(self):
+            if class_field.name.startswith("_"):
+                continue
+
+            values[class_field.name] = getattr(self, class_field.name)
+
+        return values
+
+    def dump_json(self) -> str:
+        """`dump()` as indented JSON text."""
+        return json.dumps(self.dump(), indent=2, default=str)
 
 
 def build(app_name: str, app_author: str = "", working_dir: Optional[Path] = None) -> AppConfig:

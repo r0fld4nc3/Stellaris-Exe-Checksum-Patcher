@@ -1,10 +1,11 @@
 import logging
 from dataclasses import dataclass
-from typing import Generic, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QDialogButtonBox,
     QFrame,
@@ -12,6 +13,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QVBoxLayout,
+    QWidget,
 )
 
 from ui.utils import EventFilterMoveResize, adapt_to_parent_size, centre_on_parent
@@ -19,6 +21,7 @@ from ui.utils import EventFilterMoveResize, adapt_to_parent_size, centre_on_pare
 log = logging.getLogger("Option Picker Dialog")
 
 # Type of the value each option stands for (a Path, a store, a library...)
+# Tells the editor what option_dialog_pick_from_options() returns: give (label, Path, description), get a Path back.
 OptionValue = TypeVar("OptionValue")
 
 
@@ -185,3 +188,50 @@ class OptionPickerDialog(QDialog):
 
         self.setMinimumSize(self.minimumSize().expandedTo(self.minimumSizeHint()))
         centre_on_parent(self, self.parentWidget())
+
+
+def option_dialog_pick_from_options(
+    title: str,
+    text: str,
+    options: list[tuple[str, OptionValue, str]],
+    font: Optional[QFont] = None,
+    parent: Optional[QWidget] = None,
+) -> Optional[OptionValue]:
+    """
+    Ask the user to pick one of `options`, each a (label, value, description) tuple. Returns the picked value.
+
+    No options: None. One option: its value, without asking.
+    Several: shown in the `OptionPickerDialog`, None if cancelled. Without a running Qt application
+    (command line) there's no way to ask yet, so nothing is picked.
+    """
+
+    if not options:
+        return None
+
+    if len(options) == 1:
+        _label, value, _description = options[0]
+        return value
+
+    if QApplication.instance() is None:
+        # TODO: Ask in the terminal once the Patcher can run from the command line
+        log.warning(f"{title}: picking from the command line isn't supported yet.")
+        return None
+
+    window_icon = QIcon()
+    if parent:
+        window_icon = parent.windowIcon()
+
+    if font is None:
+        font = QFont()
+
+    picker_options: list[PickerOption] = _build_picker_options(options)
+    return OptionPickerDialog.ask(title, text, picker_options, font=font, window_icon=window_icon, parent=parent)
+
+
+def _build_picker_options(options: list[tuple[str, Any, str]]) -> list[PickerOption]:
+    picker_options: list[PickerOption] = []
+
+    for label, value, description in options:
+        picker_options.append(PickerOption(label=label, value=value, description=description))
+
+    return picker_options

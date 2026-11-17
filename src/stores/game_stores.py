@@ -7,7 +7,7 @@ Which store a game uses, and that store's helper.
 import logging
 from typing import Optional
 
-from core import services
+from core.services import services
 
 from .base import StoreHelperBase
 from .definitions import DEFAULT_GAME_STORE, GameStore

@@ -1,12 +1,18 @@
 import logging
 from logging import FileHandler
 from pathlib import Path
+from typing import Optional
 
 from PySide6.QtCore import QObject, Signal
 
-from core.definitions import APP_VERSION, VISUAL_BRANCH
+from core.definitions import APP_REVISION_STR, APP_VERSION_STR, VISUAL_BRANCH
 from core.paths import system
-from core.services import services, services_initialised
+from core.runtime import AppConfig
+
+# The config given to `configure_logging()`. None until then.
+# Kept here rather than read from `services()`: importing `core.services` loads the settings,
+# which create their logger before this module has swapped in `LoggerWithSignals` below.
+_config: Optional[AppConfig] = None
 
 
 class LoggerSignals(QObject):
@@ -36,15 +42,16 @@ class LoggerWithSignals(logging.Logger):
             self.signals.message.emit("[WARN] " + str(msg))
 
     def error(self, msg, *args, silent=False, **kwargs):
-        use_local_patterns = (
-            str(services().config.use_local_patterns) if services_initialised() else "Unknown (app not started)"
-        )
-        _version_print_msg = f"System Info: '{system()} {APP_VERSION}{'-' + VISUAL_BRANCH if VISUAL_BRANCH else ''}' 'Use Local Patterns: Config={use_local_patterns}'"
-
-        super().error(msg, *args, **kwargs)
+        super().error(msg + f"\n{_system_info()}", *args, **kwargs)
         if not silent:
             self.signals.message.emit("[ERROR] " + str(msg))
-        super().error(_version_print_msg, *args, **kwargs)
+
+
+def _system_info() -> str:
+    """One line written for system, version and how the app was started."""
+    branch = f"-{VISUAL_BRANCH}" if VISUAL_BRANCH else ""
+    use_local_patterns = str(_config.use_local_patterns) if _config else "Unknown (app not started)"
+    return f"System Info: '{system()} {APP_VERSION_STR}{APP_REVISION_STR}{branch}' 'Use Local Patterns: Config={use_local_patterns}'"
 
 
 # Replace logging.Logger Class with custom Class
@@ -52,7 +59,13 @@ print(f"Replaced Class {logging.Logger} with {LoggerWithSignals}")
 logging.setLoggerClass(LoggerWithSignals)
 
 
-def configure_logging(log_file: Path, level: int, console: bool = True) -> None:
+def configure_logging(config: AppConfig, console: bool = True) -> None:
+    """Log to `config.log_file` (and the console) at `config.log_level`."""
+    global _config
+    _config = config
+    log_file = config.log_file
+    level = config.log_level
+
     if log_file.exists() and not log_file.is_file():
         raise RuntimeError(f"Attempting to create/ensure directory when a file path has been given: '{log_file}'")
 

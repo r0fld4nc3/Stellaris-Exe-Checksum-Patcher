@@ -42,7 +42,7 @@ picked separately. `label_sites()` gives every site to one patch, using that pat
 
 Run this file directly to see a report without changing anything:
 
-    python -m patchers.report path/to/stellaris.exe
+    python -m app.report path/to/stellaris.exe
 """
 
 import bisect

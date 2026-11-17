@@ -220,39 +220,29 @@ class Patcher:
             return detected_platform
         return configuration.platform
 
-    @staticmethod
-    def locate_game_install(game_install_path: Optional[Path], exe_filename: str) -> Optional[Path]:
+    def find_executable(self, configuration: PatchConfiguration, install_folder: Optional[Path]) -> Optional[Path]:
         """
-        Returns path to the game executable named `exe_filename` (from `get_executable_info()`) inside
-        `game_install_path`, the game's install folder. None if it isn't there.
+        The game executable inside `install_folder`, the game's install folder. None otherwise.
+        On macOS, the binary inside the .app bundle.
         """
-        log.info("Locating game install...")
-        log.debug(f"{game_install_path=}")
 
-        if not game_install_path or not game_install_path.exists():
+        exe_info = self.get_executable_info(configuration)
+        if not exe_info:
+            log.error(f"No executable info for {configuration.game} version {configuration.version}")
             return None
 
-        # The install folder is the executable itself (ex.: a macOS .app bundle from GOG)
-        if game_install_path.name.lower() == exe_filename.lower():
-            log.info(f"Auto-located path: '{game_install_path}'")
-            return game_install_path
+        executable = self._search_for_executable(install_folder, exe_info.filename)
+        if executable and exe_info.path_postfix:
+            # macOS: inside .app bundle
+            executable = executable / exe_info.path_postfix
 
-        expected_exe_path = game_install_path / exe_filename
-        if expected_exe_path.is_file():
-            log.info(f"Auto-located path: '{expected_exe_path}'")
-            return expected_exe_path
-
-        # Not where we expected it, search the whole install folder
-        for item in game_install_path.rglob("*"):
-            if item.name == exe_filename:
-                log.info(f"Auto-located path: '{item}'")
-                return item.resolve()
-
-        log.warning("Unable to auto-locate game binary. Automatic path detection failed.")
-        return None
+        return executable
 
     def find_bundle_root(self, configuration: PatchConfiguration, binary_path: Path) -> Optional[Path]:
-        """The bundle (ex.: macOS .app) holding `binary_path`, using each platform's `path_postfix`. None if not in one."""
+        """
+        The bundle holding `binary_path` if macOS, using each platform's `path_postfix`.
+        None if not in one.
+        """
         for platform_config in self._platform_configs(configuration.game, configuration.version).values():
             bundle_root = platform_config.bundle_root(binary_path)
             if bundle_root:
@@ -264,29 +254,43 @@ class Patcher:
         binary_path = Path(binary_path)
         return backups.find_backups(binary_path, self.find_bundle_root(configuration, binary_path))
 
+    @staticmethod
+    def _search_for_executable(game_install_path: Optional[Path], filename: str) -> Optional[Path]:
+        """
+        Returns path to the game executable named `filename` (from `get_executable_info()`) inside
+        `game_install_path`, the game's install folder. None if it isn't there.
+        """
+        log.info("Locating game install...")
+        log.debug(f"{game_install_path=}")
+
+        if not game_install_path or not game_install_path.exists():
+            return None
+
+        # The install folder is the executable itself (ex.: a macOS .app bundle from GOG)
+        if game_install_path.name.lower() == filename.lower():
+            log.info(f"Auto-located path: '{game_install_path}'")
+            return game_install_path
+
+        expected_exe_path = game_install_path / filename
+        if expected_exe_path.is_file():
+            log.info(f"Auto-located path: '{expected_exe_path}'")
+            return expected_exe_path
+
+        # Not where we expected it, search the whole install folder
+        for item in game_install_path.rglob("*"):
+            if item.name == filename:
+                log.info(f"Auto-located path: '{item}'")
+                return item.resolve()
+
+        log.warning("Unable to auto-locate game binary. Automatic path detection failed.")
+        return None
+
     def _resolve_binary(self, configuration: PatchConfiguration, file_path: Path, platform: Platform) -> Path:
         """For macOS .app bundles, return the actual binary inside the bundle."""
         if file_path.suffix.lower() == FILE_EXTENSION.APP and file_path.is_dir():
             platform_config = self._platform_config(configuration.game, configuration.version, platform)
             if platform_config and platform_config.path_postfix:
                 return file_path / platform_config.path_postfix
-        return file_path
-
-    def _backup_target(self, configuration: PatchConfiguration, file_path: Path, platform: Platform) -> Path:
-        """
-        What to back up before patching `file_path`.
-        The whole bundle (ex.: macOS .app) if it's inside one.
-        """
-        platform_config = self._platform_config(configuration.game, configuration.version, platform)
-        if not platform_config:
-            # Unknown platform
-            return file_path
-
-        bundle_root = platform_config.bundle_root(file_path)
-        if bundle_root:
-            # macOS bundle root path
-            return bundle_root
-
         return file_path
 
     # ------------------------------------------------------------------------
@@ -412,7 +416,12 @@ class Patcher:
         if progress:
             progress(40, "Creating backup")
 
-        if not backups.create_backup(self._backup_target(configuration, file_path, platform), max_backups):
+        # Back up the whole bundle (ex.: macOS .app) when the executable is inside one, like `find_binary_backups()` expects
+        backup_target = self.find_bundle_root(configuration, file_path)
+        if not backup_target:
+            backup_target = file_path
+
+        if not backups.create_backup(backup_target, max_backups):
             log.error("Failed to create backup, aborting all patches")
             for patch_name, _ in patches_to_apply:
                 results[patch_name] = False

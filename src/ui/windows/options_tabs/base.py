@@ -4,9 +4,10 @@ from PySide6.QtCore import QObject, Signal, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget
 
-from core import services
+from core.services import services
 from patchers import PatchConfiguration, Patcher
 from patchers.models import KEY_VERSION_LATEST
+from stores import GameStore
 from utils.threads import Threader
 
 
@@ -28,6 +29,11 @@ class OptionsContext(QObject):
         self.patcher = patcher
         self.configuration = configuration
         self.font = font
+
+        # Executable paths of each store a game was switched away from: (game, store) -> (install_path, proton_install_path).
+        # Lets a store switch auto-detect again without losing saved paths if switched back by the user.
+        # The options dialog is created once, so these last until the Patcher is closed.
+        self.store_paths: dict[tuple[str, GameStore], tuple[str, str]] = {}
 
     def select_game(self, game: str):
         """

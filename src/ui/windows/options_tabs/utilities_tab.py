@@ -27,6 +27,7 @@ from utils.platform import open_in_file_manager
 from utils.threads import Threader
 
 from ..message_dialog import MessageDialog
+from ..save_backups_dialog import SaveBackupsDialog
 from ..welcome_dialog import WelcomeDialog
 from .base import OptionsContext, OptionsTab
 
@@ -363,8 +364,6 @@ class UtilitiesTab(OptionsTab):
             open_in_file_manager(config_dir)
 
     def show_save_backups_dialog(self):
-        from ui.windows import SaveBackupsDialog
-
         dialog = SaveBackupsDialog(self.ctx.font, parent=self.window())
         dialog.exec()
 

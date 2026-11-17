@@ -6,8 +6,8 @@ from typing import Optional, Union
 
 import vdf
 
-from core import services
 from core.paths import os_darwin, os_linux, os_windows
+from core.services import services
 from utils import registry_helper
 from utils.encodings import safe_read_file_encode
 

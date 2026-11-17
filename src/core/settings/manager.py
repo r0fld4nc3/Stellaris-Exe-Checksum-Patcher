@@ -2,8 +2,9 @@
 Application settings, kept in memory and saved to a JSON file.
 
 How it works:
-- The file is read once at startup (`bootstrap.start()` -> SettingsManager.load()), once `services()` is available.
-- Where the file lives and whether writing is allowed come from `services().config`, read when needed.
+- The file is read once at startup (`app.bootstrap.start()` -> SettingsManager.load()).
+- Where the file lives and whether writing is allowed come from the `AppConfig` given to the manager, read when needed.
+  Given, not read from `services()`: `services` holds this manager, so the manager can't import it back.
 - Everyone reads and changes the in-memory dataclasses (AppSettings, GameSettings in models.py):
   `services().settings.app` and `services().settings.game(name)`.
 - Changing a plain field saves the whole file right away.
@@ -28,19 +29,20 @@ from dataclasses import MISSING, fields
 from pathlib import Path
 from typing import Optional
 
-from ..services import services
-from .models import AppSettings, GameSettings
+from ..runtime import AppConfig
+from .models import GAMES_KEY, AppSettings, GameSettings
 
 log = logging.getLogger("Settings")
 
-GAMES_KEY = "games"  # Name of the `AppSettings.games` field and its key in the settings file
 SETTINGS_FILE_NAME = "stellaris-checksum-patcher-settings-v2.json"
 
 
 class SettingsManager:
     """Owns the in-memory settings and saves them to disk."""
 
-    def __init__(self):
+    def __init__(self, config: AppConfig):
+        self.config = config  # Where the file lives and whether writing is allowed
+
         # RLock (re-entrant) because a save can happen while the same thread already holds
         # the lock, ex.: assigning a field holds the lock and then saves.
         self.lock = threading.RLock()
@@ -57,7 +59,7 @@ class SettingsManager:
 
     @property
     def config_file(self) -> Path:
-        return services().config.config_dir / SETTINGS_FILE_NAME
+        return self.config.config_dir / SETTINGS_FILE_NAME
 
     @property
     def backup_file(self) -> Path:
@@ -168,7 +170,7 @@ class SettingsManager:
         """
         Called on every field change (with the lock held).
 
-        save_now=True:  plain field. Save now.
+        save_now=True:  Save now (writes).
         save_now=False: memory() field. Only remember that something changed.
         """
         self._dirty = True
@@ -185,7 +187,7 @@ class SettingsManager:
     def save_settings(self) -> bool:
         """Write the current settings to disk. Thread-safe call."""
 
-        if services().config.prevent_settings_save:
+        if self.config.prevent_settings_save:
             log.info("Prevent write is active. Skipping writing changes.", silent=True)
             return False
 

@@ -4,15 +4,15 @@
     runtime.py      AppConfig: this run. How it was started (CLI flags, folders). Lost on quit.
     settings/       User settings and choices. Saved to disk.
     services.py     How to reach all of it: `services()`.
-    bootstrap.py    How it's put together at startup: `start()`.
+
+The bottom layer: imports nothing else from the app. Startup lives in `app.bootstrap`.
 
 Everywhere else, reach the running services through `services()`:
 
-    from core import services
+    from core.services import services
 
     services().settings.game("Stellaris").install_path
+
+Kept empty on purpose: `logger` imports `core.definitions` and `core.paths` before it swaps in its Logger class,
+so importing them must not load `core.settings` (which creates a logger).
 """
-
-from .services import AppServices, services
-
-__all__ = ["AppServices", "services"]

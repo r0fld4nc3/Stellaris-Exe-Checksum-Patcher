@@ -3,16 +3,16 @@ Report command: shows where each patch would be applied, without changing anythi
 
 Run from the `src` folder:
 
-    uv run python -m patchers.report path/to/stellaris.exe [path/to/patterns_v2.json]
+    uv run python -m app.report path/to/stellaris.exe [path/to/patterns-v2.json]
 
-Uses the bundled patterns_v2.json unless another patterns file is given.
+Uses the bundled patterns-v2.json unless another patterns file is given.
 """
 
 import sys
 from pathlib import Path
 
 from patch_patterns.patterns import PATTERNS_DISTRIBUTED_FILE
-from patchers.auto_patch import TargetSite, Executable, ScanResult, nearby_strings
+from patchers.auto_patch import Executable, ScanResult, TargetSite, nearby_strings
 from patchers.models import PatchConfiguration, Platform
 from patchers.pdx_patchers import Patcher
 
@@ -101,6 +101,6 @@ def report(path: Path, patterns_file: Path = PATTERNS_DISTRIBUTED_FILE) -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) not in (2, 3):
-        print("Usage: python -m patchers.report <executable> [patterns_file]")
+        print("Usage: python -m app.report <executable> [patterns_file]")
         sys.exit(2)
     sys.exit(report(*(Path(arg) for arg in sys.argv[1:])))
