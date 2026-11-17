@@ -1,6 +1,7 @@
 import logging
 import random
 from enum import Enum
+from functools import cache
 from pathlib import Path
 from typing import Optional
 
@@ -43,6 +44,7 @@ class AppGuide(str, Enum):
     FAQ = "faq.md"
 
 
+@cache
 def load_guide(guide: AppGuide) -> str:
     """Markdown text of a guide shown in the app. Empty if the file is missing."""
     file_path = GUIDES_PATH / guide
@@ -51,17 +53,103 @@ def load_guide(guide: AppGuide) -> str:
         log.error(f"Guide not found: {file_path}")
         return ""
 
-    return file_path.read_text(encoding="utf-8")
+    return file_path.read_text(encoding="utf-8-sig")
+
+
+@cache
+def _load_icon(icon: AppIcon, game: str) -> QIcon:
+    """`icon` for `game` or the common one if game has none. Empty QIcon if neither exists."""
+    game_icon_path: Path = ICONS_PATH / game / icon
+    if game_icon_path.exists():
+        return QIcon(str(game_icon_path))
+
+    common_icon_path: Path = ICONS_PATH / icon
+    if common_icon_path.exists():
+        return QIcon(str(common_icon_path))
+
+    log.warning(f"Icon not found: '{icon}' for game '{game}'", silent=True)
+    return QIcon()
+
+
+@cache
+def _load_achievement_icons(game: str) -> dict[str, dict[IconAchievementState, QIcon]]:
+    """
+    {
+        icon name: {
+            locked: QIcon, unlocked: QIcon
+        }
+    }
+    for every achievement icon of `game`.
+
+    Empty if the game has no achievement icons.
+    """
+
+    achievements_folder = ICONS_PATH / game / "achievements"
+    locked_path = achievements_folder / IconAchievementState.LOCKED
+    unlocked_path = achievements_folder / IconAchievementState.UNLOCKED
+
+    if not locked_path.exists():
+        log.warning(f"Achievement path not found for {game}: {locked_path}", silent=True)
+        return {}
+
+    achievement_icons = {}
+    for icon_path in locked_path.iterdir():
+        if not icon_path.is_file():
+            continue
+
+        icon_name_locked = icon_path.name
+        icon_name_unlocked = icon_name_locked.replace("_locked", "")
+        icon_path_unlocked = unlocked_path / icon_name_unlocked
+
+        q_icon_locked = QIcon(str(icon_path))
+        q_icon_unlocked = QIcon(str(icon_path_unlocked)) if icon_path_unlocked.exists() else QIcon()
+
+        achievement_icons[icon_name_unlocked] = {
+            IconAchievementState.LOCKED: q_icon_locked,
+            IconAchievementState.UNLOCKED: q_icon_unlocked,
+        }
+
+    log.info(f"Cached {len(achievement_icons)} achievement icons for {game}")
+    return achievement_icons
+
+
+@cache
+def _load_font(font: AppFont) -> str:
+    """Load `font` into Qt and return its family name. Empty if it can't be loaded."""
+    file_path = FONTS_PATH / font
+    if not file_path.exists():
+        log.warning(f"Font file not found: {file_path}", silent=True)
+        return ""
+
+    font_id = QFontDatabase.addApplicationFont(str(file_path))
+    if font_id == -1:
+        log.warning(f"Failed to load font: {file_path}", silent=True)
+        return ""
+
+    font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+    log.info(f"Loaded font: {font_family}")
+    return font_family
+
+
+@cache
+def _load_stylesheet(game: str) -> str:
+    """Stylesheet of `game`, or the Stellaris one if the game has none. Empty if neither exists."""
+    file_path = STYLES_PATH / f"{game}.qss"
+    if not file_path.exists():
+        log.warning(f"Stylesheet not found: {file_path}", silent=True)
+
+        # Fallback
+        file_path = STYLES_PATH / f"{AppStyle.STELLARIS}.qss"
+        if not file_path.exists():
+            return ""
+
+    with open(file_path, "r", encoding="utf-8-sig") as f:
+        return f.read()
 
 
 class ResourceManager:
     def __init__(self, default_game: Optional[str] = None):
         self._current_game = default_game or AppStyle.STELLARIS  # Add a default
-
-        self._icon_cache = {}
-        self._icon_achievement_cache = {}
-        self._font_cache = {}
-        self._stylesheet_cache = {}
 
         self.cache_startup()
 
@@ -69,15 +157,15 @@ class ResourceManager:
     def current_game(self) -> str:
         return self._current_game
 
+    def cache_startup(self):
+        """Cache resources for the current game at startup."""
+        _load_achievement_icons(self._current_game)
+
     def set_game(self, game: str):
         if self._current_game != game:
             log.info(f"Switching game context from {self._current_game} to {game}")
             self._current_game = game
-            self._cache_game_achievements(game)
-
-    @staticmethod
-    def _achievements_folder(game: str) -> dict[str, Path]:
-        return ICONS_PATH / game / "achievements"
+            _load_achievement_icons(game)
 
     def get_icon(self, icon: AppIcon, game: Optional[str] = None) -> QIcon:
         """
@@ -85,79 +173,19 @@ class ResourceManager:
         Falls back to common icons if game-specific icon not found.
         """
 
-        target_game = (game or self._current_game).lower()
-        cache_key = (icon, target_game)
-
-        if cache_key in self._icon_cache:
-            return self._icon_cache[cache_key]
-
-        # Try game-specific icon
-        game_icon_path = ICONS_PATH / target_game / icon
-        if game_icon_path.exists():
-            q_icon = QIcon(str(game_icon_path))
-            self._icon_cache[cache_key] = q_icon
-            return q_icon
-
-        common_icon_path = ICONS_PATH / icon
-        if common_icon_path.exists():
-            q_icon = QIcon(str(common_icon_path))
-            self._icon_cache[cache_key] = q_icon
-            return q_icon
-
-        log.warning(f"Icon not found: '{icon}' for game {target_game}", silent=True)
-        return QIcon()
-
-    def cache_startup(self):
-        """Cache resources for the current game at startup."""
-        self._cache_game_achievements(self._current_game)
-
-    def _cache_game_achievements(self, game: str):
-        """Cache achievement icons for a specific game."""
-        if game in self._icon_achievement_cache:
-            return  # Already cached
-
-        achievements_folder = self._achievements_folder(game)
-        locked_path = achievements_folder / IconAchievementState.LOCKED
-        unlocked_path = achievements_folder / IconAchievementState.UNLOCKED
-
-        if not locked_path.exists():
-            log.warning(f"Achievement path not found for {game}: {locked_path}", silent=True)
-            self._icon_achievement_cache[game] = {}
-            return
-
-        game_cache = {}
-        for icon_path in locked_path.iterdir():
-            if not icon_path.is_file():
-                continue
-
-            icon_name_locked = icon_path.name
-            icon_name_unlocked = icon_name_locked.replace("_locked", "")
-            icon_path_unlocked = unlocked_path / icon_name_unlocked
-
-            q_icon_locked = QIcon(str(icon_path))
-            q_icon_unlocked = QIcon(str(icon_path_unlocked)) if icon_path_unlocked.exists() else QIcon()
-
-            game_cache[icon_name_unlocked] = {
-                IconAchievementState.LOCKED: q_icon_locked,
-                IconAchievementState.UNLOCKED: q_icon_unlocked,
-            }
-
-        self._icon_achievement_cache[game] = game_cache
-        log.info(f"Cached {len(game_cache)} achievement icons for {game}")
+        target_game = (game or self.current_game).lower()
+        return _load_icon(icon, target_game)
 
     def get_random_achievement_icon(self, game: Optional[str] = None) -> dict[IconAchievementState, QIcon]:
         """Get an achievement icon cache entry that supports picked from `locked` and `unlocked` keys"""
         target_game = (game or self._current_game).lower()
 
-        if target_game not in self._icon_achievement_cache:
-            self._cache_game_achievements(target_game)
-
-        game_achievements = self._icon_achievement_cache.get(target_game, {})
+        game_achievements = _load_achievement_icons(target_game)
         if not game_achievements:
             log.warning(f"No achievement icons available for {target_game}.", silent=True)
 
             # Fallback
-            game_achievements = self._icon_achievement_cache.get(AppStyle.STELLARIS, {})
+            game_achievements = _load_achievement_icons(AppStyle.STELLARIS)
 
             if not game_achievements:
                 return {IconAchievementState.LOCKED: QIcon(), IconAchievementState.UNLOCKED: QIcon()}
@@ -170,54 +198,18 @@ class ResourceManager:
     ) -> dict[IconAchievementState, QIcon]:
         target_game = (game or self._current_game).lower()
 
-        if target_game not in self._icon_achievement_cache:
-            self._cache_game_achievements(target_game)
-
-        return self._icon_achievement_cache.get(target_game, {}).get(
+        return _load_achievement_icons(target_game).get(
             achievement_name, {IconAchievementState.LOCKED: QIcon(), IconAchievementState.UNLOCKED: QIcon()}
         )
 
     def load_font(self, font: AppFont) -> str:
         """Load a font and return its family name."""
-        if font in self._font_cache:
-            return self._font_cache[font]
-
-        file_path = FONTS_PATH / font
-        if not file_path.exists():
-            log.warning(f"Font file not found: {file_path}", silent=True)
-            return ""
-
-        font_id = QFontDatabase.addApplicationFont(str(file_path))
-        if font_id == -1:
-            log.warning(f"Failed to load font: {file_path}", silent=True)
-            return ""
-
-        font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
-        self._font_cache[font] = font_family
-        log.info(f"Loaded font: {font_family}")
-        return font_family
+        return _load_font(font)
 
     def get_stylesheet(self, game: Optional[str] = None) -> str:
         """Get the stylesheet for the specified game."""
         target_game = (game or self._current_game).lower()
-
-        if target_game in self._stylesheet_cache:
-            return self._stylesheet_cache[target_game]
-
-        file_path = STYLES_PATH / f"{target_game}.qss"
-        if not file_path.exists():
-            log.warning(f"Stylesheet not found: {file_path}", silent=True)
-
-            # Fallback
-            file_path = STYLES_PATH / f"{AppStyle.STELLARIS}.qss"
-            if not file_path.exists():
-                return ""
-
-        with open(file_path, "r", encoding="UTF-8") as f:
-            stylesheet = f.read()
-
-        self._stylesheet_cache[target_game] = stylesheet
-        return stylesheet
+        return _load_stylesheet(target_game)
 
     def get_available_games(self) -> list[str]:
         """Get list of games that have resource folders."""
