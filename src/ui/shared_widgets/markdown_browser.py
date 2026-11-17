@@ -32,9 +32,15 @@ class MarkdownTextBrowser(QTextBrowser):
     def set_markdown(self, text: str):
         self._markdown = text
         self._render()
+        self.verticalScrollBar().setValue(0)  # Set scroll to top.
 
     def _render(self):
-        """Load the Markdown again, then space blocks and colour headings and links."""
+        """
+        Load the Markdown again, then space blocks and colour headings and links.
+        Ensures scroll is at the top.
+        """
+        scroll_position = self.verticalScrollBar().value()
+
         markdown = QTextDocument.MarkdownFeature
         self.document().setMarkdown(self._markdown, markdown.MarkdownDialectGitHub | markdown.MarkdownNoHTML)
 
@@ -45,6 +51,12 @@ class MarkdownTextBrowser(QTextBrowser):
                 self._colour_heading(block)
             self._colour_links(block)
             block = block.next()
+
+        # Text is inserted in front of QTextCursor, which after full insertion is left at the end.
+        # Set its value to the top.
+        start_cursor = QTextCursor(self.document())
+        self.setTextCursor(start_cursor)
+        self.verticalScrollBar().setValue(scroll_position)
 
     def _space_block(self, block: QTextBlock):
         """Space after paragraphs, headings and whole lists. List items stay together."""
