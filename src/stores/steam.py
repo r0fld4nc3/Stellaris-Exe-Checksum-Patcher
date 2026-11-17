@@ -12,7 +12,7 @@ from utils import registry_helper
 from utils.encodings import safe_read_file_encode
 
 from .base import StoreHelperBase
-from .definitions import GameStore
+from .definitions import GameStore, SteamInstallInfo
 
 log = logging.getLogger("Steam Helper")
 
@@ -60,7 +60,7 @@ class SteamHelper(StoreHelperBase):
         self.steam_install: Optional[Path] = None
         self.steam_library_paths: list[Path] = []
 
-    def get_game_install_info_from_name(self, game_name) -> dict:
+    def get_game_install_info_from_name(self, game_name) -> Optional[SteamInstallInfo]:
         # Parse Steam appmanifests (.acf files) in case of windows
         # For linux, get libraries and find the installation folder
 
@@ -77,7 +77,7 @@ class SteamHelper(StoreHelperBase):
             self.steam_library_paths = self.get_steam_libraries()
             if not self.steam_library_paths:
                 log.error("No Steam Libraries found.")
-                return {}
+                return None
 
         log.info(f"Steam Library paths: {self.steam_library_paths}", silent=True)
 
@@ -106,7 +106,7 @@ class SteamHelper(StoreHelperBase):
                     log.debug(f"Found title match: {title} with App Id {app_id} in {file.name} in library {lib}")
                     game_path: Path = lib / STEAM_COMMON_FOLDER / title
                     log.info(f"Found game install in {game_path.as_posix()}")
-                    return {"title": title, "app-id": app_id, "steam-library": lib}
+                    return SteamInstallInfo(title=title, app_id=app_id, library=lib)
 
         log.error(f"Unable to determine installation information for {game_name}")
         return {}
@@ -227,15 +227,15 @@ class SteamHelper(StoreHelperBase):
     def get_game_install_path(self, game_name) -> Optional[Path]:
         log.info(f"Acquiring {game_name} installation...")
 
-        install_details = self.get_game_install_info_from_name(game_name)
+        install_details: Optional[SteamInstallInfo] = self.get_game_install_info_from_name(game_name)
 
         if not install_details:
             return None
 
         log.info(f"{install_details=}", silent=True)
 
-        title_name = install_details.get("title")
-        library = install_details.get("steam-library")
+        title_name = install_details.title
+        library = install_details.library
 
         return Path(library) / STEAM_COMMON_FOLDER / title_name
 

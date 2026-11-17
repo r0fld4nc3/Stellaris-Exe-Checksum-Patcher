@@ -11,7 +11,9 @@ Edit this file to:
 """
 
 import logging
+from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
 from core.paths import OS_TYPE, system
@@ -19,6 +21,13 @@ from core.paths import OS_TYPE, system
 from .base import StoreGameInfo
 
 log = logging.getLogger("Game Stores")
+
+
+@dataclass
+class SteamInstallInfo:
+    title: str
+    app_id: str
+    library: Path
 
 
 class GameStore(str, Enum):

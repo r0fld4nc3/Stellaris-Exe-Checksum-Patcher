@@ -1,5 +1,5 @@
 from .base import StoreGameInfo, StoreHelperBase
-from .definitions import DEFAULT_GAME_STORE, GameStore
+from .definitions import DEFAULT_GAME_STORE, GameStore, SteamInstallInfo
 from .game_stores import (
     game_store,
     get_store_helper,
@@ -10,6 +10,7 @@ from .game_stores import (
 __all__ = [
     "StoreHelperBase",
     "GameStore",
+    "SteamInstallInfo",
     "DEFAULT_GAME_STORE",
     "StoreGameInfo",
     "game_store",
