@@ -75,15 +75,9 @@ class ResourceManager:
             self._current_game = game
             self._cache_game_achievements(game)
 
-    def _get_game_paths(self, game: str) -> dict[str, Path]:
-        game_base = ICONS_PATH / game
-
-        return {
-            "achievements_locked": game_base / "achievements" / IconAchievementState.LOCKED,
-            "achievements_unlocked": game_base / "achievements" / IconAchievementState.UNLOCKED,
-            "icons": game_base,
-            "styles": STYLES_PATH / game,
-        }
+    @staticmethod
+    def _achievements_folder(game: str) -> dict[str, Path]:
+        return ICONS_PATH / game / "achievements"
 
     def get_icon(self, icon: AppIcon, game: Optional[str] = None) -> QIcon:
         """
@@ -122,9 +116,9 @@ class ResourceManager:
         if game in self._icon_achievement_cache:
             return  # Already cached
 
-        paths = self._get_game_paths(game)
-        locked_path = paths["achievements_locked"]
-        unlocked_path = paths["achievements_unlocked"]
+        achievements_folder = self._achievements_folder(game)
+        locked_path = achievements_folder / IconAchievementState.LOCKED
+        unlocked_path = achievements_folder / IconAchievementState.UNLOCKED
 
         if not locked_path.exists():
             log.warning(f"Achievement path not found for {game}: {locked_path}", silent=True)
