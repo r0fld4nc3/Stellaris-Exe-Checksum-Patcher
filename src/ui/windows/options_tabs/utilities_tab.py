@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from core.cooldowns import Cooldown
 from patch_patterns.patterns import get_patterns_config_remote
 from remote_messages import read_cached_message
 from ui.shared_widgets import QSquarePushButton
@@ -112,16 +113,16 @@ class UtilitiesTab(OptionsTab):
         btn_show_welcome_dialog.clicked.connect(self.show_welcome_dialog)
 
         # --- Show Information Message Button ---
-        btn_show_info_message = QPushButton("Show Information Message")
-        btn_show_info_message.setFont(font)
-        btn_show_info_message.clicked.connect(self.show_information_message)
+        self.btn_show_info_message = QPushButton("Show Information Message")
+        self.btn_show_info_message.setFont(font)
+        self.btn_show_info_message.clicked.connect(self.show_information_message)
 
         # Fill left to right, onto next row.
         show_x_dialog_buttons = (
             btn_show_app_config_dir,
             btn_manage_save_backups,
             btn_show_welcome_dialog,
-            btn_show_info_message,
+            self.btn_show_info_message,
         )
         dialog_columns: int = 2
         for index, button in enumerate(show_x_dialog_buttons):
@@ -279,6 +280,10 @@ class UtilitiesTab(OptionsTab):
         utilities_tab_layout.addWidget(utilities_scroll_area)
         utilities_layout.addWidget(runner_examples_scroll_area)
 
+        # --- Cooldowns ---
+        self.svc.cooldowns.subscribe(Cooldown.REMOTE_MESSAGE, self._on_remote_message_cooldown_changed)
+        self.svc.cooldowns.subscribe(Cooldown.PATCH_PATTERNS, self._on_patch_patterns_cooldown_changed)
+
     # --- OptionsTab hooks ---
 
     def load(self):
@@ -329,7 +334,17 @@ class UtilitiesTab(OptionsTab):
 
     @Slot()
     def _on_patch_patterns_fetch_finished(self):
-        self.btn_update_patch_patterns.setEnabled(True)
+        self.btn_update_patch_patterns.setEnabled(self.svc.cooldowns.is_ready(Cooldown.PATCH_PATTERNS))
+
+    @Slot(bool)
+    def _on_remote_message_cooldown_changed(self, ready: bool):
+        self.btn_show_info_message.setEnabled(ready)
+
+    @Slot(bool)
+    def _on_patch_patterns_cooldown_changed(self, ready: bool):
+        self.btn_update_patch_patterns.setEnabled(ready)
+
+    # -------------
 
     def _on_max_backups_slider_changed(self, value: int):
         self._update_max_backups_label(value)
