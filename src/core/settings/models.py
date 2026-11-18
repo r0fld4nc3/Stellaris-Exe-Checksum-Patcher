@@ -173,8 +173,8 @@ class AppSettings(AutoSaveHookedSettingsClass):
     last_seen_message_hash: str = ""  # Fingerprint of the last remote message the user closed
 
     # --- Kept in memory ---
-    window_width: int = memory(800)
-    window_height: int = memory(600)
+    window_width: int = memory(0)  # 0 meaning not defined yet
+    window_height: int = memory(0)  # 0 meaning not defined yet
     app_update_last_checked: int = memory(0)
     update_available: bool = memory(False)
     patch_patterns_update_last_checked: int = memory(0)

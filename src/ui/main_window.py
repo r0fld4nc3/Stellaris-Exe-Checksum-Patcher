@@ -77,10 +77,11 @@ from utils.threads import Threader
 from .resources import AppFont, AppIcon, IconAchievementState, ResourceManager
 from .utils import (
     EventFilterMoveResize,
+    centre_on_parent,
     get_qt_platform,
-    get_screen_info,
     is_shift_held,
     prompt_path,
+    size_from_parent,
 )
 from .windows import (
     DisclaimerFixCheatedSave,
@@ -110,6 +111,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
     _APP_VERSION = APP_VERSION_STR
     THREAD_STOP_TIMEOUT_MS = 5000  # How long closing the app waits for threads that aren't patching
 
+    SIZE_PCT = (50, 80)  # Default (width, height) as percentages of the screen
+    MIN_SIZE_PCT = (30, 45)  # Smallest (width, height) as percentages of the screen
+
     # Emitted from worker threads, so they're connected with Qt.QueuedConnection
     patch_progress = Signal(int, str)  # Percentage and current step, for the progress bar
     terminal_progress = Signal(str)  # Text for the information screen
@@ -136,12 +140,25 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         self.resources = ResourceManager()
 
-        # --- Get size settings ---
-        width, height = self.settings.app_settings.window_width, self.settings.app_settings.window_height
+        self.setWindowOpacity(0.95)
+        self.is_patching = False
 
-        # --- Failsafes ---
-        width = 966 if width < 1 else width
-        height = 821 if height < 1 else height
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
+        self.resize_move_filter = EventFilterMoveResize(self)
+        self.installEventFilter(self.resize_move_filter)
+
+        # --- Size Policies---
+        size_policy_button = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Maximum)
+        size_policy_button.setHorizontalStretch(0)
+        size_policy_button.setVerticalStretch(0)
+
+        size_policy_project_browser_link = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        size_policy_project_browser_link.setHorizontalStretch(0)
+        size_policy_project_browser_link.setVerticalStretch(0)
+
+        size_policy_app_version_label = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+        size_policy_app_version_label.setHorizontalStretch(0)
+        size_policy_app_version_label.setVerticalStretch(0)
 
         # Pre-compiled regex patterns for terminal log
         self._log_pattern = re.compile(r"(\[(DEBUG|INFO|WARN|ERROR)\])(.*)")
@@ -170,29 +187,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Set a default format
         self._default_format = QTextCharFormat()
         self._default_format.setForeground(self._colour_map["INFO"])
-
-        # --- Base Size---
-        self.resize(width, height)
-
-        self.setWindowOpacity(0.95)
-        self.is_patching = False
-
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
-        self.resize_move_filter = EventFilterMoveResize(self)
-        self.installEventFilter(self.resize_move_filter)
-
-        # --- Size Policies---
-        size_policy_button = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Maximum)
-        size_policy_button.setHorizontalStretch(0)
-        size_policy_button.setVerticalStretch(0)
-
-        size_policy_project_browser_link = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
-        size_policy_project_browser_link.setHorizontalStretch(0)
-        size_policy_project_browser_link.setVerticalStretch(0)
-
-        size_policy_app_version_label = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        size_policy_app_version_label.setHorizontalStretch(0)
-        size_policy_app_version_label.setVerticalStretch(0)
 
         # ------------------------------------
 
@@ -1338,40 +1332,31 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         """Themed exit button. Closing the window runs the shutdown in closeEvent."""
         self.close()
 
-    def adapt_to_screen_size(self, parent=None, width_pct: int = 40, height_pct: int = 60):
-        screen_info = get_screen_info(self.app)
+    def adapt_to_screen_size(self, parent=None):
+        """
+        Size the window from the saved size, of from screen if first launch or when the size doesn't fit.
 
-        saved_w = self.settings.app_settings.window_width
-        saved_h = self.settings.app_settings.window_height
+        Then centre it on screen.
+        """
 
-        if parent:
-            screen = parent.screen()
+        screen_size = QApplication.primaryScreen().availableGeometry().size()
+
+        saved_width = self.settings.app_settings.window_width
+        saved_height = self.settings.app_settings.window_height
+
+        has_saved_size = saved_width > 0 and saved_height > 0
+        fits_screen = saved_width <= screen_size.width() and saved_height <= screen_size.height()
+
+        if has_saved_size and fits_screen:
+            size = QSize(saved_width, saved_height)
         else:
-            screen = QApplication.primaryScreen()
+            log.info(
+                f"No saved window size that fits screen ({saved_width}x{saved_height}). Using defaults.", silent=True
+            )
+            size = size_from_parent(None, self.SIZE_PCT)
 
-        screen_geometry = screen.availableGeometry()
+        self.setMinimumSize(size_from_parent(None, self.MIN_SIZE_PCT))
+        self.resize(size)
 
-        if screen_info[0] <= 1500 or screen_info[1] <= 1000 or screen_info[2] <= 0.7:
-            width = int(screen_geometry.width() * (width_pct * 0.01))
-            height = int(screen_geometry.height() * (height_pct * 0.01))
-        elif not saved_h or not saved_w:
-            width = int(screen_geometry.width() * (width_pct * 0.01))
-            height = int(screen_geometry.height() * (height_pct * 0.01))
-        elif saved_w and saved_h:
-            width = saved_w
-            height = saved_h
-        else:
-            width = int(screen_geometry.width() * (width_pct * 0.01))
-            height = int(screen_geometry.height() * (height_pct * 0.01))
-
-        # Set minimum size to screen percentage
-        min_w = int(screen_geometry.width() * (30 * 0.01))
-        min_h = int(screen_geometry.height() * (45 * 0.01))
-        log.info(f"Set Minimum Size: ({min_w=}, {min_h})", silent=True)
-        self.setMinimumSize(min_w, min_h)
-
-        # Set initial size
-        self.resize(width, height)
-
-        # Center the window on the screen
-        self.move(screen_geometry.center().x() - self.width() // 2, screen_geometry.center().y() - self.height() // 2)
+        # Centre after final size is set
+        centre_on_parent(self)
