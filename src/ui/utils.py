@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
+    QDialog,
     QFileDialog,
     QLineEdit,
     QListView,
@@ -333,13 +334,25 @@ class EventFilterMoveResize(EventFilterOvr):
         self.window.setGeometry(rect)
 
 
-def _restore_window_focus(window):
-    window.raise_()
-    window.activateWindow()
-    window.setFocus()
+def _restore_window_focus(window: QWidget):
+    """Raise and activate `window`, or the newest dialog still open on top of it."""
+    target = window
+
+    # Children are listed in the order they were created, so the last visible dialog is the newest
+    for dialog in window.findChildren(QDialog):
+        if dialog.isVisible():
+            target = dialog
+
+    target.raise_()
+    target.activateWindow()
+    target.setFocus()
 
 
-def restore_window_focus(window):
+def restore_window_focus(window: QWidget):
+    """
+    Raise and activate `window` half a second from now, or the newest dialog open on top of it by then.
+    The delay gives a window that was just shown or closed time to settle.
+    """
     QTimer.singleShot(500, lambda: _restore_window_focus(window))
 
 
