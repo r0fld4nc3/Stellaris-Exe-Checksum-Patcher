@@ -31,6 +31,9 @@ Repository = "https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher.git"
 dev = ["nuitka~=4.3.4", "pyinstaller~=6.18.0"]
 
 [tool.uv]
+required-version = ">=0.9.17"
+exclude-newer = "P7D"         # Ignore package versions uploaded less than x time ago
+
 # Minimum versions for indirect dependencies to stay above known security fixes.
 # (Pulled in by requests/pyinstaller)
 constraint-dependencies = [
