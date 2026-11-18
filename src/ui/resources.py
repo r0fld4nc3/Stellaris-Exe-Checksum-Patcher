@@ -42,6 +42,7 @@ class AppStyle(str, Enum):
 
 class AppGuide(str, Enum):
     FAQ = "faq.md"
+    WELCOME = "welcome.md"
 
 
 @cache

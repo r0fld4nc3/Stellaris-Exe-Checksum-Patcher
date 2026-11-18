@@ -17,7 +17,7 @@ The patch stays in place until the game is updated or its files are verified or 
 ## Changing or removing patches
 
 Pick your patches in **Game Utilities**. 
-**Checksum** is always applied, but **Warning** (_optional, enabled) and **Tooltip** (_optional, disabled) are up to you.
+**Checksum** is always applied. **Warning** and **Tooltip** are optional and ticked by default, so they're up to you.
 
 Patches can be applied to an executable that has already been patched.
 
