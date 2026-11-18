@@ -13,7 +13,13 @@ from PySide6.QtWidgets import (
 from core.services import services
 from ui.resources import AppGuide, load_guide
 from ui.shared_widgets import MarkdownTextBrowser
-from ui.utils import EventFilterMoveResize, adapt_to_parent_size, restore_window_focus
+from ui.utils import (
+    EventFilterMoveResize,
+    adapt_to_parent_size,
+    get_app_window,
+    restore_window_focus,
+)
+from utils.hashing import text_fingerprint
 
 log = logging.getLogger("Welcome Dialog")
 
@@ -75,8 +81,7 @@ class WelcomeDialog(QDialog):
 
         # Confirm and Don't Show Again
         # Make it dynamic! Appear only if never accepted!
-        has_accepted = self.settings.app_settings.accepted_welcome_dialog
-        if not has_accepted:
+        if self.is_new():
             btn_confirm = QPushButton("Understood! - Don't Show Again")
             # Override button font
             button_font = QFont(self.font)
@@ -96,8 +101,17 @@ class WelcomeDialog(QDialog):
 
         content_layout.addLayout(button_layout)
 
+    @staticmethod
+    def fingerprint() -> str:
+        return text_fingerprint(load_guide(AppGuide.WELCOME))
+
+    @staticmethod
+    def is_new() -> bool:
+        """`True` if user hasn't accepted this version of welcome guide."""
+        return services().settings.app_settings.last_accepted_welcome_hash != WelcomeDialog.fingerprint()
+
     def _on_confirm(self):
-        self.settings.app_settings.accepted_welcome_dialog = True
+        self.settings.app_settings.last_accepted_welcome_hash = self.fingerprint()
         self.accept()
 
     @Slot(int)
@@ -108,7 +122,7 @@ class WelcomeDialog(QDialog):
     def showEvent(self, event):
         super().showEvent(event)
         # --- Set welcome dialog responsive to screen size ---
-        adapt_to_parent_size(self, self.parentWidget().parentWidget(), self.SIZE_PCT, self.MIN_SIZE_PCT)
+        adapt_to_parent_size(self, get_app_window(self), self.SIZE_PCT, self.MIN_SIZE_PCT)
 
         # Frameless windows don't always become active when shown, and inactive windows get no hover
         restore_window_focus(self)

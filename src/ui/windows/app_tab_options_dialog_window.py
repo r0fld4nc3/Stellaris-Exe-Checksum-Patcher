@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 
 from core.services import services
 from patchers import PatchConfiguration, Patcher
-from ui.utils import adapt_to_parent_size, centre_on_parent
+from ui.utils import adapt_to_parent_size, centre_on_parent, get_app_window
 
 from .options_tabs import GameUtilitiesTab, UtilitiesTab
 from .options_tabs.base import OptionsContext, OptionsTab
@@ -110,7 +110,7 @@ class TabOptionsDialog(QDialog):
         self.setWindowTitle("Configure Patches")
         self.setWindowIcon(window_icon)
 
-        adapt_to_parent_size(self, self.parentWidget(), self.SIZE_PCT, self.MIN_SIZE_PCT)
+        adapt_to_parent_size(self, get_app_window(self), self.SIZE_PCT, self.MIN_SIZE_PCT)
 
         # Dialog Layout that contains the frame
         dialog_layout = QVBoxLayout(self)

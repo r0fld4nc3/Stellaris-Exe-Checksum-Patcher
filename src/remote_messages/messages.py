@@ -14,7 +14,6 @@ What a fetch does with the cache:
 A message counts as new when its fingerprint mismatches from the last one the user closed.
 """
 
-import hashlib
 import logging
 import time
 from dataclasses import dataclass
@@ -27,6 +26,7 @@ import requests
 
 from core.definitions import REPO_BRANCH, REPO_NAME, REPO_OWNER
 from core.services import services
+from utils.hashing import normalise_text, text_fingerprint
 
 log = logging.getLogger("Messages")
 
@@ -60,10 +60,7 @@ class Message:
         Identifies this message's content.
         Empty if there is no message.
         """
-
-        if not self.text:
-            return ""
-        return hashlib.sha256(self.text.encode("utf-8")).hexdigest()
+        return text_fingerprint(self.text)
 
     @property
     def is_new(self) -> bool:
@@ -76,11 +73,6 @@ class Message:
     def mark_seen(self) -> None:
         self.seen = True
         log.info(f"Marked message '{self.fingerprint}' as seen.")
-
-
-def _normalise(text: str) -> str:
-    """Same line endings and no surrounding blank spaces, so neither changes fingerprint."""
-    return text.replace("\r\n", "\n").strip()
 
 
 def fetch_message() -> Message:
@@ -136,7 +128,7 @@ def fetch_message() -> Message:
 
 def _update_cache(text: str) -> Message:
     """Save `text` to cache or delete if empty."""
-    text = _normalise(text)
+    text = normalise_text(text)
 
     if not text:
         log.info("No remote message. Removing cached message.")
@@ -163,7 +155,7 @@ def read_cached_message(status_if_missing: MessageStatus = MessageStatus.NO_MESS
     """
 
     try:
-        text = _normalise(message_cache_file().read_text(encoding="utf-8"))
+        text = normalise_text(message_cache_file().read_text(encoding="utf-8"))
     except FileNotFoundError:
         return Message(status_if_missing)
     except OSError as e:

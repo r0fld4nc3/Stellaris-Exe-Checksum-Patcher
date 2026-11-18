@@ -3,8 +3,8 @@ Settings data, as plain dataclasses.
 
 Every public field is one setting. How it is stored depends on how it is declared:
 
-    accepted_welcome_dialog: bool = False      # plain field -> written to disk immediately
-    window_width: int = memory(800)            # memory()    -> kept in memory, written on close
+    force_local_patterns: bool = False            # plain field -> written to disk immediately
+    window_width: int = memory(800)               # memory()    -> kept in memory, written on close
     app_version: str = memory("v3", locked=True)  # locked   -> always the default, write-only
 
 Memory settings are also written whenever an immediate setting is saved, and when the options dialog closes.
@@ -161,7 +161,6 @@ class AppSettings(AutoSaveHookedSettingsClass):
     app_is_prerelease: bool = memory(APP_IS_PRERELEASE, locked=True)
 
     # --- Saved immediately ---
-    accepted_welcome_dialog: bool = False
     force_local_patterns: bool = False
     include_prerelease_updates: bool = False
     selected_game: str = ""
@@ -171,6 +170,7 @@ class AppSettings(AutoSaveHookedSettingsClass):
     generic_runner_args: str = ""  # Arguments for generic runner.
     games: dict[str, GameSettings] = field(default_factory=dict)
     last_seen_message_hash: str = ""  # Fingerprint of the last remote message the user closed
+    last_accepted_welcome_hash: str = ""  # Fingerprint of the welcome guide user last accepted
 
     # --- Kept in memory ---
     window_width: int = memory(0)  # 0 meaning not defined yet

@@ -416,6 +416,20 @@ def centre_on_parent(window: QWidget, parent: QWidget | None = None):
     window.move(centre.x() - window.width() // 2, centre.y() - window.height() // 2)
 
 
+def get_app_window(widget: QWidget) -> QWidget:
+    """
+    The top window `widget` belongs to, past any dialogs opened in between.
+    Ex.: Main Window, for a dialog opened from the options tab.
+    """
+
+    window = widget.window()
+
+    while window.parentWidget():
+        window = window.parentWidget().window()
+
+    return window
+
+
 def get_qt_platform() -> str:
     """
     Get Qt platform being used.

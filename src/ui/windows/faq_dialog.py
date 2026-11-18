@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFrame, QVBoxLayout
 
 from ui.resources import AppGuide, load_guide
 from ui.shared_widgets import MarkdownTextBrowser
-from ui.utils import EventFilterMoveResize, adapt_to_parent_size
+from ui.utils import EventFilterMoveResize, adapt_to_parent_size, get_app_window
 
 log = logging.getLogger("FAQ Dialog")
 
@@ -71,4 +71,4 @@ class FAQDialog(QDialog):
     def showEvent(self, event):
         super().showEvent(event)
         # --- Set welcome dialog responsive to screen size ---
-        adapt_to_parent_size(self, self.parent, self.SIZE_PCT, self.MIN_SIZE_PCT)
+        adapt_to_parent_size(self, get_app_window(self), self.SIZE_PCT, self.MIN_SIZE_PCT)

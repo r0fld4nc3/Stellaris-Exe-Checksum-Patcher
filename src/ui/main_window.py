@@ -1267,9 +1267,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         store_helper.launch_game(game, saved_game_executable(self.configuration))
 
     def show_welcome_dialog(self):
-        has_accepted_dialog = self.settings.app_settings.accepted_welcome_dialog
-        if not has_accepted_dialog:
-            # --- Show welcome dialog ---
+        if WelcomeDialog.is_new():
             self.welcome_dialog = WelcomeDialog(
                 QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self
             )
