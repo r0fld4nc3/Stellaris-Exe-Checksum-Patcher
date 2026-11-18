@@ -16,7 +16,6 @@ _EXIT_WAIT_MS: int = 1000
 
 
 class Cooldown(str, Enum):
-    REMOTE_MESSAGE = "remote_message"
     PATCH_PATTERNS = "patch_patterns"
 
 
@@ -30,7 +29,6 @@ class CooldownWatcher(QThread):
     Each cooldown's signal is found with `changed_signal()`.
     """
 
-    remote_message_changed = Signal(bool)
     patch_patterns_changed = Signal(bool)
 
     def __init__(self, config: AppConfig, settings: SettingsManager):
@@ -44,8 +42,6 @@ class CooldownWatcher(QThread):
         """Signal to fire when `cooldown` starts or ends. New cooldowns added here."""
 
         match cooldown:
-            case Cooldown.REMOTE_MESSAGE:
-                return self.remote_message_changed
             case Cooldown.PATCH_PATTERNS:
                 return self.patch_patterns_changed
             case _:
@@ -111,8 +107,6 @@ class CooldownWatcher(QThread):
         app_settings = self.settings.app_settings
 
         match cooldown:
-            case Cooldown.REMOTE_MESSAGE:
-                return app_settings.remote_message_update_last_checked
             case Cooldown.PATCH_PATTERNS:
                 return app_settings.patch_patterns_update_last_checked
             case _:

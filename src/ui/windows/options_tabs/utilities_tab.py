@@ -281,7 +281,6 @@ class UtilitiesTab(OptionsTab):
         utilities_layout.addWidget(runner_examples_scroll_area)
 
         # --- Cooldowns ---
-        self.svc.cooldowns.subscribe(Cooldown.REMOTE_MESSAGE, self._on_remote_message_cooldown_changed)
         self.svc.cooldowns.subscribe(Cooldown.PATCH_PATTERNS, self._on_patch_patterns_cooldown_changed)
 
     # --- OptionsTab hooks ---
