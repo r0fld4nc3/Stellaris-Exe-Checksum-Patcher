@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 
 from core.cooldowns import Cooldown
 from patch_patterns.patterns import get_patterns_config_remote
-from remote_messages import read_cached_message
+from remote_messages import fetch_message
 from ui.shared_widgets import QSquarePushButton
 from ui.utils import prompt_path
 from utils.helpers import block_signals
@@ -387,8 +387,11 @@ class UtilitiesTab(OptionsTab):
         dialog.show()
 
     def show_information_message(self):
-        """Show the last downloaded message again."""
-        message = read_cached_message()
+        """
+        Show the remote information message.
+        Attemps to pull fetch a new message before showing cached.
+        """
+        message = fetch_message()
         window = self.window()
 
         if not message.text:
