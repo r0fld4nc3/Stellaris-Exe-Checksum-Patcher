@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from typing import Dict, Optional
 
-from PySide6.QtCore import QDeadlineTimer, QSize, Qt, QThreadPool, Signal, Slot
+from PySide6.QtCore import QDeadlineTimer, QSize, Qt, QThread, QThreadPool, Signal, Slot
 from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
@@ -123,9 +123,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         super().__init__()
         self.setObjectName("MainWindow")
 
-        self.app_config = services().config
-        self.settings = services().settings
-        self.updater = Updater(REPO_OWNER, REPO_NAME)  # Owned here: only the main window checks for updates
+        self.svc = services()
+        self.app_config = self.svc.config
+        self.settings = self.svc.settings
+        self.updater = Updater(REPO_OWNER, REPO_NAME)  # Owned here, only the main window checks for updates
 
         qt_platform = get_qt_platform()
         log.info(f"Qt Platform: {qt_platform}")
@@ -394,9 +395,9 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Load Patterns Fetch ---
         self.fetch_patterns_thread = Threader(self.fetch_patterns)
         self.fetch_patterns_thread.signals.started.connect(self.disable_ui_elements)
-        self.fetch_patterns_thread.signals.result.connect(self.enable_ui_elements)
-        self.fetch_patterns_thread.signals.result.connect(self.apply_app_style)  # Also ensure style is updated
-        self.fetch_patterns_thread.signals.result.connect(self.check_file_already_patched)
+        self.fetch_patterns_thread.signals.finished.connect(self.enable_ui_elements)
+        self.fetch_patterns_thread.signals.finished.connect(self.apply_app_style)  # Also ensure style is updated
+        self.fetch_patterns_thread.signals.finished.connect(self.check_file_already_patched)
         self.start_thread(self.fetch_patterns_thread)
 
         self.check_update()
@@ -544,7 +545,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.is_patching = False
         self.enable_ui_elements()
 
-    def start_thread(self, thread: Threader):
+    def start_thread(self, thread: QThread):
         """
         Start `thread` and keep a reference to it until it has ended.
         Every thread must be started through here, or Qt aborts if it is garbage collected while running.
@@ -1017,7 +1018,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             log.info("Configuration unchanged.", silent=True)
 
     def check_update(self, force: bool = False):
-        last_checked = self.settings.app_settings.update_last_checked if not force else 0
+        last_checked = self.settings.app_settings.app_update_last_checked if not force else 0
 
         now = int(time.time())
 
@@ -1043,7 +1044,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         if updater_last_checked <= 1:
             update_available = self.settings.app_settings.update_available
         else:
-            self.settings.app_settings.update_last_checked = self.updater.last_checked_timestamp
+            self.settings.app_settings.app_update_last_checked = self.updater.last_checked_timestamp
             if self.updater.has_new_version:
                 self.settings.app_settings.update_available = True
                 update_available = True
