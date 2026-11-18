@@ -1,6 +1,6 @@
 import logging
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
     QDialog,
@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.services import services
-from ui.utils import EventFilterMoveResize, adapt_to_parent_size
+from ui.utils import EventFilterMoveResize, adapt_to_parent_size, restore_window_focus
 
 log = logging.getLogger("Welcome Dialog")
 
@@ -47,6 +47,9 @@ class WelcomeDialog(QDialog):
         self.setWindowTitle("Welcome and Overview")
         self.setWindowIcon(window_icon)
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+
+        # Hand activation back to the window underneath on every way out (Understood, Close, Escape)
+        self.finished.connect(self._on_finished)
 
         # Frameless. Handle moving and resizing with same filter as main window.
         self.resize_move_filter = EventFilterMoveResize(self)
@@ -251,6 +254,11 @@ class WelcomeDialog(QDialog):
         self.settings.app_settings.accepted_welcome_dialog = True
         self.accept()
 
+    @Slot(int)
+    def _on_finished(self, _result: int):
+        # The window underneath doesn't always become active again by itself
+        restore_window_focus(self.parentWidget().window())
+
     @staticmethod
     def _style_html(content: str) -> str:
         """Apply a consistent styling to  HTML content"""
@@ -293,3 +301,6 @@ class WelcomeDialog(QDialog):
         super().showEvent(event)
         # --- Set welcome dialog responsive to screen size ---
         adapt_to_parent_size(self, self.parentWidget().parentWidget(), self.SIZE_PCT, self.MIN_SIZE_PCT)
+
+        # Frameless windows don't always become active when shown, and inactive windows get no hover
+        restore_window_focus(self)
