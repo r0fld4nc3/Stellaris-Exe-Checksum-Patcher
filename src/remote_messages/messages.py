@@ -98,7 +98,7 @@ def fetch_message() -> Message:
         log.info("Network access is blocked. using cached message.")
         return read_cached_message(status_if_missing=MessageStatus.NETWORK_BLOCKED)
 
-    seconds_since_check = int(time.time()) - settings.message_last_checked
+    seconds_since_check = int(time.time()) - settings.remote_message_update_last_checked
     time_remaining = config.update_check_cooldown - seconds_since_check
 
     if seconds_since_check < config.update_check_cooldown:
@@ -125,7 +125,7 @@ def fetch_message() -> Message:
 
     # Cooldown only starts after a definitive answer.
     # Failed attempts don't count so it can be retried.
-    settings.message_last_checked = int(time.time())
+    settings.remote_message_update_last_checked = int(time.time())
 
     message = _update_cache(text)
     log.info(

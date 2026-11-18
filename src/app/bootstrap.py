@@ -5,8 +5,9 @@ Important ordering:
 1. Config: folders and command line flags. Everything else reads it.
 2. Network blocking (--no-conn): before anything imports `requests`.
 3. Logging: as early as possible, once the log file location is known.
-4. Settings, then `init_services()`.
+4. Settings and the cooldown watcher, then `init_services()`.
 5. Load the settings file.
+6. Start the cooldown watcher's thread. It stops itself when Python exits.
 
 The updater isn't and doesn't need to be a service. Modules create and own it.
 """
@@ -19,6 +20,7 @@ import logging
 from pathlib import Path
 
 from core import runtime
+from core.cooldowns import CooldownWatcher
 from core.definitions import (
     APP_NAME,
     APP_REVISION,
@@ -53,13 +55,14 @@ def start(args: argparse.Namespace, working_dir: Path) -> AppServices:
     if config.prevent_settings_save:
         log.info("Prevent settings write is ENABLED (--prevent-settings-write)")
 
-    app_services = AppServices(
-        config=config,
-        settings=SettingsManager(config),
-    )
+    settings = SettingsManager(config)
+    cooldowns = CooldownWatcher(config, settings)
+
+    app_services = AppServices(config=config, settings=settings, cooldowns=cooldowns)
     init_services(app_services)
 
     app_services.settings.load()
+    cooldowns.start_watching()
 
     return app_services
 

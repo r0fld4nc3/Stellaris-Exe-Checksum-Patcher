@@ -175,10 +175,10 @@ class AppSettings(AutoSaveHookedSettingsClass):
     # --- Kept in memory ---
     window_width: int = memory(800)
     window_height: int = memory(600)
-    update_last_checked: int = memory(0)
+    app_update_last_checked: int = memory(0)
     update_available: bool = memory(False)
     patch_patterns_update_last_checked: int = memory(0)
-    message_last_checked: int = memory(0)
+    remote_message_update_last_checked: int = memory(0)
     max_allowed_binary_backups: int = memory(1)
 
     def dump(self) -> dict:

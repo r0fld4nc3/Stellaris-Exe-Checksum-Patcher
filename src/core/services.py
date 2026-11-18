@@ -13,6 +13,7 @@ Objects from higher layers (ex.: the `Updater`) are owned by the code that uses 
 from dataclasses import dataclass
 from typing import Optional
 
+from .cooldowns import CooldownWatcher
 from .runtime import AppConfig
 from .settings import SettingsManager
 
@@ -21,6 +22,7 @@ from .settings import SettingsManager
 class AppServices:
     config: AppConfig  # This run: how it was started and what it learned, lost on quit
     settings: SettingsManager  # What the user chose, saved to disk
+    cooldowns: CooldownWatcher  # Signals for when cooldowns start or end. Thread started in bootstrap
 
 
 _current: Optional[AppServices] = None
