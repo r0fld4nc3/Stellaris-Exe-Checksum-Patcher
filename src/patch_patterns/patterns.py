@@ -60,7 +60,7 @@ def get_patterns_config_remote() -> dict:
 
         # Save patterns file. Local patterns aren't forced here.
         log.info(f"Saving remote patterns to config dir: {local_patterns_file()}")
-        with open(local_patterns_file(), "w", encoding="UTF-8") as f:
+        with open(local_patterns_file(), "w", encoding="utf-8-sig") as f:
             f.write(json.dumps(patterns_data, indent=2))
 
         return patterns_data
@@ -99,7 +99,7 @@ def get_patterns_config_local() -> dict:
             return {}
 
     # Load the config
-    with open(local_patterns_file(), "r", encoding="UTF-8") as f:
+    with open(local_patterns_file(), "r", encoding="utf-8-sig") as f:
         config: dict = json.load(f)
         log.info(f"Loaded patterns data\n{json.dumps(config, indent=2)}", silent=True)
 
@@ -117,12 +117,12 @@ def update_local_config(key: str, content):
         log.error(f"Expected local patterns file does not exist: {local_patterns_file()}")
         return False
 
-    with open(local_patterns_file(), "r", encoding="UTF-8") as f:
+    with open(local_patterns_file(), "r", encoding="utf-8-sig") as f:
         patterns_data = json.load(f)
         log.info(f"Loaded patterns data\n{json.dumps(patterns_data, indent=2)}", silent=True)
 
     patterns_data[key] = content
 
-    with open(local_patterns_file(), "w", encoding="UTF-8") as f:
+    with open(local_patterns_file(), "w", encoding="utf-8-sig") as f:
         f.write(json.dumps(patterns_data, indent=2))
         log.info(f"Updated local patterns data\n{json.dumps(patterns_data, indent=2)}", silent=True)

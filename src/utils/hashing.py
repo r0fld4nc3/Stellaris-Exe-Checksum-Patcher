@@ -32,4 +32,4 @@ def text_fingerprint(text: str) -> str:
     if not normalised:
         return ""
 
-    return hashlib.sha256(normalised.encode("utf-8")).hexdigest()
+    return hashlib.sha256(normalised.encode("utf-8-sig")).hexdigest()

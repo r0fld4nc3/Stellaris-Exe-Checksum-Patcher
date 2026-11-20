@@ -81,7 +81,7 @@ def load_local_achievements() -> str:
             return ""
 
     # Load the file
-    with open(local_achievements_file(), "r", encoding="UTF-8") as f:
+    with open(local_achievements_file(), "r", encoding="utf-8-sig") as f:
         contents: str = f.read()
         log.info(f"Loaded achievements file\n{contents}", silent=True)
 
@@ -130,7 +130,7 @@ def pull_latest_achievements() -> tuple[str, str]:
         # Update local achievements file
         log.info("Updating achievements file with repo content.")
         try:
-            with local_achievements_file().open("w", encoding="utf-8") as ach_f:
+            with local_achievements_file().open("w", encoding="utf-8-sig") as ach_f:
                 ach_f.write(achievements)
         except Exception as e:
             log.error(f"Error writing to achievements file.\nError: {e}")

@@ -312,7 +312,7 @@ class SteamHelper(StoreHelperBase):
             return
 
         log.info(f"Reading file: '{app_id_file}", silent=True)
-        with open(app_id_file, "r", encoding="utf-8") as f:
+        with open(app_id_file, "r", encoding="utf-8-sig") as f:
             try:
                 data = f.readline()
                 log.info(data, silent=True)

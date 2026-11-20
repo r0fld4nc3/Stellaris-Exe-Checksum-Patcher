@@ -221,7 +221,7 @@ class SettingsManager:
 
         fd, temp_path = tempfile.mkstemp(dir=fp.parent, prefix=fp.name + ".", suffix=".tmp")
         try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
+            with os.fdopen(fd, "w", encoding="utf-8-sig") as f:
                 f.write(text)
                 f.flush()
                 os.fsync(f.fileno())

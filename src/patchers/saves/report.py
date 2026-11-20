@@ -21,7 +21,7 @@ from patchers.saves.stellaris import (
 
 def report(path: Path) -> int:
     save = open_save(path)
-    parsed = parse_stellaris_save(save, latest=ACHIEVEMENTS_DISTRIBUTED_FILE.read_text(encoding="utf-8"))
+    parsed = parse_stellaris_save(save, latest=ACHIEVEMENTS_DISTRIBUTED_FILE.read_text(encoding="utf-8-sig"))
 
     print(f"File:  {path}")
     print()

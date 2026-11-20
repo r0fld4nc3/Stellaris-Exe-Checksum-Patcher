@@ -109,7 +109,7 @@ def fetch_message() -> Message:
         # Message file was removed
         text = ""
     elif response.ok:
-        text = response.content.decode("utf-8", errors="replace")
+        text = response.content.decode("utf-8-sig", errors="replace")
         log.info("Successfully fetched and decoded message.")
     else:
         log.warning(f"Unable to download the message: HTTP {response.status_code}")
@@ -140,7 +140,7 @@ def _update_cache(text: str) -> Message:
 
     try:
         message_cache_file().parent.mkdir(parents=True, exist_ok=True)
-        message_cache_file().write_text(text, encoding="utf-8")
+        message_cache_file().write_text(text, encoding="utf-8-sig")
         log.info(f"Saved message to: {message_cache_file()}")
     except OSError as e:
         log.warning(f"Unable to save the message to '{message_cache_file()}': {e}")
@@ -155,7 +155,7 @@ def read_cached_message(status_if_missing: MessageStatus = MessageStatus.NO_MESS
     """
 
     try:
-        text = normalise_text(message_cache_file().read_text(encoding="utf-8"))
+        text = normalise_text(message_cache_file().read_text(encoding="utf-8-sig"))
     except FileNotFoundError:
         return Message(status_if_missing)
     except OSError as e:
