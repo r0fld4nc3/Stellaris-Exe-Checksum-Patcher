@@ -19,12 +19,17 @@ This app makes a small, automatic change to the game's executable so that achiev
 
 <p align="center">
 <img src="media/stellaris-checksum-patcher-08-01.png" width="49%" alt="Stellaris Checksum Patcher Main Windows Startup">
-<img src="media/stellaris-checksum-patcher-08-02.png" width="49%" alt="Stellaris Checksum Patcher Main Window Patched">
+<img src="media/stellaris-checksum-patcher-08-05.png" width="49%" alt="Stellaris Checksum Patcher Main Window Patched">
 </p>
 
 <p align="center">
-<img src="media/stellaris-checksum-patcher-08-04.png" width="49%" alt="Stellaris Checksum Patcher Game Utilities">
+<img src="media/stellaris-checksum-patcher-08-02.png" width="49%" alt="Stellaris Checksum Patcher Game Utilities">
 <img src="media/stellaris-checksum-patcher-08-03.png" width="49%" alt="Stellaris Checksum Patcher General Utilities">
+</p>
+
+<p align="center">
+<img src="media/stellaris-checksum-patcher-08-04.png" width="49%" alt="Stellaris Checksum Patcher Fix Save Window">
+<img src="media/stellaris-checksum-patcher-08-06.png" width="49%" alt="Stellaris Checksum Patcher FAQ Window">
 </p>
 
 > [!IMPORTANT]
