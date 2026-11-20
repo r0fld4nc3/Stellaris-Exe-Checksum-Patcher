@@ -1,12 +1,13 @@
 import copy
 import logging
+import os
 import re
 import sys
 import time
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Dict, Optional
 
-from PySide6.QtCore import QSize, Qt, QThreadPool, Slot
+from PySide6.QtCore import QDeadlineTimer, QSize, Qt, QThread, QThreadPool, Signal, Slot
 from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
@@ -19,6 +20,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
+    QProgressBar,
     QPushButton,
     QSizePolicy,
     QTextBrowser,
@@ -26,62 +28,95 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app_services import services
-from config.definitions import APP_VERSION, SUPPORTED_GAMES, TRACKING_BRANCH
-from config.path_helpers import os_darwin, os_linux, os_windows, system
+from app.game_location import (
+    find_game_executable,
+    save_game_executable,
+    saved_game_executable,
+)
+from core.definitions import (
+    APP_REVISION_STR,
+    APP_VERSION_STR,
+    REPO_NAME,
+    REPO_OWNER,
+    SUPPORTED_GAMES,
+    VISUAL_BRANCH,
+)
+from core.paths import os_linux, os_windows
+from core.services import services
 
 # Patch Patterns
 from patch_patterns.patterns import (
-    PATTERNS_LOCAL,
     get_patterns_config_local,
     get_patterns_config_remote,
+    local_patterns_file,
 )
 from patchers import models as patcher_models
-from patchers import pdx_patchers, save_patcher
-from thread_utils import Threader, WorkerSignals
-from ui.utils import get_qt_platform
-from utils.platform import (
-    WAYLAND,
-    X11,
-    get_file_access_time,
-    get_file_modified_time,
-    set_file_access_time,
+from patchers import pdx_patchers
+from patchers.saves import (
+    SaveAnalysis,
+    SaveFileError,
+    SaveFixError,
+    SaveFixReport,
+    analyse_save,
+    fix_save,
+    get_save_games_folders,
+    get_supported_save_game,
 )
+from remote_messages import Message, fetch_message
+from stores import (
+    GameStore,
+    game_store,
+    get_store_helper,
+    has_picked_store,
+    set_game_store,
+)
+from updater import Updater
+from utils.platform import WAYLAND, X11
+from utils.threads import Threader
 
-from .resources import AppFont, AppIcon, AppStyle, IconAchievementState, ResourceManager
+from .resources import AppFont, AppIcon, IconAchievementState, ResourceManager
 from .utils import (
     EventFilterMoveResize,
-    find_game_path,
-    get_screen_info,
-    prompt_install_dir,
+    centre_on_parent,
+    get_qt_platform,
+    is_shift_held,
+    prompt_path,
+    size_from_parent,
 )
 from .windows import (
-    ConfigurePatchOptionsDialog,
-    ConfigureSavePatchDialog,
     DisclaimerFixCheatedSave,
+    FAQDialog,
+    FixSaveReviewDialog,
+    MessageDialog,
+    StorePickerDialog,
+    TabOptionsDialog,
     WelcomeDialog,
+    option_dialog_pick_from_options,
 )
+
+# Tabs shown in the Configure Application Options dialog, in display order.
+APP_OPTIONS_TABS = []
 
 # loggers to hook up to signals
 from updater.updater import log as updater_log  # isort: skip
 from patchers.pdx_patchers import log as patcher_log  # isort: skip
-from patchers.save_patcher import log as patcher_save_log  # isort: skip
-from utils.steam_helper import log as steam_log  # isort: skip
+from patchers.saves.save_file import log as patcher_save_log  # isort: skip
+from stores.steam import log as steam_log  # isort: skip
 from utils.registry_helper import log as registry_log  # isort: skip
 
 log = logging.getLogger("UI")
 
 
 class StellarisChecksumPatcherGUI(QMainWindow):
-    _APP_VERSION = "v" + ".".join([str(v) for v in APP_VERSION[0:3]])
-    if len(APP_VERSION) > 3:
-        _APP_VERSION += "-"
-        _APP_VERSION += "-".join(str(v) for v in APP_VERSION[3:])
+    _APP_VERSION = APP_VERSION_STR
+    THREAD_STOP_TIMEOUT_MS = 5000  # How long closing the app waits for threads that aren't patching
 
-    svc = services()
-    app_config = svc.config
-    settings = svc.settings
-    updater = svc.updater
+    SIZE_PCT = (50, 80)  # Default (width, height) as percentages of the screen
+    MIN_SIZE_PCT = (30, 45)  # Smallest (width, height) as percentages of the screen
+
+    # Emitted from worker threads, so they're connected with Qt.QueuedConnection
+    patch_progress = Signal(int, str)  # Percentage and current step, for the progress bar
+    terminal_progress = Signal(str)  # Text for the information screen
 
     def __init__(self):
         if not QApplication.instance():
@@ -92,6 +127,11 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         super().__init__()
         self.setObjectName("MainWindow")
 
+        self.svc = services()
+        self.app_config = self.svc.config
+        self.settings = self.svc.settings
+        self.updater = Updater(REPO_OWNER, REPO_NAME)  # Owned here, only the main window checks for updates
+
         qt_platform = get_qt_platform()
         log.info(f"Qt Platform: {qt_platform}")
         if os_linux():
@@ -99,14 +139,26 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 log.warning(f"Unknown Qt plaform on Linux: '{qt_platform}'. Moving/Resizing might behave oddly.")
 
         self.resources = ResourceManager()
-        self.signals = WorkerSignals()
 
-        # --- Get size settings ---
-        width, height = self.settings.settings.window_width, self.settings.settings.window_height
+        self.setWindowOpacity(0.95)
+        self.is_patching = False
 
-        # --- Failsafes ---
-        width = 966 if width < 1 else width
-        height = 821 if height < 1 else height
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
+        self.resize_move_filter = EventFilterMoveResize(self)
+        self.installEventFilter(self.resize_move_filter)
+
+        # --- Size Policies---
+        size_policy_button = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Maximum)
+        size_policy_button.setHorizontalStretch(0)
+        size_policy_button.setVerticalStretch(0)
+
+        size_policy_project_browser_link = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        size_policy_project_browser_link.setHorizontalStretch(0)
+        size_policy_project_browser_link.setVerticalStretch(0)
+
+        size_policy_app_version_label = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+        size_policy_app_version_label.setHorizontalStretch(0)
+        size_policy_app_version_label.setVerticalStretch(0)
 
         # Pre-compiled regex patterns for terminal log
         self._log_pattern = re.compile(r"(\[(DEBUG|INFO|WARN|ERROR)\])(.*)")
@@ -135,30 +187,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # Set a default format
         self._default_format = QTextCharFormat()
         self._default_format.setForeground(self._colour_map["INFO"])
-
-        # --- Base Size---
-        self.resize(width, height)
-
-        self.setWindowOpacity(0.95)
-        self.is_patching = False
-        self._prev_app_version = ""
-
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
-        self.resize_move_filter = EventFilterMoveResize(self)
-        self.installEventFilter(self.resize_move_filter)
-
-        # --- Size Policies---
-        size_policy_button = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Maximum)
-        size_policy_button.setHorizontalStretch(0)
-        size_policy_button.setVerticalStretch(0)
-
-        size_policy_project_browser_link = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
-        size_policy_project_browser_link.setHorizontalStretch(0)
-        size_policy_project_browser_link.setVerticalStretch(0)
-
-        size_policy_app_version_label = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        size_policy_app_version_label.setHorizontalStretch(0)
-        size_policy_app_version_label.setVerticalStretch(0)
 
         # ------------------------------------
 
@@ -202,7 +230,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.lbl_title.setProperty("windowDragHandle", True)
 
         self.lbl_app_version = QLabel(
-            f"{self._APP_VERSION}-{TRACKING_BRANCH}{'-debug' if self.app_config.debug else ''}"
+            f"{self._APP_VERSION}{APP_REVISION_STR}-{VISUAL_BRANCH}{'-debug' if self.app_config.debug else ''}"
         )
         self.lbl_app_version.setSizePolicy(size_policy_app_version_label)
         self.lbl_app_version.setProperty("windowDragHandle", True)
@@ -247,7 +275,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Fix Save Button---
         self.btn_fix_save_file = QPushButton("Fix Save")
         self.btn_fix_save_file.setFlat(False)
-        self.btn_fix_save_file.clicked.connect(self.fix_save_achievements_thread)
+        self.btn_fix_save_file.clicked.connect(self.fix_save_game_thread)
 
         # --- Patch Button ---
         self.btn_patch_executable = QPushButton()
@@ -260,10 +288,21 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_configure_patch_options.setToolTip("Configure patch options and access general utilities.")
         self.btn_configure_patch_options.clicked.connect(self.open_configure_patch_options_window)
 
+        # --- Progress Bar ---
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setObjectName("PatchProgressBar")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.hide_progress_bar()
+
         # --- FAQ & Tips Button ---
         self.btn_faq_dialog = QPushButton()
         self.btn_faq_dialog.setObjectName("FAQButton")
+        self.btn_faq_dialog.setText("?")
         self.btn_faq_dialog.setToolTip("Frequently asked questions and workarounds.")
+        self.btn_faq_dialog.setFont(QFont(self.app_font_bold, 20))
+        self.btn_faq_dialog.setFixedSize(QSize(48, 48))
         self.btn_faq_dialog.clicked.connect(self.open_faq_window)
 
         # ---Add Widgets to Layouts ---
@@ -290,7 +329,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.frame_layout.addWidget(self.window_functions_container_handle)
         self.frame_layout.addWidget(self.lbl_app_version)
         self.frame_layout.addWidget(self.terminal_display)
-        self.frame_layout.addLayout(self.hlayout_after_terminal_display)
+        self.frame_layout.addLayout(
+            self.hlayout_after_terminal_display, 1
+        )  # Stretch to fix layout issues. Take up space as needed.
+        self.frame_layout.addWidget(self.progress_bar)
         self.frame_layout.addLayout(self.hlayout_patch_buttons)
         self.frame_layout.addLayout(self.hlayout_misc_functions)
 
@@ -299,13 +341,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Hook up Signals ---
         # Could be a bit hacky. Ensure created before assign
-        log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        updater_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        patcher_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        patcher_save_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        steam_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        registry_log.signals.progress.connect(self.terminal_display_log, Qt.QueuedConnection)
-        self.signals.terminal_progress.connect(self.terminal_display_log, Qt.QueuedConnection)
+        log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        updater_log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        patcher_log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        patcher_save_log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        steam_log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        registry_log.signals.message.connect(self.terminal_display_log, Qt.QueuedConnection)
+        self.terminal_progress.connect(self.terminal_display_log, Qt.QueuedConnection)
+        self.patch_progress.connect(self._set_progress, Qt.QueuedConnection)
 
         # --- Worker ---
         self.worker = None  # Currently unusued, possibly to deprecate
@@ -315,56 +358,58 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.active_threads = []
 
         # --- Track if Configure Patch Dialog Opened ---
-        self.patch_config_dialog: ConfigurePatchOptionsDialog | None = None
+        self.tab_options_dialog: TabOptionsDialog | None = None
+
+        # --- Remote message, from last fetch. None until the startup fetch finishes ---
+        self.welcome_dialog: WelcomeDialog | None = None
+        self.message: Message | None = None
 
         # --- Cache Configuration ---
-        self.multi_game_patcher = pdx_patchers.MultiGamePatcher(PATTERNS_LOCAL)
-
-        self.selected_version = patcher_models.KEY_VERSION_LATEST
+        self.patcher = pdx_patchers.Patcher(local_patterns_file())
 
         self.configuration = patcher_models.PatchConfiguration(
             game="",
-            version=patcher_models.KEY_VERSION_LATEST,
-            is_proton=(os_windows() or (self.app_config.use_proton)),
+            platform=patcher_models.Platform.detect_current(),
         )
-        self.save_configuration: patcher_models.GameSavePatchConfig = None
         self.last_conf_game = ""
-
-        # --- Cache available patches to display ---
-        self.available_patches: dict = {}
-        self.available_versions: List[str] = []
 
         self.load_settings()
 
         self.apply_app_style()
 
+        # Set the widgets whose states will be affected
+        self.widgets_state_switches: tuple[QWidget] = (
+            self.btn_patch_executable,
+            self.btn_fix_save_file,
+            self.btn_configure_patch_options,
+            self.terminal_display,
+            self.btn_themed_exit_app,
+        )
+
         # --- Load Patterns Fetch ---
         self.fetch_patterns_thread = Threader(self.fetch_patterns)
-        self.active_threads.append(self.fetch_patterns_thread)
         self.fetch_patterns_thread.signals.started.connect(self.disable_ui_elements)
-        self.fetch_patterns_thread.signals.result.connect(self.enable_ui_elements)
-        self.fetch_patterns_thread.signals.result.connect(self.apply_app_style)  # Also ensure style is updated
-        self.fetch_patterns_thread.signals.result.connect(self.check_file_already_patched)
-        self.fetch_patterns_thread.start()
+        self.fetch_patterns_thread.signals.finished.connect(self.enable_ui_elements)
+        self.fetch_patterns_thread.signals.finished.connect(self.apply_app_style)  # Also ensure style is updated
+        self.fetch_patterns_thread.signals.finished.connect(self.check_file_already_patched)
+        self.start_thread(self.fetch_patterns_thread)
 
         self.check_update()
+        self.check_message()
 
     def load_settings(self):
-        self._prev_app_version = self.settings.settings.app_version
-        self.settings.settings.app_version = self._APP_VERSION
-        self.updater.set_local_version(str(self._APP_VERSION))
-
         if not self.configuration.game:
-            self.configuration.game = self.settings.settings.last_selected_game
+            # Fall back to the default game so an entry is never created with an empty name
+            self.configuration.game = self.settings.app_settings.selected_game or SUPPORTED_GAMES[0]
 
-        _last_platform = self.settings.game(self.configuration.game).last_patched_platform
-        if _last_platform:
-            if os_linux() or os_darwin():
-                self.configuration.is_proton = _last_platform.lower() == patcher_models.Platform.WINDOWS
-        self.configuration.version = self.settings.game(self.configuration.game).last_patched_version
-        self.configuration.selected_patches = self.settings.game(self.configuration.game).patches
-        self.configuration.platform = self.settings.game(self.configuration.game).last_patched_platform
-        self.configuration.selected_patches = self.settings.game(self.configuration.game).patches
+        game_settings = self.settings.game(self.configuration.game)
+        # Restore the platform last patched with (Native or Proton), if one was saved
+        saved_platform = patcher_models.Platform.parse(game_settings.patched_platform)
+        if saved_platform:
+            self.configuration.platform = saved_platform
+        self.configuration.version = game_settings.patched_version
+        # Copy so edits to the configuration don't write into the saved settings
+        self.configuration.selected_patches = list(game_settings.patches)
 
     def load_app_styles(self):
         """Loads Styles, Icons and Fonts"""
@@ -378,15 +423,14 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         # --- Fonts ---
         self.app_font_bold = self.resources.load_font(AppFont.ORBITRON_BOLD)
 
+    @Slot()
     def apply_app_style(self):
         # --- Set App Constraints ---
         conf_game = self.configuration.game
 
         self.window_title = f"{conf_game} Patcher"
         self.window_title_update_available = self.window_title + " (UPDATE AVAILABLE)"
-        self.window_title_with_app_version = (
-            f"{self.window_title} ({self._APP_VERSION}){'-debug' if self.app_config.debug else ''}"
-        )
+        self.window_title_with_app_version = f"{self.window_title} ({self._APP_VERSION}{APP_REVISION_STR}-{VISUAL_BRANCH}){'-debug' if self.app_config.debug else ''}"
 
         self.setWindowTitle(self.window_title_with_app_version)
         if os_windows():
@@ -400,7 +444,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Label Title ---
         self.lbl_title.setText(self.window_title)
-        if self.settings.settings.update_available:
+        if self.settings.app_settings.update_available:
             self.lbl_title.setText(self.window_title_update_available)
         self.lbl_title.setFont(QFont(self.app_font_bold, 24))
         self.lbl_title.setMinimumSize(QSize(24, 36))
@@ -411,11 +455,6 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_themed_exit_app.setFont(self.app_font_bold)
         self.btn_themed_exit_app.setFont(QFont(self.app_font_bold, 20))
         self.btn_themed_exit_app.setFixedSize(QSize(48, 48))
-
-        # --- FAQ & Tips Button ---
-        self.btn_faq_dialog.setText("?")
-        self.btn_faq_dialog.setFont(QFont(self.app_font_bold, 20))
-        self.btn_faq_dialog.setFixedSize(QSize(48, 48))
 
         # --- Fix Save Button ---
         self.btn_fix_save_file.setIcon(self.save_patch_icon)
@@ -435,7 +474,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.btn_patch_executable.setIcon(self.patch_icon)
         self.btn_patch_executable.setIconSize(QSize(64, 64))
         self.btn_patch_executable.setFont(QFont(self.app_font_bold, 14))
-        self.btn_patch_executable.setToolTip("Start Patch Game Binary")
+        self.btn_patch_executable.setToolTip("Start Patch Game Binary\nShift-click to choose the executable yourself.")
         # self.btn_patch_executable.setMaximumSize(QSize(80, 80))
 
         # --- Configure Button ---
@@ -471,132 +510,116 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         else:
             self.terminal_display.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
 
+    @Slot()
     def enable_ui_elements(self):
-        self.btn_patch_executable.setEnabled(True)
+        for widget in self.widgets_state_switches:
+            widget.setEnabled(True)
+
+        # Edge-case
         self.btn_fix_save_file.setEnabled(self.configuration.game in SUPPORTED_GAMES)
-        self.btn_configure_patch_options.setEnabled(True)
-        self.terminal_display.setEnabled(True)
 
+    def show_progress_bar(self):
+        self.progress_bar.setVisible(True)
+
+    def hide_progress_bar(self):
+        self.progress_bar.setVisible(False)
+
+    @Slot()
     def disable_ui_elements(self):
-        self.btn_patch_executable.setDisabled(True)
-        self.btn_fix_save_file.setDisabled(True)
-        self.btn_configure_patch_options.setDisabled(True)
-        self.terminal_display.setDisabled(True)
+        for widget in self.widgets_state_switches:
+            widget.setEnabled(False)
 
-    def remove_thread(self, thread_id_remove):
-        # Iterates through active threads, checks for ID and stops then removes thread
-        log.debug(f"Thread Remove: {thread_id_remove}")
-
-        for iter_thread in self.active_threads:
-            iter_id = iter_thread.currentThread()
-            log.debug(f"Iter Thread: {iter_id}")
-            if iter_id == thread_id_remove:
-                log.debug(f"Attempting to remove {iter_thread} ({iter_id})")
-                try:
-                    iter_thread.stop()
-                    self.active_threads.remove(iter_thread)
-                except Exception as e:
-                    log.error(f"Error in attempting to stop and remove Thread: {e}")
-                break
-
-        log.debug(f"Remove thread finished ( {thread_id_remove} )")
-
-    def patch_game_executable(self, game_binary_path: Path) -> bool:
-        """
-        Attemps to perform all necessary steps to patch the given game binary.
-        """
-
+    def _set_start_patching_state(self):
         self.is_patching = True
+        self.disable_ui_elements()
+        self.show_progress_bar()
 
-        log.info(f"Proceeding to patch executable: {game_binary_path}")
+    @Slot()
+    def _set_stop_patching_state(self):
+        self.is_patching = False
+        self.enable_ui_elements()
 
-        # Configuration
+    def start_thread(self, thread: QThread):
+        """
+        Start `thread` and keep a reference to it until it has ended.
+        Every thread must be started through here, or Qt aborts if it is garbage collected while running.
+        """
+        # QThread's own `finished` fires once run() has fully returned, unlike `thread.signals.finished`
+        thread.finished.connect(self.remove_stopped_threads)
+        self.active_threads.append(thread)
+        thread.start()
+
+    @Slot()
+    def remove_stopped_threads(self):
+        """
+        Drop references to threads that have ended.
+        Running threads must stay referenced or Qt aborts causing a crash.
+        """
+        running = []
+        for thread in self.active_threads:
+            if thread.isRunning():
+                running.append(thread)
+
+        # Reassign the list with only running threads
+        self.active_threads = running
+
+    def stop_all_threads(self) -> bool:
+        """
+        Ask every thread to stop and wait for them to end.
+        Returns False if any thread is still running when the wait is over.
+        """
+        for thread in self.active_threads:
+            thread.requestInterruption()
+
+        if self.is_patching:
+            # Cutting a patch short could leave the game executable half written, so wait for it
+            deadline = QDeadlineTimer(QDeadlineTimer.ForeverConstant.Forever)
+        else:
+            # Shared deadline, so several stuck threads don't add up their timeouts
+            deadline = QDeadlineTimer(self.THREAD_STOP_TIMEOUT_MS)
+
+        all_stopped = True
+        for thread in self.active_threads:
+            if not thread.wait(deadline):
+                log.warning(f"Thread did not stop in time: {thread}")
+                all_stopped = False
+
+        return all_stopped
+
+    def patch_game_executable(self, game_binary_path: Path) -> dict[str, bool]:
+        """
+        WORKER FUNCTION: Patches the given game binary with the current configuration and saves what was patched.
+        Returns {patch name: success}, empty if nothing could be patched.
+        """
         if not self.configuration:
-            log.error(f"No configuration available.")
-            return False
+            log.error("No configuration available.")
+            return {}
 
-        log.info(f"Using configuration: {self.configuration}", silent=True)
-
-        # Check for empty game
-        if not self.configuration.game:
-            log.error(f"Configuration game is empty")
-            return False
-
-        # Get patcher
-        patcher: pdx_patchers.GamePatcher = self.multi_game_patcher.get_game_patcher(
-            self.configuration.game, self.configuration.version
+        outcome = self.patcher.patch_game(
+            self.configuration,
+            game_binary_path,
+            # Nothing saved or picked yet (patches are only saved after patching): use the defaults
+            use_default_patches=not self.tab_options_dialog,
+            max_backups=self.settings.app_settings.max_allowed_binary_backups,
+            progress=self.patch_progress.emit,
         )
 
-        if not patcher:
-            log.error(f"Failed to initialise patcher for {self.configuration.game}")
-            return False
+        if not outcome.patches_to_apply:
+            return {}
 
-        patches_to_apply = [patch_name for patch_name in self.configuration.selected_patches]
+        self.terminal_progress.emit(" ")
 
-        # --- Determine platform ---
-        platform = (
-            patcher_models.Platform.detect_current()
-            if not self.configuration.is_proton
-            else patcher_models.Platform.WINDOWS
-        )
+        game_settings = self.settings.game(self.configuration.game)
 
-        if self.patch_config_dialog and not patches_to_apply:
-            log.warning(f"Aborting Patch process. No patches selected for configuration: {self.configuration}")
-            return False
+        # The Native/Proton choice, kept in settings to restore the UI next time
+        game_settings.patched_platform = self.configuration.platform
+        game_settings.patched_version = self.configuration.version
 
-        if not patches_to_apply:
-            log.warning(
-                f"No patches selected or available. Applying all available patches corresponding to '{self.selected_version}' version.\nUse the configuration window to select patches to apply."
-            )
-            patches_to_apply = [
-                patch_name
-                for patch_name, config in self.multi_game_patcher.get_available_patches_for_game(
-                    self.configuration.game, self.configuration.version, platform=platform
-                ).items()
-                if config.enabled or config.required
-            ]
+        # Keep the selection even if a patch failed, so it stays ticked for the next try
+        if outcome.any_applied:
+            game_settings.patches = outcome.patches_to_apply
 
-        with self.settings.batch_update():
-            self.settings.game(self.configuration.game).last_patched_platform = platform
-            self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
-
-        log.info(f"Patches to apply: {patches_to_apply}", silent=True)
-
-        results = patcher.patch_file_multiple(game_binary_path, patches_to_apply, platform=platform)
-
-        self.signals.terminal_progress.emit(" ")
-
-        all_patches_success = True
-
-        applied: list = []
-        for patch, success in results.items():
-            if success:
-                applied.append(patch)
-            else:
-                if all_patches_success:
-                    all_patches_success = False
-                log.warning(f"Failed patch: {patch}")
-
-        if all_patches_success:
-            # Unlock (colour) achievement icon to signify all patches were successful.
-            # Leave uncoloured to signify some have failed.
-            self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.UNLOCKED))
-            log.info("Finished. Close the patcher and go play!")
-
-        if all_patches_success or applied:
-            # Get times to save
-            original_mtime = get_file_modified_time(game_binary_path)
-            access_ts = set_file_access_time(game_binary_path, None, original_mtime)
-
-            with self.settings.batch_update():
-                # Save applied patches
-                self.settings.game(self.configuration.game).patches = applied
-                # Save last access time to track if already patched
-                self.settings.game(self.configuration.game).last_patched_timestamp = access_ts
-
-        self.swap_btn_patch_to_launch_game()
-
-        return all_patches_success
+        return outcome.results
 
     def _find_game_path_worker_thread(self) -> Optional[Path]:
         """
@@ -604,40 +627,73 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         Returns the path if found, otherwise None.
         """
 
-        return find_game_path(self.multi_game_patcher, self.configuration)
+        return find_game_executable(self.patcher, self.configuration)
 
+    @Slot()
     def start_patch_game_executable_thread(self):
         if self.is_patching:
             return
 
-        self.terminal_display.clear()
-        self.disable_ui_elements()
+        # Shift modifier pressed?
+        pick_binary_path = is_shift_held()
 
-        self.active_threads.clear()
+        self.terminal_display.clear()
 
         # Configuration
         msgbox = QMessageBox(self)
         if not self.configuration:
-            log.error(f"No configuration available.")
+            log.error("No configuration available.")
             msgbox.setWindowTitle("No Configuration")
             msgbox.setText("Please choose a configuration.")
             msgbox.exec()
-            self.enable_ui_elements()
             return False
         elif not self.configuration.game:
-            log.error(f"Configuration does not provide a game.")
+            log.error("Configuration does not provide a game.")
             msgbox.setWindowTitle("No Game Selected")
             msgbox.setText("Please select a game to patch.")
             msgbox.exec()
-            self.enable_ui_elements()
             return False
+
+        # First time game is patched ask to select store it is from.
+        if not self._confirm_game_store(self.configuration.game):
+            log.warning("Store picker cancelled. Aborting patch.")
+            return False
+
+        self._set_start_patching_state()
+
+        self.patch_progress.emit(0, "")
+
+        if pick_binary_path:
+            # Shift-click: skip the saved and auto-located paths, the user picks the executable
+            log.info("Shift-click Modifier Active: asking for the game executable.", silent=True)
+            self._path_found_or_failed(None)  # Reuse with None to force dialog picker
+            return
 
         # Attempt to find and establish paths
         self.path_finder_thread = Threader(target=self._find_game_path_worker_thread)
         self.path_finder_thread.signals.result.connect(self._path_found_or_failed)
-        self.active_threads.append(self.path_finder_thread)
-        self.path_finder_thread.start()
+        self.path_finder_thread.signals.error.connect(self._set_stop_patching_state)
+        self.start_thread(self.path_finder_thread)
 
+    def _confirm_game_store(self, game: str) -> bool:
+        """Ask where `game` is from the first time it's patched, and save the pick. False when the user cancels."""
+        if has_picked_store(game):
+            return True
+
+        store = StorePickerDialog.ask(
+            game,
+            preselected_store=game_store(game),
+            font=QFont(self.app_font_bold, 10),
+            window_icon=self.windowIcon(),
+            parent=self,
+        )
+        if not store:
+            return False
+
+        set_game_store(game, store)
+        return True
+
+    @Slot(object)
     def _path_found_or_failed(self, found_path: Optional[Path]):
         """
         SLOT FUNCTION: Runs on the main thread after _find_game_path_worker_thread
@@ -649,25 +705,23 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             # Automatic search failed
             log.info("Asking for user-provided game executable path.")
 
-            user_selected_path = prompt_install_dir(game_name=self.configuration.game)
+            user_selected_path = prompt_path(
+                self,
+                caption=f"Choose {self.configuration.game} executable binary...",
+                start_path=saved_game_executable(self.configuration),
+            )
 
             if user_selected_path:
                 game_binary_path = user_selected_path
             else:
                 # User cancelled
-                log.warning(f"User cancelled location picker. Aborting patch.")
-                self.enable_ui_elements()
+                log.warning("User cancelled location picker. Aborting patch.")
+                self._set_stop_patching_state()
+                self.hide_progress_bar()
                 return
 
-        game_binary_path_posix = game_binary_path.resolve().as_posix()
-
         if game_binary_path:
-            if (os_linux() or self.app_config.use_proton) and self.configuration.is_proton:
-                self.settings.game(self.configuration.game).proton_install_path = game_binary_path_posix
-            elif os_darwin() and self.configuration.is_proton:
-                self.settings.game(self.configuration.game).proton_install_path = game_binary_path_posix
-            else:
-                self.settings.game(self.configuration.game).install_path = game_binary_path_posix
+            save_game_executable(self.configuration, game_binary_path)
             self._run_patcher_worker_thread(game_binary_path)
 
     def _run_patcher_worker_thread(self, game_binary_path: Path):
@@ -676,155 +730,259 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         """
 
         patch_thread = Threader(target=self.patch_game_executable, args=(game_binary_path,))
-        patch_thread.signals.finished.connect(self._patching_finished)
-        self.active_threads.append(patch_thread)
-        patch_thread.start()
+        patch_thread.signals.result.connect(self._on_patching_results)
+        patch_thread.signals.finished.connect(self._on_patching_finished)
+        self.start_thread(patch_thread)
 
-    def _patching_finished(self):
+    @Slot(object)
+    def _on_patching_results(self, results: dict[str, bool]):
         """
-        SLOT: Runs on the main thread
+        SLOT: Runs on the main thread when patch_game_executable returns.
+        Not emitted if the worker raised.
+        """
+
+        if not results:
+            self._set_progress(0, "Failed")
+            return
+
+        all_patches_success = all(results.values())
+        any_patch_applied = any(results.values())
+
+        if all_patches_success:
+            # Unlock (colour) achievement icon to signify all patches were successful.
+            # Leave uncoloured to signify some have failed.
+            self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.UNLOCKED))
+            self._set_progress(100, "Done")
+        elif any_patch_applied:
+            self._set_progress(100, "Partial success")
+        else:
+            self._set_progress(100, "Failed")
+
+        if any_patch_applied:
+            # Only launch the game when something was applied.
+            self.swap_btn_patch_to_launch_game()
+
+    @Slot()
+    def _on_patching_finished(self):
+        """
+        SLOT: Runs on the main thread after the patch thread ends, even if it raised.
         """
 
         log.info("Patching process finished.")
-        self.is_patching = False
-        self.enable_ui_elements()
+        self._set_stop_patching_state()
 
-        self.active_threads.clear()
+    @Slot(int, str)
+    def _set_progress(self, value: int, text: str):
+        """
+        SLOT: Runs on main thread.
+        """
+        self.progress_bar.setValue(value)
 
-    def fix_save_achievements_thread(self):
+        self.progress_bar.setFormat(f"%p% {text}")
+
+    @Slot()
+    def fix_save_game_thread(self):
+        """
+        Pick a save, then read in the background.
+
+        `on_save_analysed()` shows what was found.
+        """
         if self.is_patching:
             return
 
         self.terminal_display.clear()
 
-        saver = save_patcher.StellarisSavePatcher(self.configuration.game, self.save_configuration)
+        game = get_supported_save_game(self.configuration.game)
+        if game is None:
+            log.warning(f"Fixing saves isn't supported for {self.configuration.game}.")
+            return
 
         # --- Ask for save path ---
-        # Hack for empty save games folder List. Otherwise won't open dialog
-        save_games_folders: list = saver.save_games_folders
-        if not save_games_folders:
-            save_games_folders.append("")
-        # ---
+        save_games_folders: list[Path] = get_save_games_folders(game.name)
+        log.info(f"Returned possible save games folders: {save_games_folders}", silent=True)
 
-        initial_open_folder = ""
-        if save_games_folders:
-            for p in save_games_folders:
-                if Path(p).exists():
-                    initial_open_folder = p
-                    break
+        options: list[tuple[str, Path, str]] = []
+        for path_option in save_games_folders:
+            options.append((str(path_option), path_option, ""))
+
+        # One folder is used without asking. Several: asks in a dialog over this window
+        picked_save_games_folder = option_dialog_pick_from_options(
+            f"Pick {game.name} Save Games Folder",
+            "Pick save games folder to use for this game configuration.",
+            options,
+            parent=self.window(),
+        )
+
+        if picked_save_games_folder is not None:
+            # Remembered, so it isn't asked again.
+            self.settings.game(game.name).save_games_folder = picked_save_games_folder.as_posix()
+            start_folder = str(picked_save_games_folder)
+        else:
+            # Nothing found or picked. File picker opens in its default location
+            log.info("No save games folder picked. Opening the file picker in its default location.", silent=True)
+            start_folder = ""
 
         save_file_path = QFileDialog().getOpenFileName(
             caption="Save file to repair...",
-            dir=str(initial_open_folder),
-            filter=(f"Save File (*{saver.save_extension})"),
+            dir=start_folder,
+            filter=(f"Save File (*{game.save_extension})"),
         )[0]
 
-        if save_file_path or save_file_path != "":
-            log.info(f"Save file: {save_file_path}")
-
         if not save_file_path:
-            return False
+            return
 
-        # --- Configure Fixes
-        self.save_configuration = self.open_configure_save_patch_options_window()
+        log.info(f"Save file: {save_file_path}")
 
-        if not self.save_configuration:
-            log.info(f"No fixes: {self.save_configuration}", silent=True)
-            return False
+        thread_analyse_save = Threader(target=analyse_save, args=(save_file_path, game))
+        thread_analyse_save.signals.started.connect(self.disable_ui_elements)
+        thread_analyse_save.signals.finished.connect(self.enable_ui_elements)
+        thread_analyse_save.signals.result.connect(self.on_save_analysed)
+        thread_analyse_save.signals.error.connect(self.on_save_fix_error)
+        self.start_thread(thread_analyse_save)
+
+    @Slot(object)
+    def on_save_analysed(self, analysis: SaveAnalysis) -> None:
+        """
+        SLOT: Runs on the main thread once the save was read.
+        Shows findings, asks which fixes to apply, then applies in the background.
+        """
+        picked_fixes = FixSaveReviewDialog.ask(
+            analysis, font=QFont(self.app_font_bold, 10), window_icon=self.windowIcon(), parent=self
+        )
+
+        if not picked_fixes:
+            log.info("No fixes picked.", silent=True)
+            return
 
         # Cheated Save Repair Disclaimer
-        if self.save_configuration.is_enabled("fix_cheated_save"):
+        show_cheated_save_disclaimer = False
+        for fix in picked_fixes:
+            if fix.needs_disclaimer:
+                show_cheated_save_disclaimer = True
+
+        if show_cheated_save_disclaimer:
             log.info("User enabled option to fix cheated save.")
-            user_accepted = self.show_fix_cheated_save_dialog()
 
-            if not user_accepted:
-                log.info("User declined cheated save disclaimer agreement. Cancelling this fix.", silent=True)
-                self.save_configuration.set_enabled("fix_cheated_save", False)
-            else:
+            if self.show_fix_cheated_save_dialog():
                 log.info("User accepted cheated save disclaimer.", silent=True)
+            else:
+                log.info("User declined cheated save disclaimer agreement. Cancelling this fix.", silent=True)
+                accepted_fixes = []
+                for fix in picked_fixes:
+                    if not fix.needs_disclaimer:
+                        accepted_fixes.append(fix)
+                picked_fixes = accepted_fixes
 
-        log.info(f"Fixes: {self.save_configuration}", silent=True)
+        if not picked_fixes:
+            return
 
-        saver.set_config(self.save_configuration)
+        log.info(f"Fixes: {[fix.label for fix in picked_fixes]}", silent=True)
 
-        thread_repair_save = Threader(target=lambda save_file=save_file_path: saver.repair_save(save_file))
-        thread_id = thread_repair_save.currentThread()
-        thread_repair_save.setTerminationEnabled(True)
-        # self.threader.signals.failed.connect() # TODO
-        thread_repair_save.signals.started.connect(self.disable_ui_elements)
-        thread_repair_save.signals.finished.connect(self.enable_ui_elements)
-        thread_repair_save.signals.finished.connect(self.on_finished_save_repair)
-        thread_repair_save.signals.finished.connect(lambda: self.remove_thread(thread_id))  # Removes thead by ID
-        self.active_threads.append(thread_repair_save)
-        thread_repair_save.start()
+        thread_fix_save = Threader(target=fix_save, args=(analysis, picked_fixes))
+        thread_fix_save.signals.started.connect(self.disable_ui_elements)
+        thread_fix_save.signals.finished.connect(self.enable_ui_elements)
+        thread_fix_save.signals.result.connect(self.on_save_fixed)
+        thread_fix_save.signals.error.connect(self.on_save_fix_error)
+        self.start_thread(thread_fix_save)
 
-    def on_finished_save_repair(self) -> None:
-        if self.app_config.is_cheated_save:
-            msgbox = QMessageBox(self)
-            msgbox.setWindowTitle("Cheated Save")
-            msgbox.setText("WARNING: Save is flagged as cheated. Fixes might not work without resetting this flag.")
-            msgbox.setStyleSheet("QLabel{ color: white}")
-            msgbox.exec()
+    @Slot(object)
+    def on_save_fixed(self, report: SaveFixReport) -> None:
+        """SLOT: Runs on the main thread once the save was fixed. Reports what changed."""
+        lines = []
+        for fix in report.changed_fixes:
+            lines.append(f"{fix.label}: done")
+        for fix in report.unchanged_fixes:
+            lines.append(f"{fix.label}: already done, nothing to change")
 
-        # Reset the variable
-        self.app_config.is_cheated_save = False
+        msgbox = QMessageBox(self)
+        msgbox.setWindowTitle("Fix Save")
+        if report.backup_file is None:
+            msgbox.setText("The save already had everything you picked, so it wasn't changed.")
+        else:
+            msgbox.setText("The save was fixed. A backup of it is in Manage Save Backups.")
+        msgbox.setInformativeText("\n".join(lines))
+        msgbox.exec()
 
+    @Slot(tuple)
+    def on_save_fix_error(self, error_info: tuple) -> None:
+        """
+        SLOT: Runs on the main thread when reading or fixing the save raised.
+        Show known problems as their message. Everything else supposed unexpected.
+        """
+        _error_type, error, error_traceback = error_info
+        known_error = isinstance(error, (SaveFileError, SaveFixError, ValueError))
+
+        msgbox = QMessageBox(self)
+        msgbox.setWindowTitle("Fix Save Failed")
+
+        if known_error:
+            log.error(f"Fix Save failed: {error}")
+            msgbox.setText("The save couldn't be fixed. It wasn't changed.")
+            msgbox.setInformativeText(str(error))
+        else:
+            log.error(f"Fix Save failed unexpectedly: {error}")
+            log.error(error_traceback, silent=True)  # Traceback for the log file only
+            msgbox.setText("The save couldn't be fixed because of an unexpected error.")
+            msgbox.setInformativeText("Details are in the information screen and the log file.")
+
+        msgbox.exec()
+
+    @Slot()
     def open_configure_patch_options_window(self):
         log.info("Opening patch configuration window", silent=True)
 
-        # Important: Work in a copy of the configuration to retain
-        # selections whether user clicks Cancel or Ok in the
-        # configuration window.
-        # This gives us flexibility of only applying the new config
-        # when the user accepts the dialog.
-        _is_new_dialog = self.patch_config_dialog is None
+        # Important: Work in a copy of the configuration to retain selections whether user
+        # clicks Cancel or Ok in the configuration window.
+        # This gives us flexibility of only applying the new config when the user accepts the dialog.
+        _is_new_dialog = self.tab_options_dialog is None
 
         # Store original config for comparison
         original_config = copy.deepcopy(self.configuration)
 
-        if not self.patch_config_dialog:
+        if not self.tab_options_dialog:
             # Pass a copy of the config
-            self.patch_config_dialog = ConfigurePatchOptionsDialog(
-                patcher=self.multi_game_patcher,
-                configuration=self.configuration,
+            self.tab_options_dialog = TabOptionsDialog(
+                patcher=self.patcher,
+                configuration=copy.deepcopy(self.configuration),
                 font=QFont(self.app_font_bold, 12),
                 window_icon=self.windowIcon(),
+                # tabs=APP_OPTIONS_TABS,
                 parent=self,
             )
         else:
             # Refresh with a new copy if it exists
-            self.patch_config_dialog.patch_options_configuration = self.configuration
-            self.patch_config_dialog._populate_options()  # Refresh UI
+            self.tab_options_dialog.set_configuration(copy.deepcopy(self.configuration))
 
         # Set current game as last selected
         self.last_conf_game = self.configuration.game
 
+        # Store last setting regarding pre-release updates
+        include_prerelease_updates = self.settings.app_settings.include_prerelease_updates
+
+        # Settings change as soon as they're edited in the dialog. Keep a snapshot to undo them on Cancel.
+        settings_snapshot = self.settings.snapshot()
+
         # Show Configure Dialog and handle returns
-        if self.patch_config_dialog.exec() == QFileDialog.DialogCode.Accepted:
+        dialog_result = self.tab_options_dialog.exec()
+
+        if dialog_result == QFileDialog.DialogCode.Accepted:
             # Only apply the changes to the configuration now
-            self.configuration = self.patch_config_dialog.get_configuration()
+            self.configuration = self.tab_options_dialog.get_configuration()
 
             # Also update app style
             self.apply_app_style()
 
-            with self.settings.batch_update():
-                self.settings.settings.last_selected_game = self.configuration.game
-                self.settings.game(self.configuration.game).last_patched_platform = self.configuration.platform
-                if not self.configuration.selected_patches:
-                    self.configuration.selected_patches = self.settings.game(self.configuration.game).patches
-                self.settings.game(self.configuration.game).patches = self.configuration.selected_patches
-                self.settings.game(self.configuration.game).last_patched_version = self.configuration.version
+            # Handle and update selected game(s) and configuration
+            self.settings.app_settings.selected_game = self.configuration.game
+            self.settings.game(self.configuration.game).patched_platform = self.configuration.platform
 
-            # --- Determine platform ---
-            platform = (
-                patcher_models.Platform.detect_current()
-                if not self.configuration.is_proton
-                else patcher_models.Platform.WINDOWS
-            )
+            if not self.configuration.selected_patches:
+                self.configuration.selected_patches = list(self.settings.game(self.configuration.game).patches)
+            # Remembered as soon as they're picked, so the dialog shows them again after a restart
+            self.settings.game(self.configuration.game).patches = list(self.configuration.selected_patches)
+            self.settings.game(self.configuration.game).patched_version = self.configuration.version
 
-            available_patches = self.multi_game_patcher.get_available_patches_for_game(
-                self.configuration.game, self.configuration.version, platform=platform
-            )
+            available_patches = self.patcher.get_available_patches(self.configuration)
             selected_patches_str = ", ".join(
                 [v.display_name for k, v in available_patches.items() if k in self.configuration.selected_patches]
             )
@@ -835,129 +993,115 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 original_config.game != self.configuration.game
                 or original_config.version != self.configuration.version
                 or original_config.selected_patches != self.configuration.selected_patches
-                or original_config.is_proton != self.configuration.is_proton
+                or original_config.platform != self.configuration.platform
             ):
                 self.swap_btn_patch_to_patch_binary()
+
+            # Handle check pre-release updates if accepted.
+            if self.settings.app_settings.include_prerelease_updates != include_prerelease_updates:
+                self.check_update(force=True)
         else:
+            # Cancelled (or closed): undo every settings change made in the dialog
+            self.settings.restore(settings_snapshot)
+
             # If first open and user cancelled, still populate with defaults
             # This should ensure patching works even if the user never
             # accepts the dialog.
             if _is_new_dialog and not self.configuration.selected_patches:
-                self.configuration.selected_patches = (
-                    self.patch_config_dialog.patch_options_configuration.selected_patches.copy()
-                )
+                self.configuration.selected_patches = self.tab_options_dialog.configuration.selected_patches.copy()
             log.info("Configuration unchanged.", silent=True)
 
-    def open_configure_save_patch_options_window(self):
-        log.info("Opening save patch configuration window", silent=True)
+    def check_update(self, force: bool = False):
+        last_checked = self.settings.app_settings.app_update_last_checked if not force else 0
 
-        dialog = ConfigureSavePatchDialog(
-            self.configuration.game,
-            font=QFont(self.app_font_bold, 10),
-            window_icon=self.windowIcon(),
-            parent=self,
-        )
-
-        # Show Configure Dialog and handle returns
-        if dialog.exec() == QFileDialog.DialogCode.Accepted:
-            self.save_configuration = dialog.get_configuration()
-
-            log.info(
-                f"Selected save patches: {[opt.display_name for opt in self.save_configuration.get_enabled_options()]}"
-            )
-        else:
-            log.info("Configuration unchanged.", silent=True)
-
-        return self.save_configuration
-
-    def check_update(self):
-        last_checked = self.settings.settings.update_last_checked
         now = int(time.time())
 
         log.debug("Trigger update check.")
-        log.debug(
-            f"{self._APP_VERSION} == {self._prev_app_version} = {self._APP_VERSION == self._prev_app_version}",
-            silent=True,
-        )
         log.debug(
             f"{now} - {last_checked} < {self.app_config.update_check_cooldown} = {now - last_checked < self.app_config.update_check_cooldown}",
             silent=True,
         )
 
-        if self._APP_VERSION == self._prev_app_version:
-            if now - last_checked < self.app_config.update_check_cooldown:
-                self.check_update_finished()
-                return
+        if now - last_checked < self.app_config.update_check_cooldown:
+            self.check_update_finished()
+            return
 
         thread_update = Threader(target=self.updater.check_for_update)
-        # thread_id = thread_update.currentThread()
-        self.active_threads.append(thread_update)
-        thread_update.start()
         thread_update.signals.finished.connect(self.check_update_finished)
+        self.start_thread(thread_update)
 
+    @Slot()
     def check_update_finished(self):
         updater_last_checked = self.updater.last_checked_timestamp
 
         # No online check was performed
         if updater_last_checked <= 1:
-            update_available = self.settings.settings.update_available
+            update_available = self.settings.app_settings.update_available
         else:
-            self.settings.settings.update_last_checked = self.updater.last_checked_timestamp
+            self.settings.app_settings.app_update_last_checked = self.updater.last_checked_timestamp
             if self.updater.has_new_version:
-                self.settings.settings.update_available = True
+                self.settings.app_settings.update_available = True
                 update_available = True
             else:
-                self.settings.settings.update_available = False
+                self.settings.app_settings.update_available = False
                 update_available = False
 
         if update_available:
-            html = (
-                self.txt_browser_project_link.toHtml().replace("</p>", "").replace("</body>", "").replace("</html>", "")
+            html = self.project_link_html.replace(
+                "</a></p>", '</a><span style=" font-weight:700;"> (UPDATE AVAILABLE)</span></p>'
             )
-            html += '<span style=" font-weight:700;"> (UPDATE AVAILABLE)</span></p></body></html>'
             self.txt_browser_project_link.setHtml(html)
             self.lbl_title.setText(self.window_title_update_available)
-            self.settings.settings.update_available = True
+            self.settings.app_settings.update_available = True
         else:
+            self.txt_browser_project_link.setHtml(self.project_link_html)
             self.lbl_title.setText(self.window_title)
 
-    def open_faq_window(self):
-        msgbox = QMessageBox(self)
-        msgbox.setStyleSheet("QLabel{ color: white; font-size: 18px}")
-        msgbox.setWindowTitle("Quick Tips & FAQs")
-        msgbox.setMaximumWidth(800)
-        msg = """Patch Failed?
-        * After a game update, that typically changes the checksum, it is
-            advised to delete both executables and validate Game Files with 
-            Steam in order for it to redownload the correct one.
-            Go to Utilities Tab and validate Integrity of Game Files.
-            After this, apply the patch and it should work.
-
-        * The overall patterns may have changed. If this is the case, open
-        an Issue over on GitHub (or look for an existing one) so we can
-        fix and update the patterns file as soon as possible.
-        
-        * It is possible that you're patching an already patched game,
-            but due to some pattern recognition changes, it could be that
-            the already patched pattern was not recognised as it is
-            looking for a different one. This makes it seem like the patch
-            failed when in reality the file is already patched.
-            Delete and validate files with Steam.
-
-        * After a game update, if you notice things acting up, ALWAYS delete
-        the existing executable and validate integrity of files on Steam before
-        patching again. This can be quickly accessed via the cogwheel and the
-        dedicated button in General Utilities tab to validate game files.
+    def check_message(self):
         """
-        msgbox.setInformativeText(msg)
-        msgbox.exec()
+        Fetch the remote message in the background.
+        `fetch_message()` already handles `--no-conn` and the cooldown.
+        """
+        log.debug("Checking for remote message.")
+
+        thread_message = Threader(target=fetch_message)
+        thread_message.signals.result.connect(self.check_message_finished)
+        self.start_thread(thread_message)
+
+    @Slot(object)
+    def check_message_finished(self, message: Message):
+        self.message = message
+        log.info(
+            f"Message check finished: {message.status.value} ({message.fingerprint or 'no fingerprint'})", silent=True
+        )
+        self.show_message(message)
+
+    @Slot()
+    def open_faq_window(self):
+        faq_dialog = FAQDialog(QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self)
+        faq_dialog.exec()
+
+    @Slot(object)
+    def show_message(self, message: Message):
+        if message.is_new:
+            welcome_open = self.welcome_dialog is not None and self.welcome_dialog.isVisible()
+
+            if welcome_open:
+                # Connect closing the dialog to firing the show message immediately after.
+                self.welcome_dialog.finished.connect(lambda: self.show_message(message))
+            else:
+                message_dialog = MessageDialog(
+                    message, QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self
+                )
+                log.info("Showing message dialog.", silent=True)
+                message_dialog.show()
 
     def fetch_patterns(self):
         can_fetch_remote = all(
             [
                 not self.app_config.prevent_conn,
                 not self.app_config.use_local_patterns,
-                not self.settings.settings.force_local_patterns,
+                not self.settings.app_settings.force_local_patterns,
             ]
         )
 
@@ -972,7 +1116,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         else:
             # We are preventing a connection or forcing the usage of local patterns
 
-            if not PATTERNS_LOCAL.exists() and not self.app_config.prevent_conn:
+            if not local_patterns_file().exists() and not self.app_config.prevent_conn:
                 # Local patterns don't exist, pull remote first, we allow connections
                 log.info(
                     "Force local patterns is off. Downloading remote patch patterns to local storage.", silent=True
@@ -981,135 +1125,158 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             else:
                 get_patterns_config_local()
 
-        self.multi_game_patcher.reload_patterns()
+        self.patcher.reload_patterns()
 
         # Fallback if still empty
-        precached_game = self.configuration.game or self.settings.settings.last_selected_game or SUPPORTED_GAMES[0]
+        precached_game = self.configuration.game or self.settings.app_settings.selected_game or SUPPORTED_GAMES[0]
 
-        # Determine platform
-        platform = None
-        if self.configuration.platform:
-            try:
-                platform = patcher_models.Platform(self.configuration.platform.lower())
-            except ValueError:
-                log.warning(f"Invalid saved platform '{self.configuration.platform}', auto-detecting", silent=True)
-        if platform is None:
-            platform = patcher_models.Platform.WINDOWS if self.configuration.is_proton else system()
-            self.configuration.platform = str(platform)
+        platform = self.configuration.platform
 
-        # Get available version and find first one with patches available
-        all_versions = self.multi_game_patcher.get_available_versions(precached_game)
-        selected_version = self.configuration.version or patcher_models.KEY_VERSION_LATEST
-
-        def _has_patches(v):
-            return bool(self.multi_game_patcher.get_available_patches_for_game(precached_game, v, platform))
-
-        if selected_version not in all_versions or not _has_patches(selected_version):
-            for version in all_versions:
-                if _has_patches(version):
-                    selected_version = version
-                    log.info(f"Selected version '{version}' for {precached_game} on {platform}", silent=True)
-                    break
-            else:
-                log.warning(
-                    f"No version with patches found for {precached_game} on {platform}, using fallback '{selected_version}'",
-                    silent=True,
-                )
-
-        # Update selection version cache
-        self.selected_version = selected_version
+        # Keep the saved version if it has patches, otherwise let the patcher choose
+        fallback_version = self.configuration.version or patcher_models.KEY_VERSION_LATEST
+        selected_version = self.patcher.pick_version(precached_game, platform=platform, preferred=fallback_version)
+        if not selected_version:
+            selected_version = fallback_version
+            log.warning(
+                f"No version with patches found for {precached_game} on {platform}, using fallback '{selected_version}'",
+                silent=True,
+            )
 
         # --- Cache Configuration ---
         self.configuration.game = precached_game
-        self.configuration.version = self.selected_version
+        self.configuration.version = selected_version
         self.last_conf_game = self.configuration.game
 
-        if self.configuration.game:
-            self.available_patches = self.multi_game_patcher.get_available_patches_for_game(
-                self.configuration.game, version=self.selected_version
-            )
-            self.available_versions = self.multi_game_patcher.get_available_versions(self.configuration.game)
+    @Slot()
+    def check_file_already_patched(self, *_):
+        """Scan the saved game executable in the background and log whether it is already patched."""
+        log.info(f"Checking if {self.configuration.game} is already patched.")
 
-    def check_file_already_patched(self):
+        patched_check_thread = Threader(target=self._is_game_patched_worker)
+        patched_check_thread.signals.result.connect(self._on_patched_check_finished)
+        self.start_thread(patched_check_thread)
+
+    def _is_game_patched_worker(self) -> Optional[Dict[str, bool]]:
+        """
+        WORKER FUNCTION: Scans the executable for each patch.
+        Returns {patch display name: applied}, or None when there is no saved executable to check.
+        """
         game = self.configuration.game
 
-        log.info(f"Checking if {game} is already patched.")
+        binary_path = saved_game_executable(self.configuration)
 
-        if self.configuration.is_proton:
-            install_path = self.settings.game(self.configuration.game).proton_install_path
+        if not binary_path or not binary_path.exists():
+            log.info(f"No saved {game} executable to check yet: '{binary_path}'", silent=True)
+            return None
+
+        if game not in self.patcher.get_available_games():
+            return None
+
+        platform = self.patcher.platform_of(self.configuration, binary_path)
+
+        available_patches = self.patcher.get_available_patches(self.configuration, platform)
+        if not available_patches:
+            return None
+
+        status = {}
+        for name, applied in self.patcher.get_patch_status(self.configuration, binary_path).items():
+            status[available_patches[name].display_name] = applied
+        return status
+
+    @Slot(object)
+    def _on_patched_check_finished(self, status: Optional[Dict[str, bool]]):
+        if status is None:
+            return
+
+        game = self.configuration.game
+        applied = [name for name, is_applied in status.items() if is_applied]
+        not_applied = [name for name, is_applied in status.items() if not is_applied]
+
+        if not applied:
+            log.info(f"{game} has not been patched yet.")
+        elif not not_applied:
+            log.info(f"{game} is already patched.")
         else:
-            install_path = self.settings.game(self.configuration.game).install_path
-
-        if not Path(install_path).exists():
-            log.error(f"File does not exist: {install_path}")
-            return False
-
-        # Check if file already patched
-        file_access_time = get_file_access_time(install_path)
-        last_access_time = self.settings.game(game).last_patched_timestamp
-
-        if file_access_time == last_access_time:
-            log.info("File already patched.")
-            return True
-
-        log.info(f"{game} has not been patched yet.")
-
-        return False
+            log.info(f"{game} is patched with: {', '.join(applied)}. Not patched: {', '.join(not_applied)}.")
 
     def swap_btn_patch_to_patch_binary(self):
         log.info(
-            f"Want to connect new signal to Patch Executable Button: self.start_patch_game_executable_thread",
+            "Want to connect new signal to Patch Executable Button: self.start_patch_game_executable_thread",
             silent=True,
         )
 
         try:
-            log.info(f"Disconnecting all signals from patch executable button", silent=True)
+            log.info("Disconnecting all signals from patch executable button", silent=True)
             self.btn_patch_executable.clicked.disconnect()
-        except Exception as e:
+        except Exception:
             # No signals exist
             pass
 
         self.btn_patch_executable.clicked.connect(self.start_patch_game_executable_thread)
         self.btn_patch_executable.setText("")
-        self.btn_patch_executable.setToolTip("Start Patch Game Binary")
+        self.btn_patch_executable.setToolTip("Start Patch Game Binary\nShift-click to choose the executable yourself.")
         self.btn_patch_executable.setIcon(self.random_achievement.get(IconAchievementState.LOCKED))
 
         log.info(
-            f"Connected new signal to Patch Game Executable Button: self.start_patch_game_executable_thread",
+            "Connected new signal to Patch Game Executable Button: self.start_patch_game_executable_thread",
             silent=True,
         )
 
     def swap_btn_patch_to_launch_game(self):
         log.info(
-            f"Want to connect new signal to Patch Executable Button: lambda: STEAM.launch_game_app_name({self.configuration.game.lower()})",
+            "Want to connect new signal to Patch Executable Button: self.launch_game",
             silent=True,
         )
 
         try:
-            log.info(f"Disconnecting all signals from patch executable button", silent=True)
+            log.info("Disconnecting all signals from patch executable button", silent=True)
             self.btn_patch_executable.clicked.disconnect()
-        except Exception as e:
+        except Exception:
             # No signals exist
             pass
 
-        self.btn_patch_executable.clicked.connect(
-            lambda: self.svc.steam_helper.launch_game_app_name(self.configuration.game.lower())
-        )
+        self.btn_patch_executable.clicked.connect(self.launch_game)
 
+        store = game_store(self.configuration.game)
         self.btn_patch_executable.setText(f"Launch {self.configuration.game}")
-        self.btn_patch_executable.setToolTip("Launch the game through Steam.")
+
+        if store == GameStore.GENERIC:
+            launch_tooltip = "Launch the game with the Generic runner configured in General Utilities."
+        else:
+            launch_tooltip = f"Launch the game through {store.display_name}."
+        self.btn_patch_executable.setToolTip(launch_tooltip)
 
         log.info(
-            f"Connected new signal to Patch Game Executable Button: lambda: STEAM.launch_game_app_name({self.configuration.game.lower()})",
+            "Connected new signal to Patch Game Executable Button: self.launch_game",
             silent=True,
         )
 
+    def launch_game(self):
+        if is_shift_held():
+            log.info("Shift held in launch button, switching to Patch mode again.")
+            self.swap_btn_patch_to_patch_binary()
+            self.start_patch_game_executable_thread()
+            return
+
+        game = self.configuration.game
+        store_helper = get_store_helper(game)
+        if not store_helper:
+            log.error(f"Unable to launch {game}.")
+            return
+
+        store_helper.launch_game(game, saved_game_executable(self.configuration))
+
     def show_welcome_dialog(self):
-        has_accepted_dialog = self.settings.settings.accepted_welcome_dialog
-        if not has_accepted_dialog:
-            # --- Show welcome dialog ---
-            welcome_dialog = WelcomeDialog(QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self)
-            welcome_dialog.show()
+        if WelcomeDialog.is_new():
+            self.welcome_dialog = WelcomeDialog(
+                QFont(self.app_font_bold, 8), window_icon=self.windowIcon(), parent=self
+            )
+            self.welcome_dialog.show()
+
+    def show_settings_if_load_problem(self):
+        """Notify once if settings file couldn't be loaded at startup."""
+        if self.settings.load_problem:
+            QMessageBox.warning(self, "Settings", self.settings.load_problem)
 
     def show_fix_cheated_save_dialog(self) -> bool:
         # --- Show welcome dialog ---
@@ -1124,80 +1291,70 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.adapt_to_screen_size()
         self.terminal_display.clear()
 
+        self.show_settings_if_load_problem()
         self.show_welcome_dialog()
 
         sys.exit(self.app.exec())
 
     def closeEvent(self, event):
-        log.info("Application is closing. Shutting down procedure")
-
-        self.settings.save_settings()
-
-        log.info("Shutdown")
-        event.accept()
-        self.app_quit()
-
-    def app_quit(self):
         log.info("Quitting Application. Performing graceful shutdown procedure.")
 
-        with self.settings.batch_update():
-            self.settings.settings.app_version = self._APP_VERSION
-            self.settings.settings.window_width = self.width()
-            self.settings.settings.window_height = self.height()
+        if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
+            log.info("Waiting for thread pool finish.")
+            self.thread_pool.waitForDone(msecs=self.THREAD_STOP_TIMEOUT_MS)
+            log.debug("Done waiting.")
 
-        try:
-            if self.thread_pool and self.thread_pool.activeThreadCount() > 0:
-                log.info("Waiting for thread pool finish.")
-                self.thread_pool.waitForDone(msecs=2000)  # Wait for max 2 seconds.
-                log.debug("Done waiting.")
+        all_threads_stopped = self.stop_all_threads()
 
-            if self.active_threads:
-                for thread in self.active_threads:
-                    try:
-                        thread.stop()
-                    except Exception as e:
-                        log.error(f"Error in stopping Thread. {e}")
-        except Exception as e:
-            log.error(e)
+        # Save after the threads have stopped.
+        # memory() settings, ensure save_if_dirty call to write them to disk.
+        self.settings.app_settings.window_width = self.width()
+        self.settings.app_settings.window_height = self.height()
+        self.settings.save_if_dirty()
+
+        if not all_threads_stopped:
+            # Python destroys still-running threads on a normal exit, and Qt aborts on that.
+            # Exit immediately instead and the OS ends the threads with the process.
+            log.warning("Some threads did not stop. Forcing exit.")
+            logging.shutdown()
+            os._exit(0)
 
         log.info("Application shutdown.")
 
-        sys.exit(0)
+        event.accept()
 
-    def adapt_to_screen_size(self, parent=None, width_pct: int = 40, height_pct: int = 60):
-        screen_info = get_screen_info(self.app)
+        self.app.exit(0)
 
-        saved_w = self.settings.settings.window_width
-        saved_h = self.settings.settings.window_height
+    @Slot()
+    def app_quit(self):
+        """Themed exit button. Closing the window runs the shutdown in closeEvent."""
+        self.close()
 
-        if parent:
-            screen = parent.screen()
+    def adapt_to_screen_size(self, parent=None):
+        """
+        Size the window from the saved size, of from screen if first launch or when the size doesn't fit.
+
+        Then centre it on screen.
+        """
+
+        screen_size = QApplication.primaryScreen().availableGeometry().size()
+
+        saved_width = self.settings.app_settings.window_width
+        saved_height = self.settings.app_settings.window_height
+
+        has_saved_size = saved_width > 0 and saved_height > 0
+        fits_screen = saved_width <= screen_size.width() and saved_height <= screen_size.height()
+
+        if has_saved_size and fits_screen:
+            size = QSize(saved_width, saved_height)
         else:
-            screen = QApplication.primaryScreen()
+            log.info(
+                f"No saved window size that fits screen ({saved_width}x{saved_height}). Using defaults.", silent=True
+            )
+            size = size_from_parent(None, self.SIZE_PCT)
 
-        screen_geometry = screen.availableGeometry()
+        self.setMinimumSize(size_from_parent(None, self.MIN_SIZE_PCT))
+        self.resize(size)
 
-        if screen_info[0] <= 1500 or screen_info[1] <= 1000 or screen_info[2] <= 0.7:
-            width = int(screen_geometry.width() * (width_pct * 0.01))
-            height = int(screen_geometry.height() * (height_pct * 0.01))
-        elif not saved_h or not saved_w:
-            width = int(screen_geometry.width() * (width_pct * 0.01))
-            height = int(screen_geometry.height() * (height_pct * 0.01))
-        elif saved_w and saved_h:
-            width = saved_w
-            height = saved_h
-        else:
-            width = int(screen_geometry.width() * (width_pct * 0.01))
-            height = int(screen_geometry.height() * (height_pct * 0.01))
-
-        # Set minimum size to screen percentage
-        min_w = int(screen_geometry.width() * (30 * 0.01))
-        min_h = int(screen_geometry.height() * (45 * 0.01))
-        log.info(f"Set Minimum Size: ({min_w=}, {min_h})", silent=True)
-        self.setMinimumSize(min_w, min_h)
-
-        # Set initial size
-        self.resize(width, height)
-
-        # Center the window on the screen
-        self.move(screen_geometry.center().x() - self.width() // 2, screen_geometry.center().y() - self.height() // 2)
+        # Centre after final size is set
+        centre_on_parent(self)

@@ -1,10 +1,9 @@
 import logging
 import os
 import subprocess
-import time
 from pathlib import Path
 
-from config.path_helpers import os_darwin, os_linux, os_windows
+from core.paths import FILE_EXTENSION, os_darwin, os_linux, os_windows
 
 log = logging.getLogger("utils.platform")
 
@@ -15,66 +14,35 @@ X11: str = "xcb"
 def open_in_file_manager(path: Path):
     path = path.resolve()
 
+    # Open directories directly and not just select/reveal them.
+    # Reveal (select) files and macOS bundles in their parent(s).
+    # .app is technically a directory but `open` would launch the app.
+
+    # `-R` and `/select` is the command to reveal the files. Use this
+    # on files, not on directories
+
+    reveal = path.is_file() or (os_darwin() and path.suffix.lower() == FILE_EXTENSION.APP)
+
+    if os_windows():
+        # The trailing comma is part of the flag: `/select,<path>`. Windows... :eyeroll:
+        args = ["explorer.exe", "/select,"] if reveal else ["explorer.exe"]
+    elif os_linux():
+        # xdg-open can't select a file, so open its folder instead
+        args = ["xdg-open"]
+        if path.is_file():
+            path = path.parent
+    elif os_darwin():
+        args = ["open", "-R"] if reveal else ["open"]
+    else:
+        log.warning("No known Operating System")
+        return
+
+    args.append(str(path))
+
     try:
-        if os_windows():
-            subprocess.run(["explorer.exe", "/select,", str(path)])
-        elif os_linux():
-            if path.is_file():
-                # On UNIX open the directory not file itself
-                path = path.parent
-            subprocess.run(["xdg-open", str(path)])
-        elif os_darwin():
-            subprocess.run(["open", "-R", str(path)])
-        else:
-            log.warning("No known Operating System")
+        subprocess.run(args)
     except Exception as e:
-        log.error(f"Failed to open game folder: {e}")
-
-
-def set_file_access_time(
-    file_path: Path | str, access_timestamp: float | None = None, modified_timestamp: float | None = None
-) -> float:
-    if not isinstance(file_path, Path):
-        file_path = Path(file_path)
-
-    # Get file stat info
-    stat_info = os.stat(file_path)
-
-    if modified_timestamp is None:
-        modified_timestamp = stat_info.st_mtime
-
-    if access_timestamp is None:
-        access_timestamp = time.time()
-
-    # Set new access time while preserving modification time
-    # Wrap in try-except to mitigate any [WinError 5] Access Denied and derivatives from
-    # stopping execution mid-flow.
-    try:
-        os.utime(file_path, (access_timestamp, modified_timestamp))
-        log.info(f"Access time set to: {time.ctime(access_timestamp)}", silent=True)
-        log.info(f"Modified time set to: {time.ctime(modified_timestamp)}", silent=True)
-        return access_timestamp
-    except Exception as e:
-        log.error(f"Failed to set access time: {e}")
-        return stat_info.st_atime
-
-
-def get_file_access_time(file_path: Path | str) -> float:
-    if not isinstance(file_path, Path):
-        file_path = Path(file_path)
-
-    stat_info = os.stat(file_path)
-
-    return stat_info.st_atime
-
-
-def get_file_modified_time(file_path: Path | str) -> float:
-    if not isinstance(file_path, Path):
-        file_path = Path(file_path)
-
-    stat_info = os.stat(file_path)
-
-    return stat_info.st_mtime
+        log.error(f"Failed to open '{path}' in file manager: {e}")
 
 
 def is_backend_wayland() -> bool:

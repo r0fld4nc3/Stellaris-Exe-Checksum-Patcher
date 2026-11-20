@@ -1,2 +1,2 @@
 from .models import *
-from .pdx_patchers import GamePatcher, MultiGamePatcher
+from .pdx_patchers import Patcher

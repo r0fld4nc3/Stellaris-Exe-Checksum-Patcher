@@ -46,14 +46,91 @@ QComboBox:hover {
     border-color: rgba(255, 151, 33, 175);
 }
 
-QCheckBox {
+QLineEdit {
+    color: rgb(255, 255, 255);
+    background-color: rgba(22, 59, 56, 100);
+    border: 1px solid rgb(67, 144, 134);
+    padding: 3px;
+}
+
+QCheckBox#StyledCheckbox1 {
+    color: rgb(255, 255, 255);
+    spacing: 10px;
+    margin: 3px 0;
+}
+
+/* Round: border-radius is half the full size (width + 2 × border). Checked dot is a radial gradient */
+QCheckBox#StyledCheckbox1::indicator {
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgb(67, 144, 134);
+    border-radius: 12px;
+    background-color: rgba(22, 59, 56, 100);
+}
+
+QCheckBox#StyledCheckbox1::indicator:hover {
+    border-color: rgba(255, 151, 33, 175);
+}
+
+QCheckBox#StyledCheckbox1::indicator:checked {
+    border-color: rgb(255, 179, 25);
+    /* background-color: rgb(255, 179, 25); */
+    background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5, fx: 0.5, fy: 0.5,
+        stop: 0 rgb(255, 179, 25),
+        stop: 0.45 rgb(255, 179, 25),
+        stop: 0.55 rgba(22, 59, 56, 100)
+    );
+}
+
+QCheckBox#StyledCheckbox1::indicator:disabled {
+    border-color: rgb(140, 140, 140);
+}
+
+QCheckBox#StyledCheckbox1::indicator:checked:disabled {
+    border-color: rgb(140, 140, 140);
+    /* background-color: rgb(140, 140, 140); */
+    background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5, fx: 0.5, fy: 0.5,
+        stop: 0 rgb(140, 140, 140),
+        stop: 0.45 rgb(140, 140, 140),
+        stop: 0.55 rgba(22, 59, 56, 100)
+    );
+}
+
+/* Required patches are disabled but still readable, without the grey disabled box */
+QCheckBox#StyledCheckbox1:disabled {
+    background-color: transparent;
+    color: rgb(200, 200, 200);
+}
+
+QRadioButton {
     color: rgb(255, 255, 255);
     spacing: 10px;
 }
 
-QCheckBox::indicator {
-    width: 20px;
-    height: 20px;
+QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid rgb(67, 144, 134);
+    border-radius: 9px;
+    background-color: rgba(22, 59, 56, 100);
+}
+
+QRadioButton::indicator:hover {
+    border-color: rgba(255, 151, 33, 175);
+    background-color: rgba(255, 179, 25, 100);
+}
+
+QRadioButton::indicator:checked {
+    border-color: rgb(255, 179, 25);
+    background-color: qradialgradient(cx: 0.5,
+        cy: 0.5,
+        radius: 0.5,
+        fx: 0.5,
+        fy: 0.5,
+        stop: 0 rgb(255, 179, 25),
+        stop: 0.45 rgb(255, 179, 25),
+        stop: 0.55 rgba(22, 59, 56, 100)
+    );
 }
 
 QScrollArea {
@@ -67,6 +144,33 @@ QWdiget#WindowFunctionsContainer {
     color: rgb(255, 255, 255);
     background-color: rgb(35, 75, 70);
     border-radius: 5px;
+}
+
+/* SectionTitle */
+QLabel#SectionTitle {
+    color: rgb(255, 179, 25);
+    background-color: rgb(35, 75, 70);
+    border-radius: 5px;
+}
+
+/* WelcomeDialogTitleLabel */
+QLabel#WelcomeDialogTitleLabel {
+    color: rgb(255, 179, 25);
+}
+
+/* Description item */
+QLabel#DescriptionLabel1 {
+    color: rgb(220, 220, 220);
+}
+
+/* Small explanatory text under a field */
+QLabel#HintLabel {
+    color: rgb(224, 224, 224);
+}
+
+/* FieldNameLabel */
+QLabel#FieldNameLabel {
+    color: rgb(255, 255, 255);
 }
 
 /* Configure Button */
@@ -139,7 +243,7 @@ QMenu::item {
 }
 
 /* ANY widget that is disabled */
-QWidget[enabled="false"] {
+QWidget:disabled {
     background-color: rgb(80, 80, 80);
     color: rgb(60, 60, 60);
     border-color: rgb(50, 50, 50);
@@ -149,7 +253,88 @@ QTabBar::tab {
     color: rgb(255, 255, 255);
 }
 
-/* UtilitiesGameLabel */
-QLabel#UtilitiesGameLabel {
+/* Message boxes (text and "Show Details" box) */
+QMessageBox QLabel,
+QMessageBox QTextEdit {
     color: rgb(255, 255, 255);
+}
+
+/* Manage Save Backups dialog */
+QDialog#SaveBackupsDialog QLabel,
+QDialog#SaveBackupsDialog QTreeView,
+QDialog#SaveBackupsDialog QHeaderView::section {
+    color: rgb(255, 255, 255);
+}
+
+/* Store picker dialog */
+QLabel#StorePickerText {
+    color: rgb(255, 255, 255);
+}
+
+QLabel#StoreDescription {
+    color: rgb(225, 225, 225);
+    background-color: rgb(35, 75, 70);
+    border-radius: 5px;
+}
+
+/* Save review dialog: finding values coloured by status */
+QLabel#FindingValue {
+    color: rgb(255, 255, 255);
+}
+
+QLabel#FindingValue[status="ok"] {
+    color: rgb(120, 220, 140);
+}
+
+QLabel#FindingValue[status="attention"] {
+    color: rgb(255, 179, 25);
+}
+
+/* Option picker dialog */
+QLabel#OptionPickerText {
+    color: rgb(255, 255, 255);
+}
+
+QListWidget#OptionPickerList {
+    color: rgb(255, 255, 255);
+    background-color: rgba(22, 59, 56, 100);
+    border: 1px solid rgb(67, 144, 134);
+    padding: 3px;
+}
+
+QListWidget#OptionPickerList::item {
+    padding: 6px;
+}
+
+QListWidget#OptionPickerList::item:hover {
+    background-color: rgba(255, 179, 25, 60);
+}
+
+QListWidget#OptionPickerList::item:selected {
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 179, 25, 120);
+}
+
+/* Patch Progress Bar */
+QProgressBar#PatchProgressBar {
+    color: rgb(255, 255, 255); /* Text inside */
+    background-color: rgba(22, 59, 56, 100);
+    border: 1px solid rgb(67, 144, 134);
+    text-align: center;
+    min-height: 20px;
+}
+
+QProgressBar#PatchProgressBar::chunk {
+    background-color: rgba(255, 179, 25, 200);  /* Orange fill */
+}
+
+/* Markdown text: message, FAQ */
+QTextBrowser#MarkdownText {
+    border: 1px solid rgb(67, 144, 134);
+    background-color: rgba(22, 59, 56, 100);
+    color: white;
+    font-size: 14px;
+    qproperty-headerColor: rgb(235, 188, 61);
+    qproperty-subheaderColor: rgb(23, 147, 97);
+    qproperty-linkColor: rgb(25, 255, 236);
 }

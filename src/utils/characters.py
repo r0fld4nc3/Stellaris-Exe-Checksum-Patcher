@@ -1,0 +1,2 @@
+CHAR_CHECKMARK = "✓"
+CHAR_CROSS = "✗"

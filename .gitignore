@@ -178,3 +178,13 @@ GitHub-Issues
 
 # PyInstaller bootloader build
 .pyinstaller-bootloader/
+
+# Built executables from builds/nuitka.py and builds/pyinstaller.py
+/Stellaris-Checksum-Patcher-*
+
+# Nuitka build leftovers from --keep-build or after a failed build
+/main.build/
+/main.dist/
+/main.onefile-build/
+/main.app/
+/nuitka-crash-report.xml

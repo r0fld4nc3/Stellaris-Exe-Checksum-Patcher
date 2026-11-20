@@ -1,42 +1,57 @@
 import logging
 from logging import FileHandler
 from pathlib import Path
+from typing import Optional
 
-from config.definitions import APP_VERSION, TRACKING_BRANCH
-from config.path_helpers import system
-from config.runtime import get_config as get_app_cfg
-from thread_utils import WorkerSignals
+from PySide6.QtCore import QObject, Signal
+
+from core.definitions import APP_REVISION_STR, APP_VERSION_STR, VISUAL_BRANCH
+from core.paths import system
+from core.runtime import AppConfig
+
+# The config given to `configure_logging()`. None until then.
+# Kept here rather than read from `services()`: importing `core.services` loads the settings,
+# which create their logger before this module has swapped in `LoggerWithSignals` below.
+_config: Optional[AppConfig] = None
+
+
+class LoggerSignals(QObject):
+    message = Signal(str)
 
 
 class LoggerWithSignals(logging.Logger):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.signals = WorkerSignals()
+        self.signals = LoggerSignals()
 
     def debug(self, msg, *args, silent=True, **kwargs):
         super().debug(msg, *args, **kwargs)
         if self.level < logging.INFO:
             if not silent:
-                self.signals.progress.emit("[DEBUG] " + str(msg))
+                self.signals.message.emit("[DEBUG] " + str(msg))
 
     def info(self, msg, *args, silent=False, **kwargs):
         super().info(msg, *args, **kwargs)
         if not silent:
-            self.signals.progress.emit("[INFO] " + str(msg))
+            self.signals.message.emit("[INFO] " + str(msg))
 
     def warning(self, msg, *args, silent=False, **kwargs):
         super().warning(msg, *args, **kwargs)
         if not silent:
-            self.signals.progress.emit("[WARN] " + str(msg))
+            self.signals.message.emit("[WARN] " + str(msg))
 
     def error(self, msg, *args, silent=False, **kwargs):
-        _version_print_msg = f"System Info: '{system()} {APP_VERSION}{'-' + TRACKING_BRANCH if TRACKING_BRANCH else ''}' 'Use Local Patterns: Config={get_app_cfg().use_local_patterns}'"
-
-        super().error(msg, *args, **kwargs)
+        super().error(msg + f"\n{_system_info()}", *args, **kwargs)
         if not silent:
-            self.signals.progress.emit("[ERROR] " + str(msg))
-        super().error(_version_print_msg, *args, **kwargs)
+            self.signals.message.emit("[ERROR] " + str(msg))
+
+
+def _system_info() -> str:
+    """One line written for system, version and how the app was started."""
+    branch = f"-{VISUAL_BRANCH}" if VISUAL_BRANCH else ""
+    use_local_patterns = str(_config.use_local_patterns) if _config else "Unknown (app not started)"
+    return f"System Info: '{system()} {APP_VERSION_STR}{APP_REVISION_STR}{branch}' 'Use Local Patterns: Config={use_local_patterns}'"
 
 
 # Replace logging.Logger Class with custom Class
@@ -44,7 +59,13 @@ print(f"Replaced Class {logging.Logger} with {LoggerWithSignals}")
 logging.setLoggerClass(LoggerWithSignals)
 
 
-def configure_logging(log_file: Path, level: int, console: bool = True) -> None:
+def configure_logging(config: AppConfig, console: bool = True) -> None:
+    """Log to `config.log_file` (and the console) at `config.log_level`."""
+    global _config
+    _config = config
+    log_file = config.log_file
+    level = config.log_level
+
     if log_file.exists() and not log_file.is_file():
         raise RuntimeError(f"Attempting to create/ensure directory when a file path has been given: '{log_file}'")
 
@@ -53,7 +74,7 @@ def configure_logging(log_file: Path, level: int, console: bool = True) -> None:
     root = logging.getLogger()
     root.setLevel(level)
 
-    formatter = logging.Formatter(f"[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s", datefmt="%d-%m-%Y %H:%M:%S")
+    formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s", datefmt="%d-%m-%Y %H:%M:%S")
 
     # Remove any pre-existing handlers. Important when in running in dev
     root.handlers.clear()
