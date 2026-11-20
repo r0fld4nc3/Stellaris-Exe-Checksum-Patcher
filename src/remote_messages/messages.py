@@ -140,7 +140,7 @@ def _update_cache(text: str) -> Message:
 
     try:
         message_cache_file().parent.mkdir(parents=True, exist_ok=True)
-        message_cache_file().write_text(text, encoding="utf-8-sig")
+        message_cache_file().write_text(text, encoding="utf-8")
         log.info(f"Saved message to: {message_cache_file()}")
     except OSError as e:
         log.warning(f"Unable to save the message to '{message_cache_file()}': {e}")

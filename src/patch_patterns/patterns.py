@@ -60,7 +60,7 @@ def get_patterns_config_remote() -> dict:
 
         # Save patterns file. Local patterns aren't forced here.
         log.info(f"Saving remote patterns to config dir: {local_patterns_file()}")
-        with open(local_patterns_file(), "w", encoding="utf-8-sig") as f:
+        with open(local_patterns_file(), "w", encoding="utf-8") as f:
             f.write(json.dumps(patterns_data, indent=2))
 
         return patterns_data
@@ -123,6 +123,6 @@ def update_local_config(key: str, content):
 
     patterns_data[key] = content
 
-    with open(local_patterns_file(), "w", encoding="utf-8-sig") as f:
+    with open(local_patterns_file(), "w", encoding="utf-8") as f:
         f.write(json.dumps(patterns_data, indent=2))
         log.info(f"Updated local patterns data\n{json.dumps(patterns_data, indent=2)}", silent=True)

@@ -79,7 +79,7 @@ def configure_logging(config: AppConfig, console: bool = True) -> None:
     # Remove any pre-existing handlers. Important when in running in dev
     root.handlers.clear()
 
-    file_handler = FileHandler(log_file, encoding="utf-8-sig")
+    file_handler = FileHandler(log_file, encoding="utf-8")
     file_handler.setFormatter(formatter)
     root.addHandler(file_handler)
 
@@ -91,5 +91,5 @@ def configure_logging(config: AppConfig, console: bool = True) -> None:
 
 def reset_log_file(log_file: Path) -> None:
     if Path(log_file).exists() and log_file.is_file():
-        with open(log_file, "w", encoding="utf-8-sig") as f:
+        with open(log_file, "w", encoding="utf-8") as f:
             f.write("")

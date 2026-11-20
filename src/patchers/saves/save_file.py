@@ -337,11 +337,11 @@ def _decode(name: str, data: bytes) -> tuple[str, str]:
         raise SaveFileError(f"'{name}' is a binary file, only text saves are supported")
 
     try:
-        return "utf-8-sig", data.decode("utf-8-sig")
+        return "utf-8", data.decode("utf-8")
     except UnicodeDecodeError:
         pass
 
-    # Not utf-8-sig: guess from the start of the file, like `detect_file_encoding` does for files on disk
+    # Not UTF-8: guess from the start of the file, like `detect_file_encoding` does for files on disk
     detected = chardet.detect(data[:4096]).get("encoding")
     if detected is None:
         raise SaveFileError(f"Unable to tell the text encoding of '{name}'")
