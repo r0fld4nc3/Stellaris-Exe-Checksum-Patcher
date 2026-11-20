@@ -2,12 +2,21 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import QCoreApplication, QEvent, QObject, QRect, Qt, QTimer, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QObject,
+    QRect,
+    QSize,
+    Qt,
+    QTimer,
+)
 from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
+    QDialog,
     QFileDialog,
     QLineEdit,
     QListView,
@@ -16,10 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app_services import services
-from config.path_helpers import os_darwin, os_linux
-from patchers import MultiGamePatcher
-from patchers import models as patcher_models
+from core.paths import os_linux
 from utils.platform import WAYLAND, X11
 
 log = logging.getLogger("UI UTILS")
@@ -245,7 +251,7 @@ class EventFilterMoveResize(EventFilterOvr):
     def get_mouse_area(self, event):
         """Determine which edge/corner is being pressed for resizing"""
         rect = self.window.rect()
-        x, y, w, h = rect.x(), rect.y(), rect.width(), rect.height()
+        w, h = rect.width(), rect.height()
         pos = event.position().toPoint()
 
         left = pos.x() <= self.MARGIN
@@ -328,14 +334,100 @@ class EventFilterMoveResize(EventFilterOvr):
         self.window.setGeometry(rect)
 
 
-def _restore_window_focus(window):
-    window.raise_()
-    window.activateWindow()
-    window.setFocus()
+def _restore_window_focus(window: QWidget):
+    """Raise and activate `window`, or the newest dialog still open on top of it."""
+    target = window
+
+    # Children are listed in the order they were created, so the last visible dialog is the newest
+    for dialog in window.findChildren(QDialog):
+        if dialog.isVisible():
+            target = dialog
+
+    target.raise_()
+    target.activateWindow()
+    target.setFocus()
 
 
-def restore_window_focus(window):
+def restore_window_focus(window: QWidget):
+    """
+    Raise and activate `window` half a second from now, or the newest dialog open on top of it by then.
+    The delay gives a window that was just shown or closed time to settle.
+    """
     QTimer.singleShot(500, lambda: _restore_window_focus(window))
+
+
+def adapt_to_parent_size(
+    window: QWidget,
+    parent: QWidget | None = None,
+    size_pct: tuple[int, int] = (80, 90),
+    min_size_pct: tuple[int, int] = (50, 50),
+):
+    """
+    Size a window as a percentage of its parent window and centre it there, or use the screen when there is no parent.
+
+    :param window: The window to resize.
+    :param parent: The widget whose window the size and position are based on.
+    :param size_pct: (width, height) as percentages of the parent.
+    :param min_size_pct: Minimum (width, height) as percentages of the parent.
+    """
+
+    window.setMinimumSize(size_from_parent(parent, min_size_pct))
+    window.resize(size_from_parent(parent, size_pct))
+
+    centre_on_parent(window, parent)
+
+
+def size_from_parent(parent: QWidget | None, size_pct: tuple[int, int]) -> QSize:
+    """
+    A size as percentages of the parent window, or of the screen when there is no parent.
+
+    :param parent: The widget whose window the size is based on.
+    :param size_pct: (width, height) as percentages of the parent.
+    """
+
+    if parent:
+        reference_size = parent.window().size()
+    else:
+        reference_size = QApplication.primaryScreen().availableGeometry().size()
+
+    width_pct = size_pct[0]
+    height_pct = size_pct[1]
+
+    width = int(reference_size.width() * (width_pct * 0.01))
+    height = int(reference_size.height() * (height_pct * 0.01))
+
+    return QSize(width, height)
+
+
+def centre_on_parent(window: QWidget, parent: QWidget | None = None):
+    """
+    Centre a window on its parent window, or on the screen when there is no parent.
+    Call after window has the its final size.
+
+    :param window: The window to move.
+    :param parent: The widget whose window to centre on.
+    """
+
+    if parent:
+        centre = parent.window().frameGeometry().center()
+    else:
+        centre = QApplication.primaryScreen().availableGeometry().center()
+
+    window.move(centre.x() - window.width() // 2, centre.y() - window.height() // 2)
+
+
+def get_app_window(widget: QWidget) -> QWidget:
+    """
+    The top window `widget` belongs to, past any dialogs opened in between.
+    Ex.: Main Window, for a dialog opened from the options tab.
+    """
+
+    window = widget.window()
+
+    while window.parentWidget():
+        window = window.parentWidget().window()
+
+    return window
 
 
 def get_qt_platform() -> str:
@@ -363,87 +455,36 @@ def is_qt_platform_backend_x11() -> bool:
     return get_qt_platform() == X11
 
 
-def find_game_path(patcher: MultiGamePatcher, configuration: patcher_models.PatchConfiguration) -> Optional[Path]:
+def is_shift_held() -> bool:
+    """True while Shift is held."""
+    return bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ShiftModifier)
+
+
+def prompt_path(
+    parent: QWidget, caption: str, pick_folder: bool = False, start_path: Optional[Path] = None
+) -> Optional[Path]:
     """
-    Utility function to find the game path automatically.
+    Ask the user for a file or folder. None if they cancel or the path doesn't exist.
 
-    Attemps to find the game executable by:
-    1. Checking saved path in settings
-    2. Auto-locating via Steam detection
-
-    Args:
-        patcher: The multi-game patcher instance
-        configuraiton: Patch Configuration
-
-    Returns:
-        Path to game executable if found, otherwise None
+    :param start_path: Where the dialog opens. Its folder is used when it's a file.
     """
 
-    game_patcher = patcher.get_game_patcher(configuration.game, configuration.version)
+    start_dir = ""
+    if start_path:
+        start_dir = str(start_path if start_path.is_dir() else start_path.parent)
 
-    if not game_patcher:
-        log.error(f"Failed to get patcher for {configuration.game} version {configuration.version}")
+    if pick_folder:
+        picked = QFileDialog.getExistingDirectory(parent, caption, start_dir)
+    else:
+        picked, _ = QFileDialog.getOpenFileName(parent, caption, start_dir)
+
+    if not picked:
+        log.info("User cancelled path selection", silent=True)
         return None
 
-    # Determine platform and executable info
-    platform = patcher_models.Platform.WINDOWS if configuration.is_proton else None
-    exe_info = game_patcher.get_executable_info(platform)
-    path_postfix = exe_info.path_postfix
-    log.info(f"{exe_info=}", silent=True)
-    log.info(f"Platform: {platform}", silent=True)
-    log.info(f"Is Proton: {configuration.is_proton}", silent=True)
+    picked_path = Path(picked).resolve()
+    if not picked_path.exists():
+        log.warning(f"Selected path does not exist: {picked_path}")
+        return None
 
-    # Check saved path in settings
-    saved_path_str = (
-        services().settings.game(configuration.game).proton_install_path
-        if configuration.is_proton
-        else services().settings.game(configuration.game).install_path
-    )
-
-    log.info(f"Retrieved saved path from settings: '{saved_path_str}'", silent=True)
-
-    if saved_path_str:
-        saved_path = Path(saved_path_str)
-        if saved_path.exists() and saved_path.is_file():
-            log.info(f"Retrieved game executable from settings: {saved_path}", silent=True)
-            return saved_path
-        else:
-            log.warning(f"Saved game path found, but executable is invalid.")
-
-    # Auto-locate
-    log.info(f"Attempting to auto-locate game installation.")
-    auto_located_path = game_patcher.locate_game_install()
-
-    # macOS: point inside the .app bundle at the actual binary
-    if auto_located_path and os_darwin() and not configuration.is_proton and path_postfix:
-        auto_located_path = auto_located_path / path_postfix
-
-    if auto_located_path:
-        log.info(f"Auto-located path: {auto_located_path}")
-        return auto_located_path
-
-    log.error(f"Failed to locate {configuration.game} installation.")
-    return None
-
-
-def prompt_install_dir(game_name: str = "Game") -> Optional[Path]:
-    qurl_install_dir: tuple[QUrl, str] = QFileDialog().getOpenFileUrl(
-        caption=f"Please choose {game_name} executable binary..."
-    )
-
-    picked_path_str = qurl_install_dir[0].path()
-    log.info(f"User picked path: {picked_path_str}", silent=True)
-
-    # Handle potentially empty strings
-    if picked_path_str and picked_path_str.strip():
-        picked_path = Path(picked_path_str).absolute().resolve()
-
-        # Verify path does exist
-        if picked_path.exists():
-            return picked_path
-        else:
-            log.warning(f"Selected path does not exist: {picked_path}")
-            return None
-
-    log.info(f"User cancelled file selection.", silent=True)
-    return None
+    return picked_path

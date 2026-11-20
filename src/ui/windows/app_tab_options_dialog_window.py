@@ -1,7 +1,7 @@
 import logging
 from typing import Iterable, Optional
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
     QDialog,
@@ -10,20 +10,57 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QTabWidget,
     QVBoxLayout,
+    QWidget,
 )
 
-from patchers import MultiGamePatcher, PatchConfiguration
+from core.services import services
+from patchers import PatchConfiguration, Patcher
+from ui.utils import adapt_to_parent_size, centre_on_parent, get_app_window
 
-from .options_tabs import PatchConfigTab, UtilitiesTab
+from .options_tabs import GameUtilitiesTab, UtilitiesTab
 from .options_tabs.base import OptionsContext, OptionsTab
 
 log = logging.getLogger("Patch Config")
 
 # Tabs shown in the Configure Application Options dialog, in display order.
 APP_OPTIONS_TABS = [
+    GameUtilitiesTab,
     UtilitiesTab,
-    PatchConfigTab,
 ]
+
+
+class CurrentTabSizedTabWidget(QTabWidget):
+    """
+    QTabWidget whose height fits the current tab instead of the tallest tab.
+
+    Width stays stable when switching.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.currentChanged.connect(self.updateGeometry)
+
+    def sizeHint(self) -> QSize:
+        return self._fit_current_height(super().sizeHint(), QWidget.sizeHint)
+
+    def minimumSizeHint(self) -> QSize:
+        return self._fit_current_height(super().minimumSizeHint(), QWidget.minimumSizeHint)
+
+    def hasHeightForWidth(self) -> bool:
+        # Word-wrapped labels make layouts ask heightForWidth().
+        # QTabWidget returns the tallest tab. Opt out so the current-tab size hint above is used.
+        return False
+
+    def _fit_current_height(self, size: QSize, page_hint) -> QSize:
+        """Swap the tallest tab's height in `size` for the current tab's height."""
+        current = self.currentWidget()
+        pages = [self.widget(i) for i in range(self.count()) if self.isTabVisible(i)]
+        if current is None or not pages:
+            return size
+
+        tallest = max(page_hint(page).height() for page in pages)
+        size.setHeight(size.height() - tallest + page_hint(current).height())
+        return size
 
 
 class TabOptionsDialog(QDialog):
@@ -32,11 +69,23 @@ class TabOptionsDialog(QDialog):
 
     Knows nothing about what the tabs contain.
     Pass tab classes in `tabs` (order is the display order) or call `add_tab()`.
+
+    The dialog grows to fit the current tab, up to the screen size.
     """
+
+    # (width, height) as percentages of the main window.
+    # Width is the starting width. height is the starting size.
+    SIZE_PCT = (80, 90)
+
+    # Smallest (width, height) as percentages of the main window
+    MIN_SIZE_PCT = (50, 50)
+
+    # Largest share of the screen the dialog grows to when fitting a tab, whatever SIZE_PCT allows
+    MAX_SCREEN_FRACTION = 0.9
 
     def __init__(
         self,
-        patcher: MultiGamePatcher,
+        patcher: Patcher,
         configuration: PatchConfiguration,
         font: QFont,
         window_icon: QIcon,
@@ -47,7 +96,6 @@ class TabOptionsDialog(QDialog):
 
         self.setModal(True)
 
-        self._font = font
         self.context = OptionsContext(patcher, configuration, font, parent=self)
         self.context.reload_requested.connect(self.refresh)
 
@@ -61,7 +109,8 @@ class TabOptionsDialog(QDialog):
 
         self.setWindowTitle("Configure Patches")
         self.setWindowIcon(window_icon)
-        self.setMinimumSize(600, 400)
+
+        adapt_to_parent_size(self, get_app_window(self), self.SIZE_PCT, self.MIN_SIZE_PCT)
 
         # Dialog Layout that contains the frame
         dialog_layout = QVBoxLayout(self)
@@ -81,27 +130,31 @@ class TabOptionsDialog(QDialog):
         content_layout.setContentsMargins(10, 10, 10, 10)
 
         # --- Tab Widget ---
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setFont(self._font)
+        self.tab_widget = CurrentTabSizedTabWidget()
+        self.tab_widget.setFont(font)
+        self.tab_widget.currentChanged.connect(self._fit_to_current_tab)
         content_layout.addWidget(self.tab_widget)
 
         # --- OK/Cancel Layout ---
         ok_cancel_layout = QHBoxLayout()
         content_layout.addLayout(ok_cancel_layout)
 
-        # --- Ok / Cancel Buttons
+        # --- Ok / Cancel Buttons ---
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
+
+        # Write memory() changed settings when the dialog closes, regardless of how it closes (OK, Cancel or X)
+        self.finished.connect(lambda _: services().settings.save_if_dirty())
+
         for button in button_box.buttons():
-            button.setFont(self._font)
+            button.setFont(font)
         ok_cancel_layout.addWidget(button_box)
 
         # --- Tabs ---
-        log.info(tabs)
         if not tabs:
-            log.info(f"Passed tab list is empty: {tabs}. Using defaults {APP_OPTIONS_TABS}")
             # Can be empty, defined a default to fallback to.
+            log.debug(f"No tabs passed. Using defaults {APP_OPTIONS_TABS}")
             tabs = APP_OPTIONS_TABS
 
         for tab_cls in tabs:
@@ -137,21 +190,50 @@ class TabOptionsDialog(QDialog):
     def refresh(self):
         for tab in self.tabs():
             tab.load()
+        self._fit_to_current_tab()
 
     def get_configuration(self) -> PatchConfiguration:
-        """Collect the selections from every tab into the configuration."""
+        """The configuration as edited in the dialog. Tabs write their changes into it as they happen."""
         config = self.context.configuration
-        for tab in self.tabs():
-            tab.apply(config)
 
         log.info(
             f"Returning configuration: Game={config.game}, "
             f"Version={config.version}, "
-            f"Proton={config.is_proton}, "
+            f"Platform={config.platform} (Proton={config.is_proton}), "
             f"Patches({len(config.selected_patches)})={config.selected_patches}"
         )
 
         return config
+
+    # --- Sizing ---
+
+    def _fit_to_current_tab(self, *_):
+        """Resize the dialog's height to the current tab, between the minimum size and the SIZE_PCT/screen limit."""
+        # Layouts cache size hints: refresh each one from the tab widget up to the dialog
+        widget = self.tab_widget
+        while widget is not None and widget is not self:
+            widget.updateGeometry()
+            widget = widget.parentWidget()
+        self.layout().activate()
+
+        # Never go below the layout's minimum to avoid squeezing widgets like dropdowns
+        content_min_width = self.minimumSizeHint().width()
+        if self.minimumWidth() < content_min_width:
+            self.setMinimumWidth(content_min_width)
+
+        hint = self.sizeHint()
+        max_size = self.screen().availableGeometry().size() * self.MAX_SCREEN_FRACTION
+
+        # Keep the current size (SIZE_PCT on first show), grow to fit the tab, but stay on screen
+        width = min(max(self.width(), hint.width(), self.minimumWidth()), max_size.width())
+        height = min(max(self.height(), hint.height(), self.minimumHeight()), max_size.height())
+
+        self.resize(width, height)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._fit_to_current_tab()
+        centre_on_parent(self, self.parentWidget())
 
     def closeEvent(self, event):
         """Let every tab release its resources when the dialog closes."""

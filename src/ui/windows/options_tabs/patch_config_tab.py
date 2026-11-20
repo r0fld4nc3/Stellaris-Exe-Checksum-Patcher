@@ -1,82 +1,129 @@
 import logging
+from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
+    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
-from config.path_helpers import os_darwin, os_linux, os_windows
+from app.game_location import (
+    find_game_executable,
+    find_game_folder,
+    game_folder_for,
+    save_game_executable,
+    saved_game_executable,
+)
+from core.paths import os_darwin, os_linux
 from patchers import PatchConfiguration
 from patchers import models as patcher_models
+from patchers.saves import get_save_games_folders
+from stores import GameStore, game_store, get_store_helper, set_game_store
+from ui.shared_widgets import AutoWidthComboBox, GameComboBox
+from ui.utils import (
+    is_shift_held,
+    prompt_path,
+    restore_window_focus,
+)
+from utils.helpers import (
+    block_signals,
+    delete_fpaths,
+    format_size,
+    get_fpath_size,
+)
+from utils.platform import open_in_file_manager
+from utils.threads import Threader
 
+from ..option_picker_dialog import option_dialog_pick_from_options
 from .base import OptionsContext, OptionsTab
 
 log = logging.getLogger("Patch Config")
 
 
-class PatchConfigTab(OptionsTab):
-    """Game/version/platform selection and the list of patches to apply."""
+class GameUtilitiesTab(OptionsTab):
+    """Game/version/platform selection, the list of patches to apply and game-specific actions."""
 
-    title = "Patch Configuration"
+    title = "Game Utilities"
 
     def __init__(self, context: OptionsContext, parent=None):
         super().__init__(context, parent)
 
-        self._current_platform: Optional[patcher_models.Platform] = None
-        self._display_key_to_pattern_key: dict[str, str] = {}
-
         font = self.ctx.font
+
+        font_section = QFont(font)
+        font_section.setPointSize(18)
+
+        font_header = QFont(font)
+        font_header.setPointSize(16)
 
         patch_layout = QVBoxLayout(self)
         patch_layout.setContentsMargins(10, 10, 10, 10)
 
         # --- Game Info Section ---
-        if self.config:
-            info_label = QLabel(f"<b>Patch Configuration</b>")
-            info_label.setFont(font)
-            patch_layout.addWidget(info_label)
+        info_label = QLabel("<b>Patch Configuration</b>")
+        info_label.setObjectName("SectionTitle")
+        info_label.setFont(font_section)
+        info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        patch_layout.addWidget(info_label)
 
-            desc_label = QLabel(f"Select what game to patch and with that options.")
-            desc_label.setWordWrap(True)
-            patch_layout.addWidget(desc_label)
+        desc_label = QLabel("Select what game to patch and its options")
+        desc_label.setFont(font_header)
+        desc_label.setWordWrap(True)
+        patch_layout.addWidget(desc_label)
 
         # --- Game & Version Selection ---
         selection_layout = QHBoxLayout()
 
-        self.game_combobox = QComboBox()
-        self.game_combobox.setFont(font)
+        self.game_combobox = GameComboBox(self.ctx)
 
-        self.version_combobox = QComboBox()
+        self.version_combobox = AutoWidthComboBox(font=font)
         self.version_combobox.setFont(font)
-        self.version_combobox.setMaximumWidth(140)
+        # self.version_combobox.setMaximumWidth(140)
 
         selection_layout.addWidget(QLabel("Game:"))
-        selection_layout.addWidget(self.game_combobox, 1)
+        selection_layout.addWidget(self.game_combobox)
         selection_layout.addWidget(QLabel("Version:"))
         selection_layout.addWidget(self.version_combobox, 1)
         patch_layout.addLayout(selection_layout)
 
-        # --- Linux Version Dropdown ---
-        self.use_proton_picker = QComboBox()
+        # --- Native/Proton Dropdown (Linux/macOS) ---
+        # Each item carries the platform of the binary it patches
+        self.platform_picker = AutoWidthComboBox(font=font)
         if os_linux() or os_darwin():
-            self.use_proton_picker.addItems(
-                [patcher_models.TRANSLATION_LAYER_ENUM.NATIVE, patcher_models.TRANSLATION_LAYER_ENUM.PROTON]
+            self.platform_picker.addItem(
+                patcher_models.TRANSLATION_LAYER_ENUM.NATIVE, patcher_models.Platform.detect_current()
             )
-            self.use_proton_picker.setFont(font)
-            selection_layout.addWidget(self.use_proton_picker)
-            self.use_proton_picker.currentTextChanged.connect(self._on_binary_type_changed)
-            self.use_proton_picker.setMinimumWidth(100)
+            self.platform_picker.addItem(
+                patcher_models.TRANSLATION_LAYER_ENUM.PROTON, patcher_models.Platform.WINDOWS.value
+            )
+            self.platform_picker.setFont(font)
+            # self.platform_picker.setMinimumWidth(100)
+            selection_layout.addWidget(self.platform_picker)
+
+        # --- Game Store Dropdown ---
+        # Each item carries the GameStore value saved for the game
+        self.store_picker = AutoWidthComboBox(font=font)
+        for store in GameStore:
+            if not store.is_supported:
+                continue
+            self.store_picker.addItem(store.display_name, store)
+        self.store_picker.setFont(font)
+        self.store_picker.setToolTip("Where the selected game was installed from.")
+        selection_layout.addWidget(self.store_picker)
 
         # --- Patches Area (Scrollable) ---
         self.patches_scroll_area = QScrollArea()
         self.patches_scroll_area.setWidgetResizable(True)
+        self.patches_scroll_area.setMinimumHeight(200)
 
         self.patches_widget = QWidget()
 
@@ -85,302 +132,464 @@ class PatchConfigTab(OptionsTab):
         self.patches_scroll_area.setWidget(self.patches_widget)
         patch_layout.addWidget(self.patches_scroll_area)
 
+        # --- Game-specific actions (act on the selected game) ---
+        utilities_layout = QVBoxLayout()
+        patch_layout.addLayout(utilities_layout)
+
+        # === Show X Folder Buttons Layout ===
+        show_x_folder_buttons_layout = QHBoxLayout()
+        utilities_layout.addLayout(show_x_folder_buttons_layout)
+
+        # --- Save Games Folder Buttons Layout
+        save_games_folder_buttons_layout = QHBoxLayout()
+        save_games_folder_buttons_layout.setSpacing(0)
+        save_games_folder_buttons_layout.setContentsMargins(0, 0, 0, 0)
+
+        # --- Show Save Games Folder Button ---
+        btn_show_save_games_folder = QPushButton("Show Save Games Folder")
+        btn_show_save_games_folder.setFlat(False)
+        btn_show_save_games_folder.setFont(font)
+        btn_show_save_games_folder.setToolTip("Shift-click to choose the save games folder.")
+        btn_show_save_games_folder.clicked.connect(self.show_save_games_folder)
+        # Stretch so the button takes the space the X doesn't need
+        save_games_folder_buttons_layout.addWidget(btn_show_save_games_folder, 1)
+
+        # --- Clear Save Games Folder ---
+        btn_clear_save_games_folder = QPushButton("X")
+        btn_clear_save_games_folder.setFlat(False)
+        btn_clear_save_games_folder.setFont(font)
+        btn_clear_save_games_folder.setToolTip("Clear Saved Games Folder")
+        btn_clear_save_games_folder.clicked.connect(self.clear_save_games_folder)
+        save_games_folder_buttons_layout.addWidget(btn_clear_save_games_folder)
+
+        # Equal stretch on both halves so the save-games pair is as wide as "Show Game Folder"
+        show_x_folder_buttons_layout.addLayout(save_games_folder_buttons_layout, 1)
+
+        # --- Show Game Folder Button ---
+        btn_show_game_folder = QPushButton("Show Game Folder")
+        btn_show_game_folder.setFlat(False)
+        btn_show_game_folder.setFont(font)
+        # Lambda drops the `checked` argument from clicked()
+        btn_show_game_folder.clicked.connect(lambda: self.show_game_folder())
+        show_x_folder_buttons_layout.addWidget(btn_show_game_folder, 1)
+
+        # ===========================================
+
+        # --- Validate Game Files Button (through the game's store) ---
+        self.btn_validate_game_files = QPushButton("Validate Integrity of Game Files")
+        self.btn_validate_game_files.setFont(font)
+        self.btn_validate_game_files.setToolTip("Trigger the validation of game files through the game's store.")
+        self.btn_validate_game_files.clicked.connect(self.validate_game_files)
+        utilities_layout.addWidget(self.btn_validate_game_files)
+
+        # --- Delete Binary Backups Button ---
+        btn_delete_binary_backups = QPushButton("Delete Backups")
+        btn_delete_binary_backups.setFont(font)
+        btn_delete_binary_backups.setToolTip("Delete generated backups of the game executable made when patching.")
+        btn_delete_binary_backups.clicked.connect(self.delete_binary_backups)
+        utilities_layout.addWidget(btn_delete_binary_backups)
+
         # --- Signals ---
-        self.game_combobox.currentTextChanged.connect(self._on_game_changed)
-        self.version_combobox.currentTextChanged.connect(self._on_version_changed)
+        # Every control writes its change into the shared configuration straight away.
+        # Game can be picked here or in another tab, so it arrives through the context.
+        self.ctx.game_changed.connect(self._on_game_changed)
+        self.version_combobox.currentIndexChanged.connect(self._on_version_changed)
+        self.platform_picker.currentIndexChanged.connect(self._on_platform_changed)
+        self.store_picker.currentIndexChanged.connect(self._on_store_changed)
 
     # --- OptionsTab hooks ---
 
     def load(self):
-        log.info(f"Populating Options", silent=True)
+        log.info("Populating Options", silent=True)
 
-        if not self.config or not self.config.game:
-            self.config = self._create_default_config()
+        if not self._is_valid(self.config):
+            log.warning(f"Invalid configuration, creating default: {self.config}")
+            self.config = PatchConfiguration.create_default(self.ctx.patcher)
             if not self.config:
-                log.error(f"Failed to create a default configuration")
+                log.error("Failed to create a default configuration")
                 return
 
-        # Validate
-        if not self._validate_configuration(self.config):
-            log.error(f"Invalid configuration, creating default")
-            self.config = self._create_default_config()
-            if not self.config or not self._validate_configuration(self.config):
-                log.error(f"Failed to create valid configuration")
-                return
+        self.config.platform = (
+            patcher_models.Platform.parse(self.config.platform) or patcher_models.Platform.detect_current()
+        )
 
-        log.info(f"Retrieving available games to add to game combobox.", silent=True)
-        available_games = self.ctx.patcher.get_available_games()
-        self.game_combobox.blockSignals(True)
-        self.game_combobox.clear()
-        self.game_combobox.addItems(available_games)
-        self.game_combobox.setCurrentText(self.config.game)
-        self.game_combobox.blockSignals(False)
-
-        # Update platform UI
-        if os_linux() or os_darwin():
-            translation_layer = (
-                patcher_models.TRANSLATION_LAYER_ENUM.PROTON
-                if self.config.is_proton
-                else patcher_models.TRANSLATION_LAYER_ENUM.NATIVE
-            )
-            self.use_proton_picker.setCurrentText(translation_layer)
-
+        self.game_combobox.populate()
         self._on_game_changed(self.config.game)
 
-    def apply(self, configuration: PatchConfiguration):
-        selected_patches = []
-
-        for i in range(self.patches_layout.count()):
-            checkbox = self.patches_layout.itemAt(i).widget()
-            if isinstance(checkbox, QCheckBox) and checkbox.isChecked():
-                selected_patches.append(checkbox.property("patch_name"))
-
-        configuration.game = self.game_combobox.currentText()
-        configuration.platform = self.get_selected_platform()
-
-        # Get the key name from the display name
-        display_version: str = self.version_combobox.currentText()
-        configuration.version = self._display_key_to_pattern_key.get(display_version, display_version)
-
-        configuration.is_proton = self._should_use_proton()
-        configuration.selected_patches = selected_patches
-
-    def _create_default_config(self, game: str = None) -> PatchConfiguration:
-        log.info(f"Creating default patch configuration.", silent=True)
-        games = self.ctx.patcher.get_available_games()
-
-        if not game and not games:
-            log.error(f"No available games")
-            return None
-
-        selected_game = game or games[0]
-
-        return PatchConfiguration(
-            game=selected_game,
-            version=patcher_models.KEY_VERSION_LATEST,
-            is_proton=(os_windows() or self._should_use_proton()),
-        )
-
-    def _should_use_proton(self) -> bool:
-        """Determine if Proton should be used and is picked bu User."""
-        if os_linux() or os_darwin():
-            return self.use_proton_picker.currentText().lower() == patcher_models.TRANSLATION_LAYER_ENUM.PROTON.lower()
-        return False
-
-    def _get_current_platform(self) -> patcher_models.Platform:
-        return (
-            patcher_models.Platform.detect_current()
-            if not self._should_use_proton()
-            else patcher_models.Platform.WINDOWS
-        )
-
-    def get_selected_platform(self) -> patcher_models.Platform:
-        use_proton = self._should_use_proton()
-
-        if os_linux():
-            if not use_proton:
-                return patcher_models.Platform.LINUX
-        elif os_darwin():
-            if not use_proton:
-                return patcher_models.Platform.DARWIN
-
-        return patcher_models.Platform.WINDOWS
-
-    def _validate_configuration(self, config: PatchConfiguration) -> bool:
-        log.info(f"Validating patch configuration: {config}", silent=True)
-
-        if not config:
-            log.error("Configuration is None.")
-            return False
-
-        if not config.game:
-            log.error(f"No game selected in configuration")
-            return False
-
-        if not config.version:
-            log.error(f"No version selected in configuration")
-            return False
-
-        available_games = self.ctx.patcher.get_available_games()
-        if config.game not in available_games:
-            log.error(f"Game '{config.game}' not in available games: {available_games}")
-            return False
-
-        return True
-
     # --- Slots ---
-    def _on_game_changed(self, game_name: str):
-        versions = self.ctx.patcher.get_available_versions(game_name)
-        self.version_combobox.blockSignals(True)
-        self.version_combobox.clear()
 
-        # Clear key cache for new game
-        self._display_key_to_pattern_key.clear()
+    def _on_game_changed(self, game: str):
+        """Show the platform, versions and patches for the selected game."""
+        # Restore the Native/Proton choice last patched with for this game
+        saved_platform = self._saved_platform(game)
+        if saved_platform:
+            self.config.platform = saved_platform
+        self._show_platform()
+        self._show_store(game)
 
-        last_platform_str = self.svc.settings.game(game_name).last_patched_platform
-
-        # Convert to Enum
-        if last_platform_str:
-            try:
-                self._current_platform = patcher_models.Platform(last_platform_str.lower())
-                log.info(f"Using saved platform: {self._current_platform}")
-            except ValueError:
-                log.warning(f"Invalid saved platform '{last_platform_str}', auto-detecting current.")
-                self._current_platform = self._get_current_platform()
+        # Keep the configured version if it still applies, otherwise let the patcher choose.
+        # (Changing game resets the configured version, see OptionsContext.select_game.)
+        picked_version = self.ctx.patcher.pick_version(
+            game, platform=self.config.platform, preferred=self.config.version
+        )
+        if picked_version:
+            self.config.version = picked_version
         else:
-            # No saved platform, auto-detect
-            self._current_platform = self._get_current_platform()
-            log.info(f"No saved platform, auto-detected: {self._current_platform}")
+            log.warning(f"No version with patches available for {game} on {self.config.platform}")
+        self._show_versions(game)
 
-        if os_linux() or os_darwin():
-            use_proton = self._current_platform == patcher_models.Platform.WINDOWS
-            log.info(f"{use_proton=}")
+        self._rebuild_patches()
 
-            if use_proton:
-                self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.PROTON)
-            else:
-                self.use_proton_picker.setCurrentText(patcher_models.TRANSLATION_LAYER_ENUM.NATIVE)
+    def _on_version_changed(self, index: int):
+        if index < 0:
+            return
+        self.config.version = self.version_combobox.itemData(index)
+        self._rebuild_patches()
 
-        # Add available versions provided they have patches
-        available_versions_with_patches = []
-        for version_key in versions:
-            # Build a cache of display versions and the real key they represent
-            # Visual nicety and cached retrieval is fast and won't break with formatting
-            display_version: str = version_key.capitalize() if not " " in version_key else version_key.title()
-            self._display_key_to_pattern_key[display_version] = version_key
+    def _on_platform_changed(self, index: int):
+        if index < 0:
+            return
+        platform = patcher_models.Platform(self.platform_picker.itemData(index))
+        log.info(f"Binary platform changed to: {platform}", silent=True)
+        self.config.platform = platform
+        self._rebuild_patches()
 
-            patches = self.ctx.patcher.get_available_patches_for_game(game_name, version_key, self._current_platform)
-            log.debug(
-                f"ON GAME CHANGED: Patches for version {version_key} on platform {self._current_platform}: {patches=}"
-            )
-            self.version_combobox.addItem(display_version)
-            if patches:
-                available_versions_with_patches.append(version_key)
+    def _on_store_changed(self, index: int):
+        if index < 0 or not self.selected_game:
+            return
 
-        # Determine version to select
-        target_version_key = None
+        game = self.selected_game
+        old_store = game_store(game)
+        new_store = GameStore(self.store_picker.itemData(index))
+        self._swap_store_paths(game, old_store, new_store)
+        set_game_store(game, new_store)
 
-        # If it's the same as current config, try to use that version
-        if game_name == self.config.game and self.config.version in available_versions_with_patches:
-            target_version_key = self.config.version
-        # Otherwise, prefer 'latest' if available
-        elif patcher_models.KEY_VERSION_LATEST in available_versions_with_patches:
-            target_version_key = patcher_models.KEY_VERSION_LATEST
-        # Fall back to first available version
-        elif available_versions_with_patches:
-            target_version_key = available_versions_with_patches[0]
+        self._show_validate_button(new_store)
 
-        if target_version_key:
-            display_name = next(
-                (display for display, key in self._display_key_to_pattern_key.items() if key == target_version_key),
-                target_version_key.capitalize(),
-            )
-            self.version_combobox.setCurrentText(display_name)
-            # Update current config version
-            self.config.version = target_version_key
-            log.info(f"Set config version: {target_version_key} (display: {display_name})")
+    def _on_patch_toggled(self, patch_name: str, checked: bool):
+        selected = self.config.selected_patches
+        if checked and patch_name not in selected:
+            selected.append(patch_name)
+        elif not checked and patch_name in selected:
+            selected.remove(patch_name)
+
+    def validate_game_files(self):
+        game = self.selected_game
+        if not game:
+            log.warning("No game selected. Unable to validate game files.")
+            return
+
+        store_helper = get_store_helper(game)
+        if not store_helper:
+            log.error(f"Unable to validate game files for '{game}'.")
+            return
+
+        if not store_helper.validate_game_files(game, saved_game_executable(self.config)):
+            return
+
+        # The store can't validate on its own.
+        # Inform the user what to click there, and leave its window in front
+        if store_helper.validate_instructions:
+            QMessageBox.information(self, "Validate Game Files", store_helper.validate_instructions)
+            return
+
+        try:
+            dialog = self.window()
+            main_window = dialog.parent() if dialog.parent() else dialog
+            restore_window_focus(main_window)
+        except Exception as e:
+            log.error(f"Error restoring window focus: {e}")
+
+    def show_game_folder(self, auto_located_path: Optional[Path] = None, _retry_attempted: bool = False):
+        game = self.selected_game
+        if not game:
+            log.warning("No game selected. Unable to locate game folder.")
+            return
+
+        # Prioritise auto_located_path, and save it for next time
+        if auto_located_path and auto_located_path.exists():
+            log.info(f"Using auto-located: {auto_located_path}", silent=True)
+            save_game_executable(self.config, auto_located_path)
+            game_folder = game_folder_for(self.ctx.patcher, self.config, auto_located_path)
         else:
-            log.warning(f"No version with patches available for {game_name} on {self._current_platform}")
+            game_folder = find_game_folder(self.ctx.patcher, self.config)
 
-        self.version_combobox.blockSignals(False)
+        if game_folder:
+            log.info(f"Opening game folder: '{game_folder}'", silent=False)
+            open_in_file_manager(game_folder)
+            return
 
-        log.info(f"Current text before _on_version_changed: '{self.version_combobox.currentText()}'")
-        self._on_version_changed(self.version_combobox.currentText())
+        log.warning(f"Unable to determine game folder for '{game}'.")
 
-        # Let other tabs know the selection changed
-        self.ctx.configuration_changed.emit()
+        if not auto_located_path and not _retry_attempted:
+            # Auto-locate in the background, then try again with the result
+            log.info("Attempting to auto-locate game installation...")
+            path_finder_thread = Threader(target=self._find_game_path_worker_thread)
+            path_finder_thread.signals.result.connect(
+                lambda result: self.show_game_folder(result, _retry_attempted=True)
+            )
+            self.start_thread(path_finder_thread)
+            return
 
-    def _on_version_changed(self, version_display_name: str):
-        # Clear previous checkboxes
+        log.info("Auto-location already attempted and failed.", silent=True)
+        picked_path = prompt_path(self, caption=f"Choose {game} executable binary...")
+
+        if picked_path:
+            self.show_game_folder(auto_located_path=picked_path, _retry_attempted=_retry_attempted)
+        else:
+            log.warning("User cancelled location. Unable to show game folder.")
+
+    def show_save_games_folder(self):
+        game = self.selected_game
+
+        if not game:
+            log.warning("No game selected. Unable to locate save games folder.")
+            return
+
+        save_games_folders: list[Path] = get_save_games_folders(game)
+        log.info(f"Returned possible save games folders: {save_games_folders}", silent=True)
+
+        if is_shift_held():
+            # Shift modifier pressed?
+            start_path = None
+            if save_games_folders:
+                start_path = save_games_folders[0]
+
+            picked_save_games_folder = prompt_path(
+                self.window(),
+                caption=f"Choose {game} save games folder...",
+                pick_folder=True,
+                start_path=start_path,
+            )
+        else:
+            options: list[tuple[str, Path, str]] = []
+            for path_option in save_games_folders:
+                options.append((str(path_option), path_option, ""))
+
+            # One folder is used without asking. Several: asks in a dialog over the options window
+            picked_save_games_folder = option_dialog_pick_from_options(
+                f"Pick {game} Save Games Folder",
+                "Pick save games folder to use for this game configuration.",
+                options,
+                parent=self.window(),
+            )
+
+        if picked_save_games_folder is None:
+            log.warning(f"No save games folder found or picked for {game}. Nothing to show.")
+            return
+
+        # Remembered, so it isn't asked again.
+        self.svc.settings.game(game).save_games_folder = picked_save_games_folder.as_posix()
+        open_in_file_manager(picked_save_games_folder)
+
+    def clear_save_games_folder(self):
+        game = self.selected_game
+
+        if not game:
+            return
+
+        saved_value = self.svc.settings.game(game).save_games_folder
+
+        # Clear it
+        self.svc.settings.game(game).save_games_folder = ""
+
+        log.info(f"Cleared saved games folder '{saved_value}' for game '{game}'")
+
+    def delete_binary_backups(self):
+        game = self.selected_game
+        if not game:
+            log.warning("No game selected. Unable to delete executable backups.")
+            return
+
+        # Backups of both the native and Proton executables
+        binary_paths = self.svc.settings.game(game).saved_binary_paths()
+
+        if not binary_paths:
+            log.warning(f"No saved executable location for {game}. Unable to look for backups.")
+            self._show_message(
+                "No Game Location",
+                f"Couldn't find where {game} executable is yet.\n\n" "Patch the game or use Show Game Folder first.",
+            )
+            return
+
+        if game not in self.ctx.patcher.get_available_games():
+            log.warning(f"No patch configuration for {game}.")
+            self._show_message(
+                "No Patch Configuration",
+                f"Couldn't load the patch configuration for {game}. Unable to look for backups.",
+                icon=QMessageBox.Icon.Warning,
+            )
+            return
+
+        backups = set()
+        for path in binary_paths:
+            backups.update(self.ctx.patcher.find_binary_backups(self.config, path))
+        backups = sorted(backups)
+
+        if not backups:
+            log.info(f"No executable backups found for {game}.")
+            self._show_message("No Backups", f"No backups of the {game} executable were found.")
+            return
+
+        total_size = sum(get_fpath_size(b) for b in backups)
+
+        confirm = QMessageBox(self)
+        confirm.setIcon(QMessageBox.Icon.Question)
+        confirm.setWindowTitle("Delete Executable Backups")
+        confirm.setText(
+            f"Delete {len(backups)} backup(s) of the {game} executable ({format_size(total_size)})?\n\n"
+            "This can't be undone."
+        )
+        confirm.setDetailedText("\n".join(str(b) for b in backups))
+        confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        confirm.setDefaultButton(QMessageBox.StandardButton.No)
+
+        if confirm.exec() != QMessageBox.StandardButton.Yes:
+            log.info("Deleting executable backups cancelled.", silent=True)
+            return
+
+        deleted, failed = delete_fpaths(backups)
+        log.info(f"Deleted {len(deleted)} of {len(backups)} {game} executable backup(s).")
+
+        if failed:
+            self._show_message(
+                "Some Backups Not Deleted",
+                f"Deleted {len(deleted)} backup(s), but {len(failed)} could not be deleted:\n\n"
+                + "\n".join(str(f) for f in failed),
+                icon=QMessageBox.Icon.Warning,
+            )
+        else:
+            self._show_message("Backups Deleted", f"Deleted {len(deleted)} backup(s) of the {game} executable.")
+
+    # --- Helpers ---
+
+    def _swap_store_paths(self, game: str, old_store: GameStore, new_store: GameStore):
+        """
+        Keep `game` executable paths for `old_store`, and put back the ones `new_store` had earlier in the run.
+        Empty when `new_store` had none, so it auto-detects the game again.
+        """
+        store_paths = self.ctx.store_paths
+        game_settings = self.svc.settings.game(game)
+
+        store_paths[(game, old_store)] = (game_settings.install_path, game_settings.proton_install_path)
+
+        install_path, proton_install_path = store_paths.get((game, new_store), ("", ""))
+        game_settings.install_path = install_path
+        game_settings.proton_install_path = proton_install_path
+
+    def _show_validate_button(self, store: GameStore):
+        """Name of the store on the button. Disabled when the store can't validate."""
+        self.btn_validate_game_files.setToolTip(f"Trigger validation of game files through {store.display_name}.")
+        self.btn_validate_game_files.setEnabled(store not in (GameStore.GENERIC,))
+
+    def _show_message(self, title: str, text: str, icon: QMessageBox.Icon = QMessageBox.Icon.Information):
+        msgbox = QMessageBox(self)
+        msgbox.setIcon(icon)
+        msgbox.setWindowTitle(title)
+        msgbox.setText(text)
+        msgbox.exec()
+
+    def _is_valid(self, config: Optional[PatchConfiguration]) -> bool:
+        return bool(config and config.version and config.game in self.ctx.patcher.get_available_games())
+
+    def _saved_platform(self, game: str) -> Optional[patcher_models.Platform]:
+        """Platform last patched for `game`, if one was saved and is valid."""
+        saved = self.svc.settings.game(game).patched_platform
+        platform = patcher_models.Platform.parse(saved)
+        if saved and not platform:
+            log.warning(f"Invalid saved platform '{saved}' for {game}. Ignoring.")
+        return platform
+
+    def _show_platform(self):
+        """Select the configured platform in the Native/Proton picker (Linux/macOS only)."""
+        index = self.platform_picker.findData(self.config.platform)
+        if index >= 0:
+            with block_signals(self.platform_picker):
+                self.platform_picker.setCurrentIndex(index)
+
+    def _show_store(self, game: str):
+        """Select the store `game` uses: the one picked for it, or the default when none was picked yet."""
+        store = game_store(game)
+
+        index = self.store_picker.findData(store)
+        if index >= 0:
+            with block_signals(self.store_picker):
+                self.store_picker.setCurrentIndex(index)
+
+        self._show_validate_button(store)
+
+    def _show_versions(self, game: str):
+        """Fill the version dropdown for `game` and select the configured version."""
+        with block_signals(self.version_combobox):
+            self.version_combobox.clear()
+            for version in self.ctx.patcher.get_available_versions(game):
+                # Show a tidy name ("Latest"), keep the patterns key ("latest") as the item's data
+                label = version.capitalize() if " " not in version else version.title()
+                self.version_combobox.addItem(label, version)
+            self.version_combobox.setCurrentIndex(max(self.version_combobox.findData(self.config.version), 0))
+
+    def _rebuild_patches(self):
+        """Show a checkbox per patch for the configured game, version and platform."""
         while self.patches_layout.count():
             child = self.patches_layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
 
-        game_name = self.game_combobox.currentText()
-        if not game_name or not version_display_name:
+        if self.config.game not in self.ctx.patcher.get_available_games():
             return
 
-        version_key: str = self._display_key_to_pattern_key.get(version_display_name, version_display_name)
-        log.debug(f"Display: '{version_display_name}' -> '{version_key}'")
+        available_patches = self.ctx.patcher.get_available_patches(self.config)
 
-        # Update current config to match UI
-        self.config.game = game_name
-        self.config.version = version_key
+        # No selection yet (e.g. game just changed): start from the defaults
+        selected = self.config.selected_patches or [
+            name for name, patch in available_patches.items() if patch.enabled or patch.required
+        ]
 
-        patcher = self.ctx.patcher.get_game_patcher(game_name, version_key)
-        if not patcher:
-            return
+        # Descriptions in lighter font than patch names
+        description_font = QFont()
+        description_font.setBold(False)
 
-        # Determine platform from UI Widget
-        self._current_platform = self._get_current_platform()
-        log.warning(f"Platform was not set, auto-detected from system: {self._current_platform}")
+        # Grid layout for patches so it's all aligned.
+        # Single widget so clearing the layout above also deleted the whole grid
+        patches_grid = QWidget()
+        patches_grid_layout = QGridLayout(patches_grid)
+        patches_grid_layout.setContentsMargins(0, 0, 0, 0)
+        patches_grid_layout.setHorizontalSpacing(20)
+        patches_grid_layout.setColumnStretch(1, 1)
 
-        # Determine if current UI selection matches initial config
-        is_initial_config = game_name == self.config.game and version_key == self.config.version
-
-        # Only use saved selection if it's in the initial config and list is not empty
-        use_saved_selections: bool = is_initial_config and len(self.config.selected_patches) > 0
-
-        log.info(f"{use_saved_selections=}", silent=True)
-
-        # Populate scroll area with patch option checkboxes
-        available_patches = patcher.get_available_patches(platform=self._current_platform)
-
-        log.debug(
-            f"ON VERSION CHANGED: Patches for version {version_key} on platform {self._current_platform}: {available_patches=}"
-        )
-
-        for patch_name, patch_info in available_patches.items():
+        for row, (patch_name, patch_info) in enumerate(available_patches.items()):
             checkbox = QCheckBox(patch_info.display_name)
+            checkbox.setObjectName("StyledCheckbox1")
             checkbox.setToolTip(patch_info.description)
             checkbox.setFont(self.ctx.font)
-            checkbox.setChecked(False)
-            is_required = patch_info.required
-            default_enabled = patch_info.enabled
+            checkbox.setChecked(patch_info.required or patch_name in selected)
+            checkbox.setDisabled(patch_info.required)  # Required patches can't be turned off
+            checkbox.toggled.connect(lambda checked, name=patch_name: self._on_patch_toggled(name, checked))
 
-            log.debug(f"{patch_info.display_name} {is_required=}", silent=True)
-            log.debug(f"{patch_info.display_name} {default_enabled=}", silent=True)
+            description_label = QLabel(patch_info.description)
+            description_label.setObjectName("DescriptionLabel1")
+            description_label.setFont(description_font)
+            description_label.setWordWrap(True)
 
-            if is_required:
-                checkbox.setChecked(True)
-                checkbox.setDisabled(True)  # If required, disable to prevent edits
+            patches_grid_layout.addWidget(checkbox, row, 0)
+            patches_grid_layout.addWidget(description_label, row, 1)
 
-            if use_saved_selections:
-                # Restore user's saved selections if inital config
-                if patch_name in self.config.selected_patches:
-                    checkbox.setChecked(True)
-                # Otherwise remains unchecked
-            else:
-                # If new selection, check all by default
-                checkbox.setChecked(default_enabled or is_required)
+        self.patches_layout.addWidget(patches_grid)
 
-            self.patches_layout.addWidget(checkbox)
+        # Selection is exactly what's ticked for this game/version/platform
+        self.config.selected_patches = [
+            name for name, patch in available_patches.items() if patch.required or name in selected
+        ]
 
-            # Store patch_name property for easy retrieval
-            checkbox.setProperty("patch_name", patch_name)
-
-        # Update config with selection if not using a saved selection.
-        # This is so that if the dialog was never spawned, there is a default config to retrieve.
-        # Assign a new list rather than appending, so repeated calls don't pile up duplicates.
-        if not use_saved_selections:
-            self.config.selected_patches = [
-                patch_name
-                for patch_name, patch_info in available_patches.items()
-                if patch_info.enabled or patch_info.required
-            ]
-
-        # Log current config
         log.info(
-            f"Displaying current config:\nGame={self.game_combobox.currentText()}\nVersion: {self.version_combobox.currentText()}\nPlatform: {self._current_platform}",
+            f"Showing patches for {self.config.game} '{self.config.version}' on {self.config.platform}: "
+            f"{self.config.selected_patches}",
             silent=True,
         )
 
-    def _on_binary_type_changed(self, text):
-        log.info(f"Binary type changed to: {text}", silent=True)
-
-        # Update AppConfig
-        self.svc.config.use_proton = self._should_use_proton()
-
-        # Trigger re-update options
-        self._on_version_changed(self.version_combobox.currentText())
+    def _find_game_path_worker_thread(self) -> Optional[Path]:
+        """
+        WORKER FUNCTION: Tries to find the game path automatically.
+        Returns the path if found, otherwise None.
+        """
+        return find_game_executable(self.ctx.patcher, self.config)

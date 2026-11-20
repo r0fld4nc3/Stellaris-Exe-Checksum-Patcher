@@ -15,3 +15,21 @@ def calc_file_hash(path: str | Path) -> str:
             sha256_hash.update(byte_block)
 
     return sha256_hash.hexdigest()
+
+
+def normalise_text(text: str) -> str:
+    """Same line endings and no surrounding blank space, so neither changes `text_fingerprint()`."""
+    return text.replace("\r\n", "\n").strip()
+
+
+def text_fingerprint(text: str) -> str:
+    """
+    Identifies a text's content, so a changed text can be told apart from one already seen.
+    Empty if there is no text.
+    """
+    normalised = normalise_text(text)
+
+    if not normalised:
+        return ""
+
+    return hashlib.sha256(normalised.encode("utf-8")).hexdigest()

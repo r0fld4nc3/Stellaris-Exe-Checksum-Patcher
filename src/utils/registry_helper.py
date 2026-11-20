@@ -1,6 +1,6 @@
 import logging
 
-from config.path_helpers import os_windows
+from core.paths import os_windows
 
 log = logging.getLogger("Registry Helper")
 
@@ -36,6 +36,6 @@ if os_windows():
             winreg.CloseKey(key)
         except Exception:
             path_name = None
-            log.error(f"Unable to read key.")
+            log.error("Unable to read key.")
 
         return path_name

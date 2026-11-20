@@ -1,0 +1,98 @@
+{
+    "Stellaris": {
+        "latest": {
+            "windows": {
+                "description": "Settings for native Windows and Linux Proton.",
+                "exe_filename": "stellaris.exe",
+                "path_postfix": "",
+                "patches": {
+                    "checksum_patch": {
+                        "display_name": "Checksum",
+                        "description": "Achievements can be earned with mods. Includes Crash Reporter fix.",
+                        "required": true,
+                        "enabled": true,
+                        "target_string": "[0-9a-f]{32}",
+                        "replace_call_with": "31C00F1F00",
+                        "near_strings": [
+                            "common/achievements.txt",
+                            "tutorial_step_completed"
+                        ],
+                        "takes_unmatched_sites": true
+                    },
+                    "checksum_warning": {
+                        "display_name": "Warning",
+                        "description": "Hide the yellow version text shown when the checksum is modified.",
+                        "required": false,
+                        "enabled": true,
+                        "target_string": "[0-9a-f]{32}",
+                        "replace_call_with": "31C00F1F00",
+                        "near_strings": [
+                            "version_text_box",
+                            "MATCHMAKING_SERVER_VERSION"
+                        ]
+                    },
+                    "tooltip_patch": {
+                        "display_name": "Tooltip",
+                        "description": "Show the normal checksum tooltip instead of the modified-checksum one.",
+                        "required": false,
+                        "enabled": true,
+                        "target_string": "[0-9a-f]{32}",
+                        "replace_call_with": "31C00F1F00",
+                        "near_strings": [
+                            "ACHIEVEMENT_TOOLTIP_CHECKSUM"
+                        ]
+                    }
+                }
+            },
+            "linux": {
+                "description": "Settings for native Linux builds.",
+                "exe_filename": "stellaris",
+                "path_postfix": "",
+                "patches": {
+                    "checksum_patch": {
+                        "display_name": "Checksum",
+                        "description": "Achievements can be earned with mods. Includes Crash Reporter fix.",
+                        "required": true,
+                        "enabled": true,
+                        "target_string": "[0-9a-f]{32}",
+                        "replace_call_with": "31C00F1F00",
+                        "near_strings": [
+                            "common/achievements.txt",
+                            "tutorial_step_completed"
+                        ],
+                        "takes_unmatched_sites": true
+                    },
+                    "checksum_warning": {
+                        "display_name": "Warning",
+                        "description": "Hide the yellow version text shown when the checksum is modified.",
+                        "required": false,
+                        "enabled": true,
+                        "target_string": "[0-9a-f]{32}",
+                        "replace_call_with": "31C00F1F00",
+                        "near_strings": [
+                            "version_text_box",
+                            "MATCHMAKING_SERVER_VERSION"
+                        ]
+                    },
+                    "tooltip_patch": {
+                        "display_name": "Tooltip",
+                        "description": "Show the normal checksum tooltip instead of the modified-checksum one.",
+                        "required": false,
+                        "enabled": true,
+                        "target_string": "[0-9a-f]{32}",
+                        "replace_call_with": "31C00F1F00",
+                        "near_strings": [
+                            "ACHIEVEMENT_TOOLTIP_CHECKSUM"
+                        ]
+                    }
+                }
+            },
+            "darwin": {
+                "description": "Settings for macOS builds. Patching macOS executables isn't supported yet, so there are no patches. Executable info is kept to locate the game.",
+                "exe_filename": "stellaris.app",
+                "path_postfix": "Contents/MacOS/stellaris",
+                "patches": {}
+            }
+        }
+    }
+}
