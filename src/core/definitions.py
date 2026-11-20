@@ -1,5 +1,5 @@
 APP_VERSION = [3, 0, 0]
-APP_IS_PRERELEASE: bool = False
+APP_IS_PRERELEASE: bool = True
 
 # Display form of APP_VERSION, ex.:
 # [3, 0, 0] -> "v3.0.0"
@@ -11,8 +11,8 @@ if len(APP_VERSION) > 3:
 elif APP_IS_PRERELEASE:
     APP_VERSION_STR += "-pre"
 
-REPO_BRANCH: str = "main"  # Used for APIs and remote requests
-VISUAL_BRANCH: str = "release"  # Used for local tracking and visual indicators. No remote impact.
+REPO_BRANCH: str = "dev"  # Used for APIs and remote requests
+VISUAL_BRANCH: str = "dev"  # Used for local tracking and visual indicators. No remote impact.
 
 # Bump when re-releasing the same `APP_VERSION`. Reset to 0 when `APP_VERSION` changes.
 APP_REVISION: int = 0
