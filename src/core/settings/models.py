@@ -177,6 +177,7 @@ class AppSettings(AutoSaveHookedSettingsClass):
     window_height: int = memory(0)  # 0 meaning not defined yet
     app_update_last_checked: int = memory(0)
     update_available: bool = memory(False)
+    update_available_for: str = memory("")  # Build that stored the `update_available`.
     patch_patterns_update_last_checked: int = memory(0)
     remote_message_update_last_checked: int = memory(0)
     max_allowed_binary_backups: int = memory(1)

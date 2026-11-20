@@ -444,7 +444,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Label Title ---
         self.lbl_title.setText(self.window_title)
-        if self.settings.app_settings.update_available:
+        if self.cached_update_available():
             self.lbl_title.setText(self.window_title_update_available)
         self.lbl_title.setFont(QFont(self.app_font_bold, 24))
         self.lbl_title.setMinimumSize(QSize(24, 36))
@@ -1011,6 +1011,17 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 self.configuration.selected_patches = self.tab_options_dialog.configuration.selected_patches.copy()
             log.info("Configuration unchanged.", silent=True)
 
+    def cached_update_available(self) -> bool:
+        """
+        The update result stored by the last check, if the current build stored it.
+        Result from another build shouldn't apply.
+        """
+        app_settings = self.settings.app_settings
+        current_build = f"{self._APP_VERSION}{APP_REVISION_STR}"
+        if app_settings.update_available_for != current_build:
+            return False
+        return app_settings.update_available
+
     def check_update(self, force: bool = False):
         last_checked = self.settings.app_settings.app_update_last_checked if not force else 0
 
@@ -1036,9 +1047,10 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # No online check was performed
         if updater_last_checked <= 1:
-            update_available = self.settings.app_settings.update_available
+            update_available = self.cached_update_available()
         else:
             self.settings.app_settings.app_update_last_checked = self.updater.last_checked_timestamp
+            self.settings.app_settings.update_available_for = f"{self._APP_VERSION}{APP_REVISION_STR}"
             if self.updater.has_new_version:
                 self.settings.app_settings.update_available = True
                 update_available = True
