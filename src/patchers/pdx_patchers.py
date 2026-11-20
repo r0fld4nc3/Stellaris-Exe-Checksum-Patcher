@@ -59,7 +59,7 @@ class Patcher:
         self._patterns_file = Path(value)
         try:
             self.reload_patterns()
-        except Exception as e:
+        except Exception:
             self._patterns_file = old
             raise
 

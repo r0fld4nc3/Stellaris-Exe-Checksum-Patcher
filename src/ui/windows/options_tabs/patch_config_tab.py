@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import QMargins, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QCheckBox,
