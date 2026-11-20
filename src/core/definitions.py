@@ -11,11 +11,11 @@ if len(APP_VERSION) > 3:
 elif APP_IS_PRERELEASE:
     APP_VERSION_STR += "-pre"
 
-REPO_BRANCH: str = "v3"  # Used for APIs and remote requests
-VISUAL_BRANCH: str = "v3"  # Used for local tracking and visual indicators. No remote impact.
+REPO_BRANCH: str = "dev"  # Used for APIs and remote requests
+VISUAL_BRANCH: str = "dev"  # Used for local tracking and visual indicators. No remote impact.
 
 # Bump when re-releasing the same `APP_VERSION`. Reset to 0 when `APP_VERSION` changes.
-APP_REVISION: int = 7
+APP_REVISION: int = 0
 APP_REVISION_STR: str = f".rev{APP_REVISION}" if APP_REVISION else ""
 
 HOST: str = "r0fld4nc3"
