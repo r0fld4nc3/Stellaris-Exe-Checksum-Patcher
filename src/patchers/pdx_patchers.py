@@ -47,7 +47,7 @@ class Patcher:
     def __init__(self, patterns_file: Path):
         self._patterns_file = Path(patterns_file)
         self.patterns: ParsedPatterns = {}
-        self._load_patterns()
+        self.reload_patterns()
 
     @property
     def patterns_file(self) -> Path:
@@ -58,7 +58,7 @@ class Patcher:
         old = self._patterns_file
         self._patterns_file = Path(value)
         try:
-            self.reload_patterns()
+            self._load_patterns()
         except Exception:
             self._patterns_file = old
             raise
@@ -81,8 +81,13 @@ class Patcher:
         log.info(f"Loaded patterns: {json.dumps(patterns_data, indent=2)}", silent=True)
 
     def reload_patterns(self) -> None:
+        """Load the patterns file. If it can't be read, the patterns already loaded are kept."""
         log.info("Reload Patterns...", silent=True)
-        self._load_patterns()
+
+        try:
+            self._load_patterns()
+        except (OSError, ValueError, AttributeError, TypeError) as load_err:
+            log.error(f"Unable to read patterns file '{self.patterns_file}': {load_err}")
 
     def get_available_games(self) -> List[str]:
         games = list(self.patterns)

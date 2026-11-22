@@ -3,7 +3,6 @@ import logging
 import os
 import re
 import sys
-import time
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -34,6 +33,8 @@ from app.game_location import (
     saved_game_executable,
 )
 from core.definitions import (
+    APP_IS_PRERELEASE,
+    APP_REVISION,
     APP_REVISION_STR,
     APP_VERSION_STR,
     REPO_NAME,
@@ -130,7 +131,13 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.svc = services()
         self.app_config = self.svc.config
         self.settings = self.svc.settings
-        self.updater = Updater(REPO_OWNER, REPO_NAME)  # Owned here, only the main window checks for updates
+        self.updater = Updater(
+            REPO_OWNER,
+            REPO_NAME,
+            local_version=APP_VERSION_STR,
+            is_prerelease=APP_IS_PRERELEASE,
+            local_revision=APP_REVISION,
+        )  # Owned here, only the main window checks for updates
 
         qt_platform = get_qt_platform()
         log.info(f"Qt Platform: {qt_platform}")
@@ -394,7 +401,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         self.fetch_patterns_thread.signals.finished.connect(self.check_file_already_patched)
         self.start_thread(self.fetch_patterns_thread)
 
-        self.check_update()
+        self.check_app_update()
         self.check_message()
 
     def load_settings(self):
@@ -444,7 +451,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         # --- Label Title ---
         self.lbl_title.setText(self.window_title)
-        if self.cached_update_available():
+        if self.updater.update_available:
             self.lbl_title.setText(self.window_title_update_available)
         self.lbl_title.setFont(QFont(self.app_font_bold, 24))
         self.lbl_title.setMinimumSize(QSize(24, 36))
@@ -999,7 +1006,8 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
             # Handle check pre-release updates if accepted.
             if self.settings.app_settings.include_prerelease_updates != include_prerelease_updates:
-                self.check_update(force=True)
+                log.info("Pre-release updates setting changed. Checking for updates...")
+                self.check_app_update()
         else:
             # Cancelled (or closed): undo every settings change made in the dialog
             self.settings.restore(settings_snapshot)
@@ -1011,60 +1019,21 @@ class StellarisChecksumPatcherGUI(QMainWindow):
                 self.configuration.selected_patches = self.tab_options_dialog.configuration.selected_patches.copy()
             log.info("Configuration unchanged.", silent=True)
 
-    def cached_update_available(self) -> bool:
-        """
-        The update result stored by the last check, if the current build stored it.
-        Result from another build shouldn't apply.
-        """
-        app_settings = self.settings.app_settings
-        current_build = f"{self._APP_VERSION}{APP_REVISION_STR}"
-        if app_settings.update_available_for != current_build:
-            return False
-        return app_settings.update_available
-
-    def check_update(self, force: bool = False):
-        last_checked = self.settings.app_settings.app_update_last_checked if not force else 0
-
-        now = int(time.time())
-
+    def check_app_update(self):
         log.debug("Trigger update check.")
-        log.debug(
-            f"{now} - {last_checked} < {self.app_config.update_check_cooldown} = {now - last_checked < self.app_config.update_check_cooldown}",
-            silent=True,
-        )
 
-        if now - last_checked < self.app_config.update_check_cooldown:
-            self.check_update_finished()
-            return
-
-        thread_update = Threader(target=self.updater.check_for_update)
-        thread_update.signals.finished.connect(self.check_update_finished)
+        thread_update = Threader(target=self.updater.check_update_available)
+        thread_update.signals.result.connect(self.show_update_status)
         self.start_thread(thread_update)
 
-    @Slot()
-    def check_update_finished(self):
-        updater_last_checked = self.updater.last_checked_timestamp
-
-        # No online check was performed
-        if updater_last_checked <= 1:
-            update_available = self.cached_update_available()
-        else:
-            self.settings.app_settings.app_update_last_checked = self.updater.last_checked_timestamp
-            self.settings.app_settings.update_available_for = f"{self._APP_VERSION}{APP_REVISION_STR}"
-            if self.updater.has_new_version:
-                self.settings.app_settings.update_available = True
-                update_available = True
-            else:
-                self.settings.app_settings.update_available = False
-                update_available = False
-
+    @Slot(object)
+    def show_update_status(self, update_available: bool):
         if update_available:
             html = self.project_link_html.replace(
                 "</a></p>", '</a><span style=" font-weight:700;"> (UPDATE AVAILABLE)</span></p>'
             )
             self.txt_browser_project_link.setHtml(html)
             self.lbl_title.setText(self.window_title_update_available)
-            self.settings.app_settings.update_available = True
         else:
             self.txt_browser_project_link.setHtml(self.project_link_html)
             self.lbl_title.setText(self.window_title)
