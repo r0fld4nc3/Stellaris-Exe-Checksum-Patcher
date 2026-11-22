@@ -120,6 +120,17 @@ class GameUtilitiesTab(OptionsTab):
         self.store_picker.setToolTip("Where the selected game was installed from.")
         selection_layout.addWidget(self.store_picker)
 
+        # --- No Patterns Notice ---
+        self.lbl_patterns_notice = QLabel(
+            "Patch data could not be loaded, so no patches are available.\n"
+            "Check your connection, then use Update Patterns in General Utilities."
+        )
+        self.lbl_patterns_notice.setObjectName("PatternsNotice")
+        self.lbl_patterns_notice.setFont(font)
+        self.lbl_patterns_notice.setWordWrap(True)
+        self.lbl_patterns_notice.setVisible(False)
+        patch_layout.addWidget(self.lbl_patterns_notice)
+
         # --- Patches Area (Scrollable) ---
         self.patches_scroll_area = QScrollArea()
         self.patches_scroll_area.setWidgetResizable(True)
@@ -201,6 +212,14 @@ class GameUtilitiesTab(OptionsTab):
 
     def load(self):
         log.info("Populating Options", silent=True)
+
+        has_patterns = bool(self.ctx.patcher.get_available_games())
+        self.lbl_patterns_notice.setVisible(not has_patterns)
+
+        if not has_patterns:
+            log.warning("No patch patterns available.")
+            self._show_no_patterns()
+            return
 
         if not self._is_valid(self.config):
             log.warning(f"Invalid configuration, creating default: {self.config}")
@@ -517,6 +536,12 @@ class GameUtilitiesTab(OptionsTab):
                 self.store_picker.setCurrentIndex(index)
 
         self._show_validate_button(store)
+
+    def _show_no_patterns(self):
+        self.game_combobox.populate()
+        with block_signals(self.version_combobox):
+            self.version_combobox.clear()
+        self._rebuild_patches()
 
     def _show_versions(self, game: str):
         """Fill the version dropdown for `game` and select the configured version."""
