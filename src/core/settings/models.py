@@ -171,13 +171,11 @@ class AppSettings(AutoSaveHookedSettingsClass):
     games: dict[str, GameSettings] = field(default_factory=dict)
     last_seen_message_hash: str = ""  # Fingerprint of the last remote message the user closed
     last_accepted_welcome_hash: str = ""  # Fingerprint of the welcome guide user last accepted
+    update_checks: dict[str, dict] = field(default_factory=dict)  # Updater's last checks, by build and channel
 
     # --- Kept in memory ---
     window_width: int = memory(0)  # 0 meaning not defined yet
     window_height: int = memory(0)  # 0 meaning not defined yet
-    app_update_last_checked: int = memory(0)
-    update_available: bool = memory(False)
-    update_available_for: str = memory("")  # Build that stored the `update_available`.
     patch_patterns_update_last_checked: int = memory(0)
     remote_message_update_last_checked: int = memory(0)
     max_allowed_binary_backups: int = memory(1)

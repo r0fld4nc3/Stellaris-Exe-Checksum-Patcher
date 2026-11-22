@@ -1,7 +1,9 @@
 import json
 import logging
 import re
+import threading
 import time
+from dataclasses import asdict
 from typing import Optional
 
 import certifi
@@ -9,6 +11,8 @@ import requests
 
 from core.definitions import APP_IS_PRERELEASE, APP_REVISION, APP_VERSION_STR
 from core.services import services
+
+from .models import SavedUpdateCheck
 
 log = logging.getLogger("Updater")
 
@@ -19,6 +23,7 @@ RELEASE_NAME_KEY = "name"
 RELEASE_TAG_KEY = "tag_name"
 RELEASE_PRERELEASE_KEY = "prerelease"
 RELEASE_DRAFT_KEY = "draft"
+RELEASE_URL_KEY = "html_url"
 
 # API_RELEASES_LATEST = "/releases/latest"
 # ASSETS_KEY = "assets"
@@ -26,57 +31,152 @@ RELEASE_DRAFT_KEY = "draft"
 
 
 class Updater:
-    def __init__(self, github_user: str = "", repository_name: str = ""):
+    def __init__(
+        self,
+        github_user: str = "",
+        repository_name: str = "",
+        local_version: str = APP_VERSION_STR,
+        is_prerelease: bool = APP_IS_PRERELEASE,
+        local_revision: int = APP_REVISION,
+    ):
+        self._releases_max_fill = 10  # Used to just fill the last 10 releases. -1 unlimited
+        self._lock = threading.Lock()  # Ensure one check at a time.
+        self._checks: dict[str, SavedUpdateCheck] = {}
+
         # Sets the repo user, repo path and repo api url
         self.user, self.repo, self.api = self.set_github_repo(github_user, repository_name)
-
         self.pulled_releases: list[dict] = []
-        self._releases_max_fill = 10  # Used to just fill the last 10 releases. -1 unlimited
-
-        self.last_checked_timestamp: int = 0
-
-        self.download_location = ""  # Local disk location to save the downloaded file.
 
         # Always the built-in version.
-        self.local_version = self.construct_version_list_from_str(APP_VERSION_STR)
-        self.local_is_prerelease = APP_IS_PRERELEASE
-        self.local_revision = APP_REVISION
+        self._local_version: list[int] = []
+        self.local_version = local_version
+        self.is_prerelease: bool = is_prerelease
+        self.local_revision: int = local_revision
 
-        self.has_new_version = False
+        self._load_checks()
 
-    def check_for_update(self):
-        if services().config.prevent_conn:
-            log.info("Update turned off due to prevent connections argument being active.")
+    @property
+    def local_version(self) -> list[int]:
+        return self._local_version
+
+    @local_version.setter
+    def local_version(self, local_version: str) -> None:
+        self._local_version_str = local_version
+        self._local_version = self.construct_version_list_from_str(local_version)
+
+    @property
+    def update_available(self) -> bool:
+        """Last known answer witout checking."""
+        saved_check = self._current_check()
+        if saved_check is None:
+            return False
+        return saved_check.update_available
+
+    @property
+    def latest_version(self) -> str:
+        """Newest release for the last check for this build and release channel."""
+        saved_check = self._current_check()
+        if saved_check is None:
+            return ""
+        return saved_check.latest_version
+
+    @property
+    def release_url(self) -> str:
+        """Page of `latest_version`."""
+        saved_check = self._current_check()
+        if saved_check is None:
+            return ""
+        return saved_check.release_url
+
+    def check_update_available(self) -> bool:
+        """Blocking."""
+        with self._lock:
+            # Read once. It's possible to change this option while check is running.
+            include_prereleases: bool = self._include_prereleases()
+            version_key: str = self._build_check_version_key(include_prereleases)
+            saved_check: SavedUpdateCheck = self._checks.get(version_key, None)
+
+            if saved_check is not None and self._is_on_cooldown(version_key):
+                return saved_check.update_available
+
+            releases = self.fetch_releases(max_fetch=self._releases_max_fill)
+            if releases is None:
+                return saved_check is not None and saved_check.update_available
+
+            new_check: SavedUpdateCheck = self._build_saved_check(releases, include_prereleases)
+            self._checks[version_key] = new_check
+            self._save_checks()
+            return new_check.update_available
+
+    def _load_checks(self) -> None:
+        """Load this build's saved checks. Other builds' checks are cleared on the next save."""
+        saved_checks = services().settings.app_settings.update_checks
+
+        for include_prereleases in (False, True):
+            version_key = self._build_check_version_key(include_prereleases)
+            if version_key not in saved_checks:
+                continue
+
+            try:
+                self._checks[version_key] = SavedUpdateCheck.from_dict(saved_checks[version_key])
+            except KeyError, TypeError, ValueError:
+                log.warning(f"Ignoring damaged saved update check: {version_key}", silent=True)
+
+    def _save_checks(self) -> None:
+        saved_checks = {}
+        for version_key, saved_check in self._checks.items():
+            saved_checks[version_key] = asdict(saved_check)
+
+        # Assign a new dict
+        services().settings.app_settings.update_checks = saved_checks
+
+    def _current_check(self) -> Optional[SavedUpdateCheck]:
+        version_key = self._build_check_version_key(self._include_prereleases())
+        return self._checks.get(version_key)
+
+    def _is_on_cooldown(self, version_key: str) -> bool:
+        saved_check: SavedUpdateCheck = self._checks.get(version_key, None)
+
+        if saved_check is None:
             return False
 
-        log.info("Checking for Stellaris Checksum Patcher update...")
+        seconds_since_check = int(time.time()) - saved_check.checked_at
+        # 10 < update_check_cooldown = True -> cooldown in effect
+        # 189 < update_check_cooldown = False -> not on cooldown, can check for update
+        on_cooldown = seconds_since_check < services().config.update_check_cooldown
+        return on_cooldown
 
-        self.pulled_releases = self.fetch_releases(max_fetch=self._releases_max_fill)
+    @staticmethod
+    def _include_prereleases() -> bool:
+        return services().settings.app_settings.include_prerelease_updates
 
-        include_prereleases = services().settings.app_settings.include_prerelease_updates
-        release_idx = self.get_newest_release(self.pulled_releases, include_prereleases=include_prereleases)
+    def _build_check_version_key(self, include_prereleases: bool) -> str:
+        """Each build and release channel keeps its own check and cooldown."""
+        channel = "stable"
+        if include_prereleases:
+            channel = "prerelease"
+        return f"{self._local_version_str}.rev{self.local_revision}:{channel}"
 
+    def _build_saved_check(self, releases: list[dict], include_prereleases: bool) -> SavedUpdateCheck:
+        saved_check = SavedUpdateCheck(checked_at=int(time.time()))
+
+        release_idx = self.get_newest_release(releases, include_prereleases=include_prereleases)
         if release_idx is None:
-            log.info(f"No {'' if include_prereleases else 'stable '}releases available")
-            self.has_new_version = False
-            return False
+            return saved_check
 
-        has_new_version = self.has_new_release(self.local_version, self.pulled_releases[release_idx])
-        self.has_new_version = has_new_version
+        release = releases[release_idx]
+        saved_check.update_available = self.has_new_release(self.local_version, release)
+        saved_check.latest_version = release.get(RELEASE_TAG_KEY, "")
+        saved_check.release_url = release.get(RELEASE_URL_KEY, "")
+        return saved_check
 
-        self.last_checked_timestamp = int(time.time())
-
-        return has_new_version
-
-    def fetch_releases(self, max_fetch: int = -1) -> list[dict]:
-        """Newest releases first, at most `max_fetch` (-1 for all). Empty when they can't be fetched."""
+    def fetch_releases(self, max_fetch: int = -1) -> Optional[list[dict]]:
+        """Newest releases first, at most `max_fetch` (-1 for all). None when they can't be fetched."""
         log.info("Fetching releases...", silent=True)
 
-        releases = []
-
         if services().config.prevent_conn:
             log.info("Update turned off due to prevent connections argument being active.")
-            return releases
+            return None
 
         try:
             api_call = f"{self.api}{API_RELEASES}"
@@ -85,18 +185,22 @@ class Updater:
         except requests.RequestException as request_err:
             # Covers connection errors and timeouts
             log.warning("Unable to establish connection to update repo.")
-            log.error(request_err, silent=True)
-            return releases
+            log.error(str(request_err), silent=True)
+            return None
 
         if not response.status_code == 200:
             log.error(f"Unable to fetch releases from {self.repo} ({self.api}): HTTP {response.status_code}")
-            return releases
+            return None
 
         try:
             releases = response.json()
         except ValueError as json_err:
             log.error(f"Releases response is not valid JSON: {json_err}", silent=True)
-            return []
+            return None
+
+        if not isinstance(releases, list):
+            log.error("Releases response is not a list.", silent=True)
+            return None
 
         if max_fetch > 0:
             releases = releases[:max_fetch]
@@ -135,7 +239,7 @@ class Updater:
 
     def has_new_release(self, current: list[int], remote: dict, current_is_prerelease: Optional[bool] = None) -> bool:
         if current_is_prerelease is None:
-            current_is_prerelease = self.local_is_prerelease
+            current_is_prerelease = self.is_prerelease
 
         log.info(f"Local version: {current}{' (pre-release)' if current_is_prerelease else ''}", silent=True)
         log.info(f"Local revision: {self.local_revision}", silent=True)
@@ -213,7 +317,7 @@ class Updater:
         return _REVISION_PATTERN.sub("", version or "")
 
     @staticmethod
-    def construct_version_list_from_str(version: str):
+    def construct_version_list_from_str(version: str) -> list[int]:
         # Collect the digits between dots
         digit = ""
         constructed_version = []
