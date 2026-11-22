@@ -97,13 +97,19 @@ class Updater:
             saved_check: SavedUpdateCheck = self._checks.get(version_key, None)
 
             if saved_check is not None and self._is_on_cooldown(version_key):
+                if saved_check.update_available:
+                    log.info(f"Cooldown in effect. Per last check, an update is available.")
+                else:
+                    log.info(f"Cooldown in effect. Per last check, no update is available.")
                 return saved_check.update_available
 
             releases = self.fetch_releases(max_fetch=self._releases_max_fill)
             if releases is None:
                 return saved_check is not None and saved_check.update_available
 
-            new_check: SavedUpdateCheck = self._build_saved_check(releases, include_prereleases)
+            new_check: SavedUpdateCheck = self._build_saved_check(
+                releases, include_prereleases
+            )  # Here checks if has new release available
             self._checks[version_key] = new_check
             self._save_checks()
             return new_check.update_available
