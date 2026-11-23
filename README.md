@@ -18,10 +18,6 @@
 [![Stars](https://img.shields.io/github/stars/r0fld4nc3/Stellaris-Exe-Checksum-Patcher?style=for-the-badge)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/stargazers)
 [![License](https://img.shields.io/github/license/r0fld4nc3/Stellaris-Exe-Checksum-Patcher?style=for-the-badge)](LICENSE)
 
-If you'd like to support me:
-
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://www.ko-fi.com/r0fld4nc3) or [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/r0fld4nc3)
-
 ---
 
 ## Purpose
