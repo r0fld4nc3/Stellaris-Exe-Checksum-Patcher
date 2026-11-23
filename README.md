@@ -18,8 +18,6 @@
 [![Stars](https://img.shields.io/github/stars/r0fld4nc3/Stellaris-Exe-Checksum-Patcher?style=for-the-badge)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/stargazers)
 [![License](https://img.shields.io/github/license/r0fld4nc3/Stellaris-Exe-Checksum-Patcher?style=for-the-badge)](LICENSE)
 
----
-
 ## Purpose
 
 Stellaris turns off achievements when you play with mods that change the game's files. This can be true even for harmless mods, such as visual or quality-of-life ones.
