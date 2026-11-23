@@ -2,8 +2,21 @@
 
 ### Earn Stellaris achievements while playing with mods
 
+<!-- Release info -->
 [![Latest Release](https://img.shields.io/github/v/release/r0fld4nc3/Stellaris-Exe-Checksum-Patcher?style=for-the-badge&label=Latest%20Release)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/latest)
 [![All-Time Downloads](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/total?style=for-the-badge&label=Total%20Downloads)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases)
+[![Latest Total Downloads](https://img.shields.io/github/downloads/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/latest/total?style=for-the-badge&label=Latest%20Total%20Downloads)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/latest)
+[![Stellaris](https://img.shields.io/badge/Stellaris-4.5.x-informational?style=for-the-badge)](https://store.steampowered.com/app/281990/Stellaris/)
+
+[![Platforms](https://img.shields.io/badge/Platforms-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/releases/latest)
+[![Stores](https://img.shields.io/badge/Stores-Steam%20%7C%20GOG%20%7C%20Generic-informational?style=for-the-badge)](#)
+
+<!-- Supports -->
+[![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Built with Nuitka](https://img.shields.io/badge/Built%20with-Nuitka-orange?style=for-the-badge)](https://nuitka.net/)
+[![Last Commit](https://img.shields.io/github/last-commit/r0fld4nc3/Stellaris-Exe-Checksum-Patcher?style=for-the-badge)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/commits)
+[![Stars](https://img.shields.io/github/stars/r0fld4nc3/Stellaris-Exe-Checksum-Patcher?style=for-the-badge)](https://github.com/r0fld4nc3/Stellaris-Exe-Checksum-Patcher/stargazers)
+[![License](https://img.shields.io/github/license/r0fld4nc3/Stellaris-Exe-Checksum-Patcher?style=for-the-badge)](LICENSE)
 
 If you'd like to support me:
 
