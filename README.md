@@ -42,8 +42,6 @@ This app makes a small, automatic change to the game's executable so that achiev
 > [!IMPORTANT]
 > Please read the [Disclaimer](#disclaimer) and [My Stance](#my-stance) before using this tool. In short: use it for quality-of-life and visual mods, not to cheat.
 
----
-
 ## How to use it
 
 ### 1. Download
@@ -76,8 +74,6 @@ Previously, this was mostly targeted at specifically Ironman saves, however, Par
 
 Before changing anything, the app saves a backup of your original game executable.
 
----
-
 ## Features
 
 ### 🔧 Patch
@@ -102,6 +98,8 @@ All three are on by default. Untick **Warning** or **Tooltip** if you'd like to 
 
 You can add a patch to an already patched game by ticking it and clicking **Patch** again. To remove one, restore the original game file first (see [How do I restore the original game file?](#how-do-i-restore-the-original-game-file)), then patch again.
 
+---
+
 ### Game stores
 
 The Patcher uses this to know where your copy of Stellaris comes from and enable automatic searches for paths.
@@ -118,6 +116,8 @@ The store doesn't change how the game is patched. It only tells the Patcher wher
 
 The Steam and GOG Galaxy folders are found automatically. If they're somewhere unusual, set them in the options under **General Utilities** > **Launchers**.
 
+---
+
 ### Launching
 
 After patching, the **Patch** button becomes a **Launch** button. It starts the game through its store, or with your **Generic Runner** for **Generic** games. This is optional: you can always start the game from your store or launcher as usual.
@@ -128,6 +128,8 @@ After patching, the **Patch** button becomes a **Launch** button. It starts the 
 - `{folder}`: the folder the game executable is in.
 
 Leave the arguments empty to pass only the game executable. For example, with `bottles-cli` as the runner, the arguments are `run -b <your bottle> -e {binary}`.
+
+---
 
 ### 💾 Fix Save
 
@@ -154,8 +156,6 @@ This is the fix most people need.
 
 If something doesn't look right afterwards, restore your save from that backup. To clean up old save backups, use **Manage Save Backups** in the options, under **General Utilities**.
 
----
-
 ## Troubleshooting & FAQ
 
 ### ⚠️ My antivirus flagged the app as a virus or "PUP"
@@ -177,9 +177,13 @@ This is common for apps from independent developers. Windows shows it for progra
 
 To continue, click **More info**, then **Run anyway**.
 
+---
+
 ### How do I know my download is genuine?
 
 This tool is only hosted in this GitHub project. If in doubt, compare your file's version and date, and its checksum, with the ones in the release page for the version you downloaded.
+
+---
 
 ### How do I restore the original game file?
 
@@ -202,9 +206,13 @@ This also works if a game update or something else has broken the game.
 - **GOG:** click **Validate Integrity of Game Files** in **Game Utilities** to open the game in GOG Galaxy, then click **More** > **Manage installation** > **Verify / Repair**.
 - **Generic:** use your launcher's own verify or repair option, if it has one.
 
+---
+
 ### Do I need to patch again after a game update?
 
 Probably, yes. Updates often replace the game's executable, which removes the patch. After Stellaris updates, open the app and patch again to be safe.
+
+---
 
 ### Does it work with non-Steam installs?
 
@@ -215,11 +223,11 @@ From version 3.0.0, yes. Patching works on the game executable itself, wherever 
 
 See [Game stores](#game-stores) for what each choice does.
 
+---
+
 ### Can I patch the macOS version of the game?
 
 Not yet. The macOS app can still patch the Windows or Linux version of the game, for example one you run through Proton or CrossOver.
-
----
 
 ## Disclaimer
 
@@ -237,8 +245,6 @@ I don't want to make achievements easier, cheesier or cheatier to get, as that w
 **Therefore, I do not condone or support using this tool to install content that enables cheating or unfairly makes achievements easier to get, and this application was not made with that in mind.**
 
 I can't enforce this, so I ask for good judgement and fairness when playing Ironman with the patch in place. These achievements were made with great care and passion by fellow people, and we should respect the work they put into them.
-
----
 
 <a id="for-developers"></a>
 
@@ -378,8 +384,6 @@ Arguments:
 - `--force-bootloader`: rebuild the custom bootloader even if one already exists
 
 Output file: `Stellaris-Checksum-Patcher-PyInstaller-linux`, `Stellaris-Checksum-Patcher-PyInstaller-win.exe` or `Stellaris-Checksum-Patcher-PyInstaller-macos.app`.
-
----
 
 ## Sources
 
