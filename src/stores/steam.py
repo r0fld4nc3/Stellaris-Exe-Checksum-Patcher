@@ -50,6 +50,8 @@ LINUX_DISTRO_PATHS = [
     Path.home() / ".local" / "share" / "Steam" / "config",
     # Flatpak
     Path.home() / ".var" / "app" / "com.valvesoftware.Steam" / ".local" / "share" / "Steam",
+    # Snap
+    Path.home() / "snap" / "steam" / "common" / ".local" / "share" / "Steam",
 ]
 
 MACOS_DISTRO_PATHS = [Path.home() / "Library" / "Application Support" / "Steam"]
