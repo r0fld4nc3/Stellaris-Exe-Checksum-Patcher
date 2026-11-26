@@ -21,6 +21,8 @@ from PySide6.QtWidgets import (
 from core.cooldowns import Cooldown
 from patch_patterns.patterns import get_patterns_config_remote
 from remote_messages import fetch_message
+from stores.gog import GogHelper
+from stores.steam import SteamHelper
 from ui.shared_widgets import QSquarePushButton
 from ui.utils import prompt_path
 from utils.helpers import block_signals
@@ -505,10 +507,24 @@ class UtilitiesTab(OptionsTab):
         self.svc.settings.app_settings.generic_runner_path = ""
         self._update_launchers_paths()
 
+    @staticmethod
+    def _found_text(found_paths: list[Path]) -> str:
+        """
+        Grey text for an empty launcher field for automatically found or 'Not Set'.
+        """
+        if not found_paths:
+            return "Not set"
+
+        if len(found_paths) == 1:
+            return f"Found: {found_paths[0].as_posix()}"
+
+        return f"Found: {found_paths[0].as_posix()} (+{len(found_paths) - 1} more)"
+
     def _update_launchers_paths(self):
         """
-        Fill the launcher fields from settings.
-        Empty fields show the placeholder.
+        Fill the launcher fields from settings. (Only what the User manually sets.)
+        Empty Steam and GOG Galaxy fields show in grey what was found automatically, otherwise
+        "Not Set".
         """
 
         app_settings = self.svc.settings.app_settings
@@ -516,3 +532,17 @@ class UtilitiesTab(OptionsTab):
         self.gog_launcher_path_field.setText(app_settings.gog_install_path)
         self.generic_runner_path_field.setText(app_settings.generic_runner_path)
         self.generic_runner_args_field.setText(app_settings.generic_runner_args)
+
+        steam_found: list[Path] = []
+        if not app_settings.steam_install_path:
+            steam_found = SteamHelper().get_steam_install_paths(use_saved=False)
+
+        self.steam_launcher_path_field.setPlaceholderText(self._found_text(steam_found))
+
+        galaxy_found: list[Path] = []
+        if not app_settings.gog_install_path:
+            galaxy_path = GogHelper().get_gog_galaxy_install_path()
+            if galaxy_path:
+                galaxy_found.append(galaxy_path)
+
+        self.gog_launcher_path_field.setPlaceholderText(self._found_text(galaxy_found))

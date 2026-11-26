@@ -160,15 +160,15 @@ class SteamHelper(StoreHelperBase):
                 log.info(f"Found library folders file at: {path}")
                 return path
 
-        log.warning(f"Unable to locate {LIBRARY_FOLDERS_VDF_FILE}.")
+        log.info(f"No {LIBRARY_FOLDERS_VDF_FILE} in {steam_folder}.", silent=True)
         return None
 
-    def get_steam_libraries(self) -> list[Path]:
+    def get_steam_libraries(self, use_saved: bool = True) -> list[Path]:
         """Every Steam library (its `steamapps` folder) of every Steam folder found, without duplicates."""
         log.info("Getting available Steam Libraries...")
 
         libraries: list[Path] = []
-        for steam_folder in self.get_steam_install_paths():
+        for steam_folder in self.get_steam_install_paths(use_saved=use_saved):
             for library in self._libraries_of(steam_folder):
                 if library not in libraries:
                     libraries.append(library)
@@ -197,23 +197,31 @@ class SteamHelper(StoreHelperBase):
 
         return libraries
 
-    def get_game_install_paths(self, game_name: str) -> list[Path]:
+    def get_game_install_paths(self, game_name: str, use_saved: bool = True) -> list[Path]:
         """
-        Every folder `game_name` is installed in, across all Steam folders and libraries.
+        Every folder `game_name` is installed in.
 
         Empty if none.
         """
         log.info(f"Acquiring {game_name} installation(s)...")
 
         install_paths: list[Path] = []
-        for library in self.get_steam_libraries():
+        for library in self.get_steam_libraries(use_saved):
             install_info = self._game_install_info_in_library(library, game_name)
             if install_info:
                 install_paths.append(Path(install_info.library) / STEAM_COMMON_FOLDER / install_info.title)
 
-        if not install_paths:
-            log.error(f"Unable to determine installation information for {game_name}")
+        if install_paths:
+            return install_paths
 
+        saved_path_str = services().settings.app_settings.steam_install_path
+        if use_saved and saved_path_str:
+            log.warning(
+                f"{game_name} wasn't found in the Steam folder set in General Utilities: '{saved_path_str}'. Searching every Steam install."
+            )
+            return self.get_game_install_paths(game_name, use_saved=False)
+
+        log.error(f"Unable to determine installation information for {game_name}")
         return install_paths
 
     def get_game_install_path(self, game_name) -> Optional[Path]:
@@ -225,25 +233,28 @@ class SteamHelper(StoreHelperBase):
             return None
         return install_paths[0]
 
-    def get_steam_install_paths(self) -> list[Path]:
+    def get_steam_install_paths(self, use_saved: bool = True) -> list[Path]:
         """
-        Every Steam folder to search, without duplicates, the one set in General Utilities first (if it exists),
-        then every Steam folder found on this system.
-
+        The Steam folders to search.
+        Only the Steam folder or library set in General Utilities, when `use_saved` and it exists.
+        Otherwise every Steam folder found on this system, without duplicates.
         Empty if none.
         """
-        log.info("Acquiring Steam installation(s)...")
-
-        candidates: list[Path] = []
+        log.info("Acquiring Steam installation(s)...", silent=True)
 
         saved_path_str = services().settings.app_settings.steam_install_path
-        if saved_path_str:
-            candidates.append(Path(saved_path_str))
+        if use_saved and saved_path_str:
+            saved_path = Path(saved_path_str)
+            if saved_path.is_dir():
+                log.info(f"Using the Steam folder from General Utilities: {saved_path}", silent=True)
+                return [saved_path]
 
-        candidates.extend(self._steam_folder_candidates())
+            log.warning(
+                f"The Steam folder set in General Utilities no longer exists: '{saved_path}'. Searching every Steam install."
+            )
 
         steam_folders: list[Path] = []
-        for candidate in candidates:
+        for candidate in self._steam_folder_candidates():
             if not candidate.is_dir():
                 continue
 
@@ -253,10 +264,10 @@ class SteamHelper(StoreHelperBase):
                 steam_folders.append(steam_folder)
 
         if not steam_folders:
-            log.error("Unable to acquire Steam installation.")
+            log.info("No Steam installation found on this system.", silent=True)
             return []
 
-        log.info(f"Steam folder(s): {steam_folders}")
+        log.info(f"Steam folder(s): {steam_folders}", silent=True)
         return steam_folders
 
     def _steam_folder_candidates(self) -> list[Path]:
@@ -430,7 +441,10 @@ class SteamHelper(StoreHelperBase):
         if not os_windows():
             return None
 
-        for steam_folder in self.get_steam_install_paths():
+        steam_folders = self.get_steam_install_paths()
+        steam_folders.extend(self.get_steam_install_paths(use_saved=False))
+
+        for steam_folder in steam_folders:
             steam_exe = steam_folder / STEAM_EXECUTABLE_WINDOWS
             if steam_exe.is_file():
                 return steam_exe
