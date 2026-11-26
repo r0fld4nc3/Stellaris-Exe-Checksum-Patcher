@@ -260,7 +260,7 @@ wheels = [
 
 [[package]]
 name = "stellaris-exe-checksum-patcher"
-version = "3.0.1"
+version = "3.0.2"
 source = { virtual = "." }
 dependencies = [
     { name = "chardet" },

@@ -1,6 +1,6 @@
 [project]
 name = "Stellaris-Exe-Checksum-Patcher"
-version = "3.0.1"
+version = "3.0.2"
 description = "Patches the Stellaris binary so that playing Ironman mode with mods allows the collection of achievements."
 readme = "README.md"
 license = { file = "LICENSE" }
