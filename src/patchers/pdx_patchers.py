@@ -241,7 +241,10 @@ class Patcher:
             # macOS: inside .app bundle
             executable = executable / exe_info.path_postfix
 
-        return executable if executable and executable.is_file() else None
+        if not executable or not executable.is_file():
+            return None
+
+        return executable
 
     def find_bundle_root(self, configuration: PatchConfiguration, binary_path: Path) -> Optional[Path]:
         """
@@ -260,7 +263,20 @@ class Patcher:
         return backups.find_backups(binary_path, self.find_bundle_root(configuration, binary_path))
 
     @staticmethod
-    def _search_for_executable(game_install_path: Optional[Path], filename: str) -> Optional[Path]:
+    def _is_executable(path: Path, filename: str) -> bool:
+        """
+        True if `path` can be the executable named `filename`: a file, or a folder when it's a macOS bundle.
+
+        Keeps a folder that only shares the executable's name (Stellaris/stellaris on Linux) from being picked.
+        """
+
+        if path.is_file():
+            return True
+
+        is_app_bundle = filename.lower().endswith(FILE_EXTENSION.APP)
+        return is_app_bundle and path.is_dir()
+
+    def _search_for_executable(self, game_install_path: Optional[Path], filename: str) -> Optional[Path]:
         """
         Returns path to the game executable named `filename` (from `get_executable_info()`) inside
         `game_install_path`, the game's install folder. None if it isn't there.
@@ -271,12 +287,10 @@ class Patcher:
         if not game_install_path or not game_install_path.exists():
             return None
 
-        # The install folder can itself be a macOS .app bundle from GOG.
-        # A regular install folder may share the binary's name with different case
-        # (Stellaris/stellaris on Linux), but must not be returned as the binary.
-        if game_install_path.name.lower() == filename.lower() and (
-            game_install_path.is_file() or (filename.lower().endswith(".app") and game_install_path.is_dir())
-        ):
+        # The install folder can itself be a macOS .app bundle from GOG or Steam.
+        is_named_like_executable = game_install_path.name.lower() == filename.lower()
+
+        if is_named_like_executable and self._is_executable(game_install_path, filename):
             log.info(f"Auto-located path: '{game_install_path}'")
             return game_install_path
 
@@ -287,7 +301,7 @@ class Patcher:
 
         # Not where we expected it, search the whole install folder
         for item in game_install_path.rglob("*"):
-            if item.name == filename and (item.is_file() or (filename.lower().endswith(".app") and item.is_dir())):
+            if item.name == filename and self._is_executable(item, filename):
                 log.info(f"Auto-located path: '{item}'")
                 return item.resolve()
 
