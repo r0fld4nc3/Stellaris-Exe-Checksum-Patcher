@@ -1,4 +1,4 @@
-APP_VERSION = [3, 0, 2]
+APP_VERSION = [3, 1, 0]
 APP_IS_PRERELEASE: bool = False  # Any "latest" release on GitHub will rank above a pre-release for the same version.
 
 # Display form of APP_VERSION, ex.:
