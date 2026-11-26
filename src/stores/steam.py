@@ -31,6 +31,8 @@ STEAM_CONFIG_FOLDER = "config"
 STEAM_COMMON_FOLDER = "common"
 STEAM_APP_MANIFEST_FILE_PREFIX = "appmanifest"
 LIBRARY_FOLDERS_VDF_FILE = "libraryfolders.vdf"
+STEAM_COMPATDATA_FOLDER = "compatdata"  # Proton prefixes. One folder per AppId in each library.
+PROTON_DOCUMENTS_PATH = Path("pfx") / "drive_c" / "users" / "steamuser" / "Documents"  # Inside a game prefix.
 
 # Constants for VDF Keys
 VDF_APPID_KEY = "appid"
@@ -345,6 +347,26 @@ class SteamHelper(StoreHelperBase):
             return None
 
         return str(steam_info.id)
+
+    def get_proton_documents_folders(self, game_name: str) -> list[Path]:
+        """
+        The Windows Documents folder inside `game_name` Proton prefix, in every Steam library that has one.
+        Empty on Windows (no Proton), or when the game was never run through Proton.
+        """
+        if os_windows():
+            return []
+
+        app_id = self.get_known_app_id(game_name)
+        if not app_id:
+            return []
+
+        documents_folders = []
+        for library in self.get_steam_libraries():
+            documents_folder = library / STEAM_COMPATDATA_FOLDER / app_id / PROTON_DOCUMENTS_PATH
+            if documents_folder.is_dir():
+                documents_folders.append(documents_folder)
+
+        return documents_folders
 
     def launch_game(self, game_name: str, binary_path: Optional[Path]) -> None:
         # Known store starts its own install of the game, so binary_path isn't needed

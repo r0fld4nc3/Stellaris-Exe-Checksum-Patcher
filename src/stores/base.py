@@ -74,3 +74,11 @@ class StoreHelperBase(ABC):
             self.run_detached(["xdg-open", url])
         elif os_darwin():
             self.run_detached(["open", url])
+
+    def get_proton_documents_folders(self, game_name: str) -> list[Path]:
+        """
+        Windows Documents folders inside the Proton prefixes this store made for `game_name`.
+
+        Empty by default as only Steam runs games through Proton.
+        """
+        return []

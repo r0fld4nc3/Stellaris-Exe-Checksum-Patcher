@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 
 from app.game_location import (
     find_game_executable,
+    find_save_games_folders,
     save_game_executable,
     saved_game_executable,
 )
@@ -60,7 +61,6 @@ from patchers.saves import (
     SaveFixReport,
     analyse_save,
     fix_save,
-    get_save_games_folders,
     get_supported_save_game,
 )
 from remote_messages import Message, fetch_message
@@ -805,7 +805,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             return
 
         # --- Ask for save path ---
-        save_games_folders: list[Path] = get_save_games_folders(game.name)
+        save_games_folders: list[Path] = find_save_games_folders(game.name)
         log.info(f"Returned possible save games folders: {save_games_folders}", silent=True)
 
         options: list[tuple[str, Path, str]] = []

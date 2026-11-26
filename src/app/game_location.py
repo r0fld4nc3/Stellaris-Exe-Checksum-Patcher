@@ -1,5 +1,5 @@
 """
-Where the game is, its executable and the folder to show.
+Where the game is, its executable, the folder to show and its save games folders.
 
 Combines packages that don't know about each other - the saved paths in settings, the install folder from the game's store, and the executable's name and .app bundle from the patcher.
 
@@ -12,6 +12,7 @@ from typing import Optional
 
 from core.services import services
 from patchers import PatchConfiguration, Patcher
+from patchers.saves import get_save_games_folders
 from stores import get_store_helper
 
 log = logging.getLogger("Game Location")
@@ -86,3 +87,16 @@ def game_folder_for(patcher: Patcher, configuration: PatchConfiguration, path: P
     if bundle_root:
         return bundle_root
     return path
+
+
+def find_save_games_folders(game_name: str) -> list[Path]:
+    """
+    Save games folders for `game_name` also looking inside the game store's Proton prefixes.
+    """
+    documents_folders: list[Path] = []
+
+    store_helper = get_store_helper(game_name)
+    if store_helper:
+        documents_folders = store_helper.get_proton_documents_folders(game_name)
+
+    return get_save_games_folders(game_name, documents_folders)

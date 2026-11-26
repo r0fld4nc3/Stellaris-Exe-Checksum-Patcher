@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 from app.game_location import (
     find_game_executable,
     find_game_folder,
+    find_save_games_folders,
     game_folder_for,
     save_game_executable,
     saved_game_executable,
@@ -26,7 +27,6 @@ from app.game_location import (
 from core.paths import os_darwin, os_linux
 from patchers import PatchConfiguration
 from patchers import models as patcher_models
-from patchers.saves import get_save_games_folders
 from stores import GameStore, game_store, get_store_helper, set_game_store
 from ui.shared_widgets import AutoWidthComboBox, GameComboBox
 from ui.utils import (
@@ -365,7 +365,7 @@ class GameUtilitiesTab(OptionsTab):
             log.warning("No game selected. Unable to locate save games folder.")
             return
 
-        save_games_folders: list[Path] = get_save_games_folders(game)
+        save_games_folders: list[Path] = find_save_games_folders(game)
         log.info(f"Returned possible save games folders: {save_games_folders}", silent=True)
 
         if is_shift_held():

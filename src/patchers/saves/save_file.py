@@ -155,6 +155,7 @@ def write_save(save: SaveFile) -> None:
 WINDOWS_PARADOX_INTERACTIVE_PATHS = [Path.home() / "Documents" / "Paradox Interactive"]
 LINUX_PARADOX_INTERACTIVE_PATHS = [Path.home() / ".local" / "share" / "Paradox Interactive"]
 MACOS_PARADOX_INTERACTIVE_PATHS = [Path.home() / "Documents" / "Paradox Interactive"]
+PARADOX_INTERACTIVE_FOLDER_NAME = "Paradox Interactive"  # Inside a Documents folder
 
 SAVE_BACKUPS_FOLDER_NAME = "saves_backup"
 
@@ -162,12 +163,14 @@ SAVE_BACKUPS_FOLDER_NAME = "saves_backup"
 SAVE_BACKUP_TIMESTAMP_FORMAT = "%Y-%m-%d %H-%M-%S"
 
 
-def get_save_games_folders(game_name: str) -> list[Path]:
+def get_save_games_folders(game_name: str, extra_documents_folders: Optional[list[Path]] = None) -> list[Path]:
     """
     The save games folder of `game_name`, remembered in its settings.
 
     1. The folder saved in settings, if it still exists.
     2. Otherwise, one found on disk or all choices if multiple exist. Must be checked afterwards.
+
+    `extra_documents_folders` are searched too based on own system (ex.: Documents inside a Proton prefix).
 
     Empty list when no folder was found.
     """
@@ -178,7 +181,10 @@ def get_save_games_folders(game_name: str) -> list[Path]:
         log.info(f"Got save games folder from settings: {saved}", silent=True)
         return [Path(saved)]
 
-    found = _search_save_games_folders(game_name)
+    if extra_documents_folders is None:
+        extra_documents_folders = []
+
+    found = _search_save_games_folders(game_name, extra_documents_folders)
 
     if not found:
         log.warning(f"No save games folder found for {game_name}.")
@@ -186,8 +192,9 @@ def get_save_games_folders(game_name: str) -> list[Path]:
     return found
 
 
-def _search_save_games_folders(game_name: str) -> list[Path]:
-    """Every "save games" folder of `game_name` in the known Paradox Interactive folders of this system."""
+def _search_save_games_folders(game_name: str, extra_documents_folders: list[Path]) -> list[Path]:
+    """Every "save games" folder of `game_name` in the known Paradox Interactive folders of this system
+    and in the Paradox Interactive folder of each of `extra_documents_folders`."""
     if not game_name:
         return []
 
@@ -200,9 +207,14 @@ def _search_save_games_folders(game_name: str) -> list[Path]:
     else:
         potential_paths = []
 
+    # Copy, so module's lists never change
+    paradox_folders = list(potential_paths)
+    for documents_folder in extra_documents_folders:
+        paradox_folders.append(documents_folder / PARADOX_INTERACTIVE_FOLDER_NAME)
+
     # Folders named after the game
     game_folders: list[Path] = []
-    for path in potential_paths:
+    for path in paradox_folders:
         game_folder = path / game_name
         if game_folder.is_dir() and game_folder not in game_folders:
             game_folders.append(game_folder)
