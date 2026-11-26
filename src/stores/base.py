@@ -34,6 +34,16 @@ class StoreHelperBase(ABC):
     def get_game_install_path(self, game_name: str) -> Optional[Path]:
         """Folder `game_name` is installed in. None if not found."""
 
+    def get_game_install_paths(self, game_name: str) -> list[Path]:
+        """
+        Every folder `game_name` is installed in. Stores that only know one return it alone.
+        Empty if not found.
+        """
+        install_path = self.get_game_install_path(game_name)
+        if install_path is None:
+            return []
+        return [install_path]
+
     @abstractmethod
     def launch_game(self, game_name: str, binary_path: Optional[Path]) -> None:
         """

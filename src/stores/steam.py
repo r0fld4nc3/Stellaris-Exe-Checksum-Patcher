@@ -45,11 +45,9 @@ STEAM_CLIENT_INVOKE_VALIDATE = "validate"
 STEAM_CLIENT_INVOKE_RUN = "rungameid"
 
 LINUX_DISTRO_PATHS = [
-    # Standard location
+    # Standard locations
     Path.home() / ".steam" / "steam",
-    Path.home() / ".steam" / "steam" / "steamapps",
     Path.home() / ".local" / "share" / "Steam",
-    Path.home() / ".local" / "share" / "Steam" / "config",
     # Flatpak
     Path.home() / ".var" / "app" / "com.valvesoftware.Steam" / ".local" / "share" / "Steam",
     # Snap
@@ -60,60 +58,35 @@ MACOS_DISTRO_PATHS = [Path.home() / "Library" / "Application Support" / "Steam"]
 
 
 class SteamHelper(StoreHelperBase):
-    def __init__(self):
-        self.steam_install: Optional[Path] = None
-        self.steam_library_paths: list[Path] = []
+    def _game_install_info_in_library(self, library: Path, game_name: str) -> Optional[SteamInstallInfo]:
+        """
+        `game_name`'s install info from the appmanifests in `library` (a `steamapps` folder).
+        None if it isn't there.
+        """
 
-    def get_game_install_info_from_name(self, game_name) -> Optional[SteamInstallInfo]:
-        # Parse Steam appmanifests (.acf files) in case of windows
-        # For linux, get libraries and find the installation folder
+        log.info(f"Checking Library '{library}'")
 
-        log.info(f"Getting installation details for game: {game_name}")
+        for file in library.iterdir():
+            # prefer 'startswith' over 'in' to skip some macOS "._appmanifest_*.acf" metadata files on non-Apple drives.
+            if not file.is_file() or not file.name.lower().startswith(STEAM_APP_MANIFEST_FILE_PREFIX):
+                continue
 
-        if not self.steam_install:
-            self.steam_install = self.get_steam_install_path()
-            if not self.steam_install:
-                return {}
+            app_ids = self.get_from_vdf_file(file, VDF_APPID_KEY)
+            titles = self.get_from_vdf_file(file, VDF_NAME_KEY)
 
-        log.info(f"Steam install path: {self.steam_install}")
+            if not app_ids or not titles:
+                log.warning(f"Could not find required keys 'appid' or 'name' in {file.name}")
+                continue
 
-        if not self.steam_library_paths:
-            self.steam_library_paths = self.get_steam_libraries()
-            if not self.steam_library_paths:
-                log.error("No Steam Libraries found.")
-                return None
+            app_id = app_ids[0]
+            title = titles[0]
 
-        log.info(f"Steam Library paths: {self.steam_library_paths}", silent=True)
+            log.debug(f"{app_id}: {title}", silent=True)
+            if title == game_name:
+                log.info(f"Found {title} (App Id {app_id} in Library {library}).")
+                return SteamInstallInfo(title=title, app_id=app_id, library=library)
 
-        for lib in self.steam_library_paths:
-            log.info(f'Checking Library "{lib}"')
-            for file in lib.iterdir():
-                # "startswith" over "in": skips macOS "._appmanifest_*.acf" metadata files on non-Apple drives
-                if not file.is_file() or not file.name.lower().startswith(STEAM_APP_MANIFEST_FILE_PREFIX):
-                    continue
-
-                app_ids = self.get_from_vdf_file(file, VDF_APPID_KEY)
-                titles = self.get_from_vdf_file(file, VDF_NAME_KEY)
-
-                if not app_ids or not titles:
-                    log.debug(f"Could not find required keys 'appid' or 'name' in {file.name}")
-                    continue
-
-                app_id = app_ids[0]  # List of AppIDs
-                title = titles[0]  # 1 Name
-
-                # Value to look for seems to always be in index 3
-                # title = line_name[3]
-                # app_id = line_app_id[3]
-                log.debug(f"{app_id}: {title}", silent=True)
-                if title == game_name:
-                    log.debug(f"Found title match: {title} with App Id {app_id} in {file.name} in library {lib}")
-                    game_path: Path = lib / STEAM_COMMON_FOLDER / title
-                    log.info(f"Found game install in {game_path.as_posix()}")
-                    return SteamInstallInfo(title=title, app_id=app_id, library=lib)
-
-        log.error(f"Unable to determine installation information for {game_name}")
-        return {}
+        return None
 
     def get_from_vdf_file(self, vdf_file: Union[str, Path], key: str, stop_on_find: bool = False) -> list:
         """
@@ -175,14 +148,11 @@ class SteamHelper(StoreHelperBase):
                     matches.extend([f"{k_value}" for k_value in recurse_matches])
         return matches
 
-    def _find_library_folders_vdf(self) -> Optional[Path]:
+    def _find_library_folders_vdf(self, steam_folder: Path) -> Optional[Path]:
         """Checks potential locations for libraryfolders.vdf and returns the path if foind"""
-        if not self.steam_install:
-            return None
-
         potential_paths = [
-            self.steam_install / STEAM_STEAMAPPS_FOLDER / LIBRARY_FOLDERS_VDF_FILE,
-            self.steam_install / STEAM_CONFIG_FOLDER / LIBRARY_FOLDERS_VDF_FILE,
+            steam_folder / STEAM_STEAMAPPS_FOLDER / LIBRARY_FOLDERS_VDF_FILE,
+            steam_folder / STEAM_CONFIG_FOLDER / LIBRARY_FOLDERS_VDF_FILE,
         ]
 
         for path in potential_paths:
@@ -194,95 +164,118 @@ class SteamHelper(StoreHelperBase):
         return None
 
     def get_steam_libraries(self) -> list[Path]:
+        """Every Steam library (its `steamapps` folder) of every Steam folder found, without duplicates."""
         log.info("Getting available Steam Libraries...")
 
-        if not self.steam_install:
-            self.steam_install = self.get_steam_install_path()
-            if not self.steam_install:
-                return []
+        libraries: list[Path] = []
+        for steam_folder in self.get_steam_install_paths():
+            for library in self._libraries_of(steam_folder):
+                if library not in libraries:
+                    libraries.append(library)
 
-        # Always fallback to default steamapps folder
-        default_library_path = (self.steam_install / STEAM_STEAMAPPS_FOLDER).resolve()
-        if default_library_path.is_dir() and default_library_path not in self.steam_library_paths:
-            resolved_path = default_library_path.resolve()
-            self.steam_library_paths.append(resolved_path)
-            log.info(f"Added default Steam library: {resolved_path}", silent=True)
+        log.info(f"Final known library paths: {libraries}", silent=True)
+        return libraries
 
-        # Find and parse libraryfolders.vdf
-        library_file = self._find_library_folders_vdf()
+    def _libraries_of(self, steam_folder: Path) -> list[Path]:
+        """
+        The libraries of one Steam folder, its own `steamapps` folder, and those listed in its libraryfolders.vdf.
+        """
+        libraries: list[Path] = []
+
+        default_library = (steam_folder / STEAM_STEAMAPPS_FOLDER).resolve()
+        if default_library.is_dir():
+            libraries.append(default_library)
+
+        library_file = self._find_library_folders_vdf(steam_folder)
         if not library_file:
-            return self.steam_library_paths
+            return libraries
 
-        path_list = self.get_from_vdf_file(library_file, VDF_PATH_KEY)
-        if not path_list:
-            log.warning(f"No additional library paths found in {library_file}.", silent=True)
-            return self.steam_library_paths
+        for path_str in self.get_from_vdf_file(library_file, VDF_PATH_KEY):
+            library = (Path(path_str) / STEAM_STEAMAPPS_FOLDER).resolve()
+            if library.is_dir() and library not in libraries:
+                libraries.append(library)
 
-        for item_str in path_list:
-            item = Path(item_str)
-            if item.is_dir():
-                library_path = (item / STEAM_STEAMAPPS_FOLDER).resolve()
-                if library_path not in self.steam_library_paths:
-                    self.steam_library_paths.append(library_path)
+        return libraries
 
-        log.info(f"Final known library paths: {self.steam_library_paths}", silent=True)
-        return self.steam_library_paths
+    def get_game_install_paths(self, game_name: str) -> list[Path]:
+        """
+        Every folder `game_name` is installed in, across all Steam folders and libraries.
+
+        Empty if none.
+        """
+        log.info(f"Acquiring {game_name} installation(s)...")
+
+        install_paths: list[Path] = []
+        for library in self.get_steam_libraries():
+            install_info = self._game_install_info_in_library(library, game_name)
+            if install_info:
+                install_paths.append(Path(install_info.library) / STEAM_COMMON_FOLDER / install_info.title)
+
+        if not install_paths:
+            log.error(f"Unable to determine installation information for {game_name}")
+
+        return install_paths
 
     def get_game_install_path(self, game_name) -> Optional[Path]:
-        log.info(f"Acquiring {game_name} installation...")
-
-        install_details: Optional[SteamInstallInfo] = self.get_game_install_info_from_name(game_name)
-
-        if not install_details:
+        """
+        The first folder `game_name` is installed in.
+        """
+        install_paths = self.get_game_install_paths(game_name)
+        if not install_paths:
             return None
+        return install_paths[0]
 
-        log.info(f"{install_details=}", silent=True)
+    def get_steam_install_paths(self) -> list[Path]:
+        """
+        Every Steam folder to search, without duplicates, the one set in General Utilities first (if it exists),
+        then every Steam folder found on this system.
 
-        title_name = install_details.title
-        library = install_details.library
+        Empty if none.
+        """
+        log.info("Acquiring Steam installation(s)...")
 
-        return Path(library) / STEAM_COMMON_FOLDER / title_name
-
-    def get_steam_install_path(self) -> Optional[Path]:
-        log.info("Acquiring Steam installation...")
+        candidates: list[Path] = []
 
         saved_path_str = services().settings.app_settings.steam_install_path
         if saved_path_str:
-            saved_path = Path(saved_path_str)
-            if saved_path.exists():
-                self.steam_install = saved_path
-                log.info("Got Steam install path from Settings")
-                return self.steam_install
+            candidates.append(Path(saved_path_str))
 
-        steam_path_str: Optional[str] = None
+        candidates.extend(self._steam_folder_candidates())
 
-        if os_windows():
-            # Try 64-bit first
-            steam_path_str = registry_helper.read_key(STEAM_REGISTRY_PATH_64, STEAM_INSTALL_LOCATION_KEY)
+        steam_folders: list[Path] = []
+        for candidate in candidates:
+            if not candidate.is_dir():
+                continue
 
-            # Try 32-bit if 64 failed.
-            if not steam_path_str:
-                steam_path_str = registry_helper.read_key(STEAM_REGISTRY_PATH_32, STEAM_INSTALL_LOCATION_KEY)
-        else:
-            if os_linux():
-                search_paths = LINUX_DISTRO_PATHS
-            elif os_darwin():
-                search_paths = MACOS_DISTRO_PATHS
-            else:
-                search_paths = []
+            # Different paths can be the same folder (~/.steam/steam links to ~/.local/share/Steam)
+            steam_folder = candidate.resolve()
+            if steam_folder not in steam_folders:
+                steam_folders.append(steam_folder)
 
-            for distro_path in search_paths:
-                if Path(distro_path).exists():
-                    steam_path_str = str(distro_path)
-                    break
-
-        if steam_path_str:
-            self.steam_install = Path(steam_path_str)
-            services().settings.app_settings.steam_install_path = self.steam_install.resolve().as_posix()
-            return self.steam_install
-        else:
+        if not steam_folders:
             log.error("Unable to acquire Steam installation.")
-            return Path().home()
+            return []
+
+        log.info(f"Steam folder(s): {steam_folders}")
+        return steam_folders
+
+    def _steam_folder_candidates(self) -> list[Path]:
+        """Where Steam may be installed on the system. Can not exist."""
+        if os_windows():
+            candidates: list[Path] = []
+            for registry_path in (STEAM_REGISTRY_PATH_64, STEAM_REGISTRY_PATH_32):
+                steam_path_str = registry_helper.read_key(registry_path, STEAM_INSTALL_LOCATION_KEY)
+                if steam_path_str:
+                    candidates.append(Path(steam_path_str))
+            return candidates
+
+        if os_linux():
+            return LINUX_DISTRO_PATHS
+
+        if os_darwin():
+            return MACOS_DISTRO_PATHS
+
+        return []
 
     def get_app_id_from_install_path(self, install_path: str | Path) -> str:
         if not isinstance(install_path, Path):
@@ -433,17 +426,14 @@ class SteamHelper(StoreHelperBase):
         self.open_url(steam_cmd_url)
 
     def get_windows_steam_executable(self) -> Optional[Path]:
-        """steam.exe in the saved Steam folder. None when not on Windows, or when it can't be found."""
+        """steam.exe in the first Steam folder that has one. None when not on Windows, or when none is found."""
         if not os_windows():
             return None
 
-        steam_install_path = services().settings.app_settings.steam_install_path
-        if not steam_install_path:
-            return None
+        for steam_folder in self.get_steam_install_paths():
+            steam_exe = steam_folder / STEAM_EXECUTABLE_WINDOWS
+            if steam_exe.is_file():
+                return steam_exe
 
-        steam_exe = Path(steam_install_path) / STEAM_EXECUTABLE_WINDOWS
-        if not steam_exe.is_file():
-            log.warning(f"Steam executable not found: {steam_exe}")
-            return None
-
-        return steam_exe
+        log.warning("Steam executable not found.")
+        return None
