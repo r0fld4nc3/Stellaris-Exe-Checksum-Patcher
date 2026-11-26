@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.game_location import (
-    find_game_executable,
+    find_game_executables,
     find_game_folder,
     find_save_games_folders,
     game_folder_for,
@@ -344,9 +344,7 @@ class GameUtilitiesTab(OptionsTab):
             # Auto-locate in the background, then try again with the result
             log.info("Attempting to auto-locate game installation...")
             path_finder_thread = Threader(target=self._find_game_path_worker_thread)
-            path_finder_thread.signals.result.connect(
-                lambda result: self.show_game_folder(result, _retry_attempted=True)
-            )
+            path_finder_thread.signals.result.connect(self._on_game_paths_found)
             self.start_thread(path_finder_thread)
             return
 
@@ -357,6 +355,26 @@ class GameUtilitiesTab(OptionsTab):
             self.show_game_folder(auto_located_path=picked_path, _retry_attempted=_retry_attempted)
         else:
             log.warning("User cancelled location. Unable to show game folder.")
+
+    def _on_game_paths_found(self, found_paths: list[Path]):
+        """After auto-locating for Show Game Folder, let the user pick when several were found, then shows its folder."""
+        if not found_paths:
+            self.show_game_folder(None, _retry_attempted=True)
+            return
+
+        options: list[tuple[str, Path, str]] = [(str(opt), opt, "") for opt in found_paths]
+        picked_path = option_dialog_pick_from_options(
+            f"Pick {self.selected_game} Executable",
+            f"{self.selected_game} was found in more than one place. Pick the one to show.",
+            options,
+            parent=self.window(),
+        )
+
+        if picked_path is None:
+            log.warning("User cancelled the executable picker. Unable to show game folder.")
+            return
+
+        self.show_game_folder(picked_path, _retry_attempted=True)
 
     def show_save_games_folder(self):
         game = self.selected_game
@@ -381,10 +399,7 @@ class GameUtilitiesTab(OptionsTab):
                 start_path=start_path,
             )
         else:
-            options: list[tuple[str, Path, str]] = []
-            for path_option in save_games_folders:
-                options.append((str(path_option), path_option, ""))
-
+            options: list[tuple[str, Path, str]] = [(str(opt), opt, "") for opt in save_games_folders]
             # One folder is used without asking. Several: asks in a dialog over the options window
             picked_save_games_folder = option_dialog_pick_from_options(
                 f"Pick {game} Save Games Folder",
@@ -615,6 +630,7 @@ class GameUtilitiesTab(OptionsTab):
     def _find_game_path_worker_thread(self) -> Optional[Path]:
         """
         WORKER FUNCTION: Tries to find the game path automatically.
-        Returns the path if found, otherwise None.
+        Returns every one found.
+        Empty if none.
         """
-        return find_game_executable(self.ctx.patcher, self.config)
+        return find_game_executables(self.ctx.patcher, self.config)

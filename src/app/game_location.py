@@ -33,32 +33,38 @@ def save_game_executable(configuration: PatchConfiguration, executable: Path) ->
     log.info(f"Saved {configuration.game} executable: '{executable_posix}'", silent=True)
 
 
-def find_game_executable(patcher: Patcher, configuration: PatchConfiguration) -> Optional[Path]:
+def find_game_executables(patcher: Patcher, configuration: PatchConfiguration) -> list[Path]:
     """
-    The game executable to patch if a saved one still exists, otherwise found through the game's store.
-    None if neither works.
+    The game executables to patch.
+    The saved one if it still exists, otherwise every one found through the game's store.
+    Several when the game is installed more than once (two Steam libraries), so the caller lets the user pick.
+    Empty if none.
     """
     saved_path = saved_game_executable(configuration)
     if saved_path:
         if saved_path.is_file():
             log.info(f"Retrieved game executable from settings: '{saved_path}'", silent=True)
-            return saved_path
+            return [saved_path]
         log.warning("Saved game path found, but executable is invalid.")
 
     store_helper = get_store_helper(configuration.game)
     if not store_helper:
         log.error(f"Failed to locate {configuration.game} installation.")
-        return None
+        return []
 
     log.info("Attempting to auto-locate game installation.")
-    install_folder = store_helper.get_game_install_path(configuration.game)
-    executable = patcher.find_executable(configuration, install_folder)
-    if not executable:
-        log.error(f"Failed to locate {configuration.game} installation.")
-        return None
+    executables: list[Path] = []
+    for install_folder in store_helper.get_game_install_paths(configuration.game):
+        executable = patcher.find_executable(configuration, install_folder)
+        if executable and executable not in executables:
+            executables.append(executable)
 
-    log.info(f"Auto-located path: {executable}")
-    return executable
+    if not executables:
+        log.error(f"Failed to locate {configuration.game} installation.")
+        return []
+
+    log.info(f"Auto-located path(s): {executables}")
+    return executables
 
 
 def find_game_folder(patcher: Patcher, configuration: PatchConfiguration) -> Optional[Path]:

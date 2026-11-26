@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.game_location import (
-    find_game_executable,
+    find_game_executables,
     find_save_games_folders,
     save_game_executable,
     saved_game_executable,
@@ -628,13 +628,12 @@ class StellarisChecksumPatcherGUI(QMainWindow):
 
         return outcome.results
 
-    def _find_game_path_worker_thread(self) -> Optional[Path]:
+    def _find_game_path_worker_thread(self) -> list[Path]:
         """
         WORKER FUNCTION: Tries to find the game path automatically.
-        Returns the path if found, otherwise None.
+        Returns every one found. Empty if none.
         """
-
-        return find_game_executable(self.patcher, self.configuration)
+        return find_game_executables(self.patcher, self.configuration)
 
     @Slot()
     def start_patch_game_executable_thread(self):
@@ -673,7 +672,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         if pick_binary_path:
             # Shift-click: skip the saved and auto-located paths, the user picks the executable
             log.info("Shift-click Modifier Active: asking for the game executable.", silent=True)
-            self._path_found_or_failed(None)  # Reuse with None to force dialog picker
+            self._path_found_or_failed([])
             return
 
         # Attempt to find and establish paths
@@ -701,35 +700,41 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         return True
 
     @Slot(object)
-    def _path_found_or_failed(self, found_path: Optional[Path]):
+    def _path_found_or_failed(self, found_paths: list[Path]):
         """
-        SLOT FUNCTION: Runs on the main thread after _find_game_path_worker_thread
+        SLOT FUNCTION: Runs on the main thread after _find_game_path_worker_thread.
+        One executable found: used. Several: the user picks one.
+
+        None: the user chooses it with a file picker.
         """
 
-        game_binary_path = found_path
+        game = self.configuration.game
 
-        if not game_binary_path:
+        if found_paths:
+            options: list[tuple[str, Path, str]] = [(str(opt), opt, "") for opt in found_paths]
+            game_binary_path = option_dialog_pick_from_options(
+                f"Pick {game} Executable",
+                f"{game} was found in more than one place. Pick executable to patch.",
+                options,
+                parent=self.window(),
+            )
+        else:
             # Automatic search failed
             log.info("Asking for user-provided game executable path.")
-
-            user_selected_path = prompt_path(
+            game_binary_path = prompt_path(
                 self,
-                caption=f"Choose {self.configuration.game} executable binary...",
+                caption=f"Choose {game} executable binary...",
                 start_path=saved_game_executable(self.configuration),
             )
 
-            if user_selected_path:
-                game_binary_path = user_selected_path
-            else:
-                # User cancelled
-                log.warning("User cancelled location picker. Aborting patch.")
-                self._set_stop_patching_state()
-                self.hide_progress_bar()
-                return
+        if not game_binary_path:
+            log.warning("User cancelled location picker. Aborting patch.")
+            self._set_stop_patching_state()
+            self.hide_progress_bar()
+            return
 
-        if game_binary_path:
-            save_game_executable(self.configuration, game_binary_path)
-            self._run_patcher_worker_thread(game_binary_path)
+        save_game_executable(self.configuration, game_binary_path)
+        self._run_patcher_worker_thread(game_binary_path)
 
     def _run_patcher_worker_thread(self, game_binary_path: Path):
         """
@@ -808,10 +813,7 @@ class StellarisChecksumPatcherGUI(QMainWindow):
         save_games_folders: list[Path] = find_save_games_folders(game.name)
         log.info(f"Returned possible save games folders: {save_games_folders}", silent=True)
 
-        options: list[tuple[str, Path, str]] = []
-        for path_option in save_games_folders:
-            options.append((str(path_option), path_option, ""))
-
+        options: list[tuple[str, Path, str]] = [(str(opt), opt, "") for opt in save_games_folders]
         # One folder is used without asking. Several: asks in a dialog over this window
         picked_save_games_folder = option_dialog_pick_from_options(
             f"Pick {game.name} Save Games Folder",
@@ -820,13 +822,18 @@ class StellarisChecksumPatcherGUI(QMainWindow):
             parent=self.window(),
         )
 
+        # Folder options offered but user cancelled. Abort and return.
+        if save_games_folders and picked_save_games_folder is None:
+            log.info("Save games folders picker cancelled. Aborting fixing a save.")
+            return
+
         if picked_save_games_folder is not None:
             # Remembered, so it isn't asked again.
             self.settings.game(game.name).save_games_folder = picked_save_games_folder.as_posix()
             start_folder = str(picked_save_games_folder)
         else:
-            # Nothing found or picked. File picker opens in its default location
-            log.info("No save games folder picked. Opening the file picker in its default location.", silent=True)
+            # Nothing found. File picker opens in its default location
+            log.info("No save games folder found. Opening the file picker in its default location.", silent=True)
             start_folder = ""
 
         save_file_path = QFileDialog().getOpenFileName(
