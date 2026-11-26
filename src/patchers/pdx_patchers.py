@@ -241,7 +241,7 @@ class Patcher:
             # macOS: inside .app bundle
             executable = executable / exe_info.path_postfix
 
-        return executable
+        return executable if executable and executable.is_file() else None
 
     def find_bundle_root(self, configuration: PatchConfiguration, binary_path: Path) -> Optional[Path]:
         """
@@ -271,8 +271,12 @@ class Patcher:
         if not game_install_path or not game_install_path.exists():
             return None
 
-        # The install folder is the executable itself (ex.: a macOS .app bundle from GOG)
-        if game_install_path.name.lower() == filename.lower():
+        # The install folder can itself be a macOS .app bundle from GOG.
+        # A regular install folder may share the binary's name with different case
+        # (Stellaris/stellaris on Linux), but must not be returned as the binary.
+        if game_install_path.name.lower() == filename.lower() and (
+            game_install_path.is_file() or (filename.lower().endswith(".app") and game_install_path.is_dir())
+        ):
             log.info(f"Auto-located path: '{game_install_path}'")
             return game_install_path
 
@@ -283,7 +287,7 @@ class Patcher:
 
         # Not where we expected it, search the whole install folder
         for item in game_install_path.rglob("*"):
-            if item.name == filename:
+            if item.name == filename and (item.is_file() or (filename.lower().endswith(".app") and item.is_dir())):
                 log.info(f"Auto-located path: '{item}'")
                 return item.resolve()
 
